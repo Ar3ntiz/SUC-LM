@@ -1,0 +1,30 @@
+# Long-context measurement of the QSA indexer (top budget / ratio key blocks; a real choice beyond the dense regime) on
+# Qwen/Qwen3.8-Flash-Next (qwen4_exp, 180 B): the BF16 reference layer-streamed from the 360 GB snapshot (needs it in
+# the HF cache; one block resident, n-gram tables memory-mapped), the 4-bit-table SUC1 file through the Python runtime
+# (~62 GB resident), and the reference with QSA off (dense causal attention) as the control. Same data and protocol
+# as long_context_deepseek_v4_flash.yaml (scripts/long_context_eval.py).
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/long_context_eval.py --config experiments/configs/long_context_qwen3.8_flash_next.yaml
+name: long_context_qwen3.8_flash_next
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-Flash-Next
+  revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+  role: target
+lengths: [8192, 16384, 32768, 65536]
+ppl_docs: 2
+kl_stride: 4
+sel_stride: 32
+needle:
+  depths: [0.1, 0.5, 0.9]
+  cases_per_cell: 1
+chunk: 256
+hidden_budget_gb: 24.0
+resident_hidden_budget_gb: 4.0
+add_bos: true
+work_dir: ~/suc-local/long_context
+spill_dir: null
+systems:
+  - {name: reference, kind: reference, indexer: sparse}
+  - {name: suc_python_ngram4, kind: suc1_python, file: ~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next/container/model_ngram4.suc1}
+  - {name: reference_dense, kind: reference, indexer: dense}

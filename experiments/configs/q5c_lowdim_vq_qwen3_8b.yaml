@@ -1,0 +1,25 @@
+# Q5c on Qwen3-8B: low-dimensional single-codebook VQ across the bit range. Ablation finding (abl_codebook):
+# at 4 bpw one codebook with G = 2, K = 256 beats additive M = 4 (G = 8) — KL 0.049 vs 0.068. This run
+# tests whether low-G VQ also wins at 3 and 2 bpw (all codebooks within the D4 16 KB ceiling). G = 3 is not
+# usable here: 4096 is not divisible by 3 (first run failed on it).
+# Same protocol as the abl_* rows (one-sided rotation, 0.5% activation
+# column residual, affine-4 head, shared q/k/v and gate/up rotation, full WikiText-2 test, KL on 16 sequences).
+name: q5c_lowdim_vq_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+rotation_groups: true
+embedding_codec: {kind: affine, bits: 4}
+codecs:
+  - {kind: vq, k: 64, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}    # 3 bpw
+  - {kind: vq, k: 16, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}    # 2 bpw
+  - {kind: vq, k: 32, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}    # 2.5 bpw
+  - {kind: vq, k: 256, block_size: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}   # 2 bpw (G4 reference)
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # 3 bpw reference

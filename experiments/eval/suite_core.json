@@ -1,0 +1,499 @@
+{
+ "suite": "suc_core",
+ "version": 1,
+ "description": "SUC core evaluation suite: the 20 QA prompts of experiments/qa/prompts.json (raw prompts, Qwen3 chat template; math prompts graded on the integer answer, explanations graded only by agreement with the reference system) + 20 short authored items (10 integer, 10 multiple choice, English and Italian, no thinking, ds4-style 'Answer:' final line). A regression / agreement suite for compressed models, not a capability benchmark.",
+ "attribution": "Authored for SUC-LM; prompt format and answer extraction follow ds4-eval (MIT, The ds4.c authors).",
+ "system": null,
+ "cases": [
+  {
+   "id": "qa/it_explain_1",
+   "source": "QA",
+   "domain": "it_explain",
+   "kind": "open",
+   "question": "Spiegami in poche frasi perché il cielo è blu.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/it_explain_2",
+   "source": "QA",
+   "domain": "it_explain",
+   "kind": "open",
+   "question": "Che cos'è la fotosintesi? Rispondi in tre frasi.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/it_explain_3",
+   "source": "QA",
+   "domain": "it_explain",
+   "kind": "open",
+   "question": "Perché in inverno fa più freddo che in estate?",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/it_explain_4",
+   "source": "QA",
+   "domain": "it_explain",
+   "kind": "open",
+   "question": "Spiega in breve cos'è un buco nero.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/it_explain_5",
+   "source": "QA",
+   "domain": "it_explain",
+   "kind": "open",
+   "question": "Qual è la differenza tra un virus e un batterio?",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/it_math_1",
+   "source": "QA",
+   "domain": "it_math",
+   "kind": "integer",
+   "question": "Quanto fa 17 moltiplicato per 23? Ragiona passo passo.",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "391"
+  },
+  {
+   "id": "qa/it_math_2",
+   "source": "QA",
+   "domain": "it_math",
+   "kind": "integer",
+   "question": "Un treno viaggia a 80 km/h per 2 ore e mezza. Quanti chilometri percorre?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "200"
+  },
+  {
+   "id": "qa/it_math_3",
+   "source": "QA",
+   "domain": "it_math",
+   "kind": "integer",
+   "question": "Ho 3 scatole con 12 mele ciascuna e ne regalo 7. Quante mele mi restano?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "29"
+  },
+  {
+   "id": "qa/it_math_4",
+   "source": "QA",
+   "domain": "it_math",
+   "kind": "integer",
+   "question": "Quanto è il 15% di 240?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "36"
+  },
+  {
+   "id": "qa/it_math_5",
+   "source": "QA",
+   "domain": "it_math",
+   "kind": "integer",
+   "question": "Quanto fa 144 diviso 12, più 7 al quadrato?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "61"
+  },
+  {
+   "id": "qa/en_explain_1",
+   "source": "QA",
+   "domain": "en_explain",
+   "kind": "open",
+   "question": "Explain in a few sentences why the sky is blue.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/en_explain_2",
+   "source": "QA",
+   "domain": "en_explain",
+   "kind": "open",
+   "question": "What is photosynthesis? Answer in three sentences.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/en_explain_3",
+   "source": "QA",
+   "domain": "en_explain",
+   "kind": "open",
+   "question": "Why is it colder in winter than in summer?",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/en_explain_4",
+   "source": "QA",
+   "domain": "en_explain",
+   "kind": "open",
+   "question": "Briefly explain what a black hole is.",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/en_explain_5",
+   "source": "QA",
+   "domain": "en_explain",
+   "kind": "open",
+   "question": "What is the difference between a virus and a bacterium?",
+   "prompt_style": "raw",
+   "think": false,
+   "max_tokens": 300
+  },
+  {
+   "id": "qa/en_math_1",
+   "source": "QA",
+   "domain": "en_math",
+   "kind": "integer",
+   "question": "What is 17 times 23? Work it out step by step.",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "391"
+  },
+  {
+   "id": "qa/en_math_2",
+   "source": "QA",
+   "domain": "en_math",
+   "kind": "integer",
+   "question": "A train travels at 80 km/h for 2.5 hours. How far does it go?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "200"
+  },
+  {
+   "id": "qa/en_math_3",
+   "source": "QA",
+   "domain": "en_math",
+   "kind": "integer",
+   "question": "I have 3 boxes with 12 apples each and give away 7. How many apples are left?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "29"
+  },
+  {
+   "id": "qa/en_math_4",
+   "source": "QA",
+   "domain": "en_math",
+   "kind": "integer",
+   "question": "What is 15% of 240?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "36"
+  },
+  {
+   "id": "qa/en_math_5",
+   "source": "QA",
+   "domain": "en_math",
+   "kind": "integer",
+   "question": "What is 144 divided by 12, plus 7 squared?",
+   "prompt_style": "raw",
+   "think": true,
+   "max_tokens": 1500,
+   "answer": "61"
+  },
+  {
+   "id": "basic/en_int_01",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "A shop sells pencils at 3 euros each. How many euros do 14 pencils cost?",
+   "answer": "42",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_int_02",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "What is 2 to the power of 10?",
+   "answer": "1024",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_int_03",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "A rectangle is 12 cm long and 7 cm wide. What is its area in square centimetres?",
+   "answer": "84",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_int_04",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "How many minutes are there in 3.5 hours?",
+   "answer": "210",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_int_05",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "What is the smallest prime number greater than 50?",
+   "answer": "53",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_int_06",
+   "source": "SUC-basic",
+   "domain": "en_arithmetic",
+   "kind": "integer",
+   "question": "If x + 2x + 3x = 48, what is x?",
+   "answer": "8",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_int_07",
+   "source": "SUC-basic",
+   "domain": "it_arithmetic",
+   "kind": "integer",
+   "question": "Marco ha 45 caramelle e le divide in parti uguali tra 9 amici. Quante caramelle riceve ciascun amico?",
+   "answer": "5",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_int_08",
+   "source": "SUC-basic",
+   "domain": "it_arithmetic",
+   "kind": "integer",
+   "question": "Qual è la somma dei numeri interi da 1 a 30?",
+   "answer": "465",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_int_09",
+   "source": "SUC-basic",
+   "domain": "it_arithmetic",
+   "kind": "integer",
+   "question": "Un libro costa 25 euro ed è scontato del 20%. Quanti euro costa dopo lo sconto?",
+   "answer": "20",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_int_10",
+   "source": "SUC-basic",
+   "domain": "it_arithmetic",
+   "kind": "integer",
+   "question": "Quanti giorni ha un anno bisestile?",
+   "answer": "366",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_01",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "Which planet is known as the Red Planet?",
+   "choices": [
+    "Venus",
+    "Mars",
+    "Jupiter",
+    "Saturn"
+   ],
+   "answer": "B",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_02",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "What is the chemical symbol of gold?",
+   "choices": [
+    "Ag",
+    "Gd",
+    "Au",
+    "Go"
+   ],
+   "answer": "C",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_03",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "Which gas do plants mainly absorb from the air for photosynthesis?",
+   "choices": [
+    "Oxygen",
+    "Nitrogen",
+    "Carbon dioxide",
+    "Helium"
+   ],
+   "answer": "C",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_04",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "Which of these animals is a mammal?",
+   "choices": [
+    "Shark",
+    "Dolphin",
+    "Octopus",
+    "Salmon"
+   ],
+   "answer": "B",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_05",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "What is the boiling point of water at sea level, in degrees Celsius?",
+   "choices": [
+    "90",
+    "100",
+    "110",
+    "120"
+   ],
+   "answer": "B",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_06",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "In computing, what does CPU stand for?",
+   "choices": [
+    "Central Processing Unit",
+    "Computer Personal Unit",
+    "Central Program Utility",
+    "Core Power Unit"
+   ],
+   "answer": "A",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/en_mc_07",
+   "source": "SUC-basic",
+   "domain": "en_knowledge",
+   "kind": "choice",
+   "question": "Which ocean is the largest?",
+   "choices": [
+    "Atlantic",
+    "Indian",
+    "Arctic",
+    "Pacific"
+   ],
+   "answer": "D",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_mc_08",
+   "source": "SUC-basic",
+   "domain": "it_knowledge",
+   "kind": "choice",
+   "question": "Qual è la capitale dell'Australia?",
+   "choices": [
+    "Sydney",
+    "Melbourne",
+    "Canberra",
+    "Perth"
+   ],
+   "answer": "C",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_mc_09",
+   "source": "SUC-basic",
+   "domain": "it_knowledge",
+   "kind": "choice",
+   "question": "Chi ha scritto \"I promessi sposi\"?",
+   "choices": [
+    "Dante Alighieri",
+    "Alessandro Manzoni",
+    "Giovanni Verga",
+    "Italo Calvino"
+   ],
+   "answer": "B",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  },
+  {
+   "id": "basic/it_mc_10",
+   "source": "SUC-basic",
+   "domain": "it_knowledge",
+   "kind": "choice",
+   "question": "Quanti lati ha un esagono?",
+   "choices": [
+    "5",
+    "6",
+    "7",
+    "8"
+   ],
+   "answer": "B",
+   "prompt_style": "ds4",
+   "think": false,
+   "max_tokens": 512
+  }
+ ]
+}

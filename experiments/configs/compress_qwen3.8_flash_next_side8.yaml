@@ -1,0 +1,48 @@
+# suc compress, Qwen/Qwen3.8-Flash-Next, variant "side8": the iso-bit variant (compress_qwen3.8_flash_next_iso.yaml)
+# with the routed experts back at the base run's codec (VQ G=2 K=256 rot1s + 0.5 % column residual, 4.16 bpw instead
+# of 4.42): affine 8-bit g64 attention / linear attention / shared expert / PLE key-value, affine 8-bit LM head, BF16
+# embedding. Splits the iso gain (base KL 0.151 -> iso 0.054, raw tables) between the non-expert / head precision
+# and the larger expert residual, and is the smaller / faster point (fewer expert bytes and residual columns per
+# token). N-gram tables stored row-affine 4-bit directly (deployment form; the evaluate stage measures with them).
+# Predicted: routed experts 62.8 GB + non-expert eligible 3.13 GB + head 0.68 GB + embedding 1.27 GB + kept BF16
+# ~1.5 GB = ~69.4 GB resident + 26.9 GB memory-mapped tables = ~96.3 GB file.
+# Same calibrate / reference as compress_qwen3.8_flash_next.yaml. Studio:
+#   B=~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next; V=experiments/artifacts/compress/compress_qwen3.8_flash_next_side8
+#   mkdir -p $V && cp -cR $B/calibrate $B/reference $V/
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_qwen3.8_flash_next_side8.yaml > logs/compress_qwen3.8_side8.log 2>&1 &
+name: compress_qwen3.8_flash_next_side8
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-Flash-Next
+  revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s_xs+res0.005_activation_cols
+  allocation_unit: expert_stack
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}
+    - {kind: affine, bits: 8}
+    - {kind: bf16}
+  role_codecs:
+    affine_b8_g64: [attn_q, attn_k, attn_v, attn_o, linattn_qkv, linattn_z, linattn_out, shared_expert_gate,
+                    shared_expert_up, shared_expert_down, ple_key, ple_value]
+    bf16: [embed]
+  embedding_codec: {kind: affine, bits: 8}       # LM head (the embedding is overridden to BF16 above)
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+ngram_codec: {kind: row_affine, bits: 4}
+finetune: null
+rotation_groups: true
+verify_tensors: 16

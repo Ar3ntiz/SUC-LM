@@ -1,0 +1,34 @@
+# suc compress, dev model, FINAL configuration (mirrors compress_qwen3_8b_final.yaml): ONE low-dimensional codebook per
+# tensor, VQ G=2 K=256 (8-bit indices = 4 bpw index rate, codebook 1 KB, D4-viable), one-sided input rotation
+# (rotate_out: false), + 0.5% activation-selected int8 COLUMN residual; embedding affine 4-bit g64. Qwen3-0.6B has a
+# TIED embedding / LM head, so the affine 4-bit embedding also serves as the head. Shared q/k/v and gate/up input
+# rotation (fused runtime path). "Small Mac" data point, run on the laptop (Apple M3, 16 GB):
+#   HF_HUB_OFFLINE=1 .venv/bin/suc compress experiments/configs/compress_qwen3_0.6b_final.yaml
+name: compress_qwen3_0.6b_final
+seed: 12345
+output_dir: experiments/results
+run_dir: ~/suc-local/compress/compress_qwen3_0.6b_final   # local disk (the SMB share is slow)
+model:
+  id: Qwen/Qwen3-0.6B
+  revision: c1899de289a04d12100db370d81485cdf75e47ca
+  role: dev
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s+res0.005_activation_cols
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+  embedding_codec: {kind: affine, bits: 4}
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16
+finetune: null
+rotation_groups: true       # shared q/k/v and gate/up input rotation (K5: no quality change; fused runtime path)
+verify_tensors: 16

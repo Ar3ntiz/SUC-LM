@@ -1,0 +1,24 @@
+# suc eval, target 1 (Qwen3-8B), the final SUC1 file (compress_qwen3_8b_final.yaml) on the Mac Studio: the core suite
+# (experiments/eval/suite_core.json) answered greedily by the C++ runtime (default fused plan and --projections
+# separate, the faster plan on the M1 Ultra) and by the Python runtime, graded automatically. Optional BF16 / MLX 4-bit
+# comparison: uncomment the systems below and set `reference: bf16` (or mlx_q4).
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc eval experiments/configs/eval_qwen3_8b_final.yaml > logs/eval_8b_final.log 2>&1 &
+name: eval_qwen3_8b_final
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+suite: experiments/eval/suite_core.json
+systems:
+  - {name: suc_cpp, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_8b_final/container/model.suc1}
+  - {name: suc_cpp_separate, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_8b_final/container/model.suc1,
+     cpp_args: [--projections, separate]}
+  - {name: suc_python, kind: suc1_python, file: experiments/artifacts/compress/compress_qwen3_8b_final/container/model.suc1}
+  # - {name: bf16, kind: bf16}
+  # - {name: mlx_q4, kind: mlx_affine, bits: 4, group_size: 64}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 128
+compare_to: null

@@ -1,0 +1,49 @@
+# suc compress, post-project model Qwen/Qwen3.8-Flash-Next (model_type qwen4_exp, 180 B BF16: Gated DeltaNet + QSA
+# full attention, 4-stream hyper-connections, PLE n-gram tables, 512 experts top-10 + gated shared expert; see
+# docs/arch/qwen4_exp.md). FINAL recipe of the MoE target (compress_qwen3_30b_a3b_final.yaml), UNIFORM plan:
+# VQ G=2 K=256, one-sided input rotation, + 0.5 % activation-selected int8 column residual on every eligible linear
+# (attention q/k/v/o, linear-attention qkv/z/out, shared expert, routed experts, PLE key/value: 123.74 B params);
+# ONE shared codebook set per expert stack ("_xs": the 512 experts of a (layer, projection), gate/up of a layer share
+# the input rotation); allocation unit = expert stack.
+# Kept BF16 (not eligible, doc §6): routers, shared-expert scalar gates, in_proj_a/b, the QSA indexer projection, all
+# hyper-connection mixers (0.64 B), norms, conv weights, A_log / dt_bias. Embedding and the untied LM head: affine 4-bit
+# g64. N-gram tables (51.2 B, 102.4 GB BF16): written by the container stage directly as the row-wise affine 4-bit
+# record of `suc repack` (ngram_codec: one f16 scale / bias per 160-wide row, 4.2 bpp, 26.9 GB; one shard at a time
+# from the checkpoint mmap, D8) and memory-mapped by the runtime (16 row gathers per token on the CPU, gather-dequant,
+# never resident); the evaluate stage measures the model with these stored tables. Their sensitivity vs raw BF16
+# tables is an ablation (raw = ngram_codec omitted). Vision tower and MTP head are dropped.
+# Calibration 512 x 512 and PPL windows of 2048 tokens are in the regime where QSA is exactly dense (<= 2051 tokens);
+# long-context behaviour is NOT measured by this run.
+# Fine-tuning is not supported with shared expert-stack codebooks (config validation rejects it).
+# Needs the full 360 GB snapshot on the Studio; preflight estimates in docs/arch/qwen4_exp.md §11.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_qwen3.8_flash_next.yaml > logs/compress_qwen3.8.log 2>&1 &
+name: compress_qwen3.8_flash_next
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-Flash-Next
+  revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s_xs+res0.005_activation_cols
+  allocation_unit: expert_stack
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}
+  embedding_codec: {kind: affine, bits: 4}
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+ngram_codec: {kind: row_affine, bits: 4}
+finetune: null
+rotation_groups: true
+verify_tensors: 16

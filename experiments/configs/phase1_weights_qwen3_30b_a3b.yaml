@@ -1,0 +1,19 @@
+# Phase 1 weight-structure analysis, target 2, MoE (4 sampled experts per layer) (spec §8). Decides which block sizes and
+# codebook sizes are plausible before any codebook work (go/no-go gate after this phase).
+name: phase1_weights_qwen3_30b_a3b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+analysis:
+  layers: null              # first, middle, last
+  experts_per_layer: 4
+  block_sizes: [4, 8, 16, 32, 64, 128]
+  kmeans_block_sizes: [4, 8, 16]
+  codebook_sizes: [16, 64, 256, 1024]
+  rotations: [false, true]
+  normalize_rows: true
+  max_blocks: 262144
+  kmeans_iters: 25

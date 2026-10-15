@@ -1,0 +1,22 @@
+# suc eval ENLARGED hard suite (experiments/eval/suite_hard20.json, 120 cases, 20 per subset; round 0 = the 30 cases of
+# suite_hard.json; thinking off; LongCtx ~8-32k tokens last) on the GLM-5.3-Flash tcq re-encode
+# (compress_glm5.3_flash_tcq, routed experts 2.45 bpw, fully resident, C++ runtime ~/suc-local/cpp-
+# build/suc1-generate). Paired with the ds4 Q2 GGUF run gguf_eval_hard20_glm_q2 (scripts/gguf_compare.py eval glm_q2
+# --suite ...). Queue: scripts/studio_hard20.sh (per-job time cap via SUC_EVAL_DEADLINE: cases not started before it
+# are recorded SKIPPED); summary: scripts/hard_suite_report.py (section "Hard suite, enlarged"). Same system / runtime
+# flags as eval_hard_glm_tcq.yaml.
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/frontier_measure.py suc eval experiments/configs/eval_hard20_glm_tcq.yaml
+name: eval_hard20_glm_tcq
+seed: 12345
+output_dir: experiments/results
+model:
+  id: zai-org/GLM-5.3-Flash
+  revision: eb9eb208eb0d988989d07a6a12d0fdeb5f52574a
+  role: target
+suite: experiments/eval/suite_hard20.json
+systems:
+  - {name: suc_cpp_tcq, kind: suc1_cpp, file: experiments/artifacts/compress/compress_glm5.3_flash_tcq/container/model.suc1}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 0
+compare_to: null

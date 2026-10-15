@@ -1,0 +1,38 @@
+# suc compress, target 2 (MoE), FINAL configuration, UNIFORM plan: the codec family of compress_qwen3_8b_final.yaml on
+# every eligible linear — VQ G=2 K=256 (4 bpw index), one-sided input rotation, + 0.5% activation-selected int8 column
+# residual — with ONE shared codebook set per expert stack (codebook_scope: expert_stack, "_xs": all 128 experts of a
+# (layer, projection); shared rotation seeds, gate/up of a layer share V); attention tensors per tensor; the router
+# stays BF16 (not eligible); embedding and untied LM head affine 4-bit g64. Allocation unit = expert stack.
+# NOTE: on the MoE the greedy Fisher allocation beats uniform plans clearly (docs/benchmarks.md "Q7 — allocation over
+# expert stacks": greedy 4.0 KL 0.0783 vs uniform M=4 KL 0.0832 at 4.17 bpp), see compress_qwen3_30b_a3b_final_greedy.yaml.
+# Fine-tuning is not supported with shared expert-stack codebooks (config validation rejects it).
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_qwen3_30b_a3b_final.yaml > logs/compress_30b_final.log 2>&1 &
+name: compress_qwen3_30b_a3b_final
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s_xs+res0.005_activation_cols
+  allocation_unit: expert_stack
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}
+  embedding_codec: {kind: affine, bits: 4}
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+finetune: null
+rotation_groups: true
+verify_tensors: 16

@@ -1,0 +1,29 @@
+# Phase 0 baseline, target 1, dense (D7). Run on the Mac Studio M1 Ultra only.
+# Full WikiText-2 test split (final-test set: never used for calibration, spec §32).
+name: phase0_target_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  local_path: null
+  role: target
+dataset:
+  name: wikitext2
+  split: test
+  seq_len: 2048
+  max_tokens: null
+representations:
+  - kind: bf16
+  - kind: mlx_affine
+    bits: 8
+    group_size: 64
+  - kind: mlx_affine
+    bits: 4
+    group_size: 64
+bench:
+  prompt_lengths: [128, 512, 2048]
+  decode_tokens: 128
+  batch_sizes: [1, 4, 16]
+  warmup: 1
+  repeats: 3

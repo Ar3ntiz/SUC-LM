@@ -1,0 +1,39 @@
+# suc compress, Qwen/Qwen3.8-27B (dense qwen3_5: 48 Gated DeltaNet + 16 gated full-attention layers, dense SwiGLU MLP;
+# suc/models/mlx_qwen3_5.py), variant "side8", the dense analogue of compress_qwen3.8_flash_next_side8.yaml: the bulk
+# (MLP gate / up / down, linear-attention qkv / z / out: 22.6 B parameters) at the final codec VQ G=2 K=256 one-sided
+# rotation + 0.5 % activation-selected column residual; the 16 full-attention layers (q / k / v / o, 1.7 B) affine 8-bit
+# g64; embedding and LM head affine 8-bit g64 (embedding_codec). Kept BF16: in_proj_a / in_proj_b, norms, conv, A_log,
+# dt_bias. Predicted ~16.3 GB file (~4.8 bpp), everything resident (fits the 16 / 24 / 32 GB targets with KV).
+# mlp.down_proj (in_features 17408 = 17 * 2^10) is rotated with the m = 17 Hartley factor (suc.quant.hadamard).
+# Iso-bit companion: compress_qwen3.8_27b_base.yaml (final recipe everywhere, 4-bit embedding / head). Studio:
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_qwen3.8_27b_side8.yaml > logs/compress_qwen3.8_27b_side8.log 2>&1 &
+name: compress_qwen3.8_27b_side8
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-27B
+  revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s+res0.005_activation_cols
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+    - {kind: affine, bits: 8}
+  role_codecs:
+    affine_b8_g64: [attn_q, attn_k, attn_v, attn_o]
+  embedding_codec: {kind: affine, bits: 8}
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16
+finetune: null
+rotation_groups: true
+verify_tensors: 16

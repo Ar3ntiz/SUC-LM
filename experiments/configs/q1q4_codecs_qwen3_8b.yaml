@@ -1,0 +1,28 @@
+# Quality track Q1–Q4 on Qwen3-8B (target 1): every eligible linear tensor encoded with one codec at a time,
+# whole-model actual bpp, WikiText-2 test perplexity (final-test set) and KL vs BF16 on held-out
+# validation sequences of the Phase 2 corpus. Codebook sizes respect the D4 ceiling (K*G*2 <= 16 KB).
+name: q1q4_codecs_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test, comparable with Phase 0
+  kl_sequences: 16
+codecs:
+  - {kind: bf16}
+  - {kind: affine, bits: 4}           # conventional baselines (RTN, like MLX affine)
+  - {kind: affine, bits: 3}
+  - {kind: affine, bits: 2}
+  - {kind: scalar, k: 16}             # Q1: scalar codebook (the original lookup-table idea)
+  - {kind: scalar, k: 8}
+  - {kind: scalar, k: 4}
+  - {kind: vq, k: 256, block_size: 8, rotate: false}   # Q2: vector codebook, 1 bpw index
+  - {kind: vq, k: 256, block_size: 8, rotate: true}    # Q3: + rotation
+  - {kind: vq, k: 256, block_size: 4, rotate: true}    # 2 bpw index
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 2}   # Q4: additive, 2 bpw
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3}   # 3 bpw
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4}   # 4 bpw

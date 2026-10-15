@@ -1,0 +1,134 @@
+# Architettura implementata — SUC Studio 0.9.0
+
+## Layout con motore condiviso
+
+- `../cpp/`: unica sorgente del motore nel repository padre; sorgenti C++, kernel Metal e header sono compilati direttamente. Nessuna directory `runtime/` locale. `ENGINE_BUILD_MANIFEST.json` registra gli input effettivi di ogni build.
+- `Engine/inference_service.hpp`: estrazione del server di riferimento, con stesso caricamento e percorsi di generazione. Il parsing richieste è condiviso da chat e HTTP. Aggiunge controlli contesto/modello, inoltro misure esistenti e punti di cancellazione nel wrapper.
+- `Engine/studio_support.hpp`: framing, scheduler FIFO, stato richieste, auth, telemetria e limiti JSON.
+- `Engine/studio_engine.cpp`: eseguibile figlio, caricamento singolo, comandi privati e listener opzionale.
+- `Sources/`: SwiftUI/AppKit, client pipe, store osservabile sul MainActor, persistenza e Keychain.
+- `scripts/`: build CLT, test, verifica bundle, installer e generazione dell’icona.
+
+La libreria Metal e i kernel sono incorporati nel helper, che viene cercato nel bundle. Chat → pipe → helper; il server HTTP apre una socket solo quando l’utente lo avvia. Non viene usato un server loopback nascosto per la chat. Un solo modello/contesto Metal è condiviso dalla coda chat/API. Il caricamento avviene su un worker; l’app non tokenizza o carica pesi sul main thread.
+
+## IPC v1
+
+JSON UTF-8 per riga, massimo 4 MiB/frame; profondità JSON 64. La app invia oggetti con `command`, `id` e parametri. Il helper restituisce `version`, `sequence`, `event`, `id`, `payload`. Le richieste chat hanno UUID univoco; quelle API hanno un ID locale `api-N`, identico nell’output HTTP e negli eventi. La correlazione sessione/messaggio risiede nella app.
+
+Comandi implementati: `hello`, `load`, `unload`, `generate`, `cancel`, `start_server`, `stop_server`, `status`, `shutdown`.
+
+Eventi: `ready`, `loading`, `loaded`, `unloaded`, `server`, `queued`, `started`, `prefill`, `delta`, `metrics`, `finished`, `cancelled`, `error`, `idle`, `status`.
+
+Esempio di richiesta privata:
+
+```json
+{"command":"generate","id":"UUID","body":{"model":"model.suc1","messages":[{"role":"user","content":"Ciao"}],"max_tokens":128,"temperature":0.7}}
+```
+
+Le chiavi API arrivano solo via pipe privata e vengono conservate nel Keychain lato app. Il controllo amministrativo non ha route HTTP. Stdout contiene solo eventi; stderr diagnostica locale. La app legge entrambe le pipe in asincrono, raggruppa i delta testuali a circa 30 Hz e richiede footprint del helper ogni secondo.
+
+## Concorrenza e cancellazione
+
+Una sola richiesta possiede il modello/tokenizer; fino a otto ticket FIFO in attesa, al massimo 32 connessioni HTTP. Un listener fermato invalida il proprio epoch: connessioni precedenti non possono avviare nuove richieste dopo Stop/riavvio. Stop API richiede cancellazione delle richieste API e lascia disponibile la chat.
+
+Cancellazione prima/dopo prefill e durante decode; nel wrapper dense anche tra chunk/token del prefill. I forward opachi delle famiglie frontier non vengono interrotti nel mezzo: la cancellazione resta pendente fino al ritorno. Non sono stati aggiunti callback ai kernel. EOF/shutdown ferma il listener; un watchdog termina il figlio dopo cinque secondi se un’operazione opaca non restituisce. La app non termina processi per nome.
+
+## Telemetria riusata
+
+`prefill_s`, `decode_s`, conteggi prompt/completion sono gli stessi campi del server. Prefill viene inoltrato quando la fase termina; decode alla fine della richiesta. Le formule e le differenze con la mediana della hard suite sono documentate in `TELEMETRY_AUDIT_IT.md`. Nessuna stima dai chunk SSE. Token 0/1 → decode non disponibile.
+
+Le statistiche per messaggio vengono salvate con modello e snapshot dei parametri. Menu bar e tab leggono lo stesso store. La memoria mostrata è il footprint del processo helper, non una somma duplicata di RAM/VRAM.
+
+## Sessioni e persistenza
+
+Per questa prima versione la persistenza è **JSON atomico versionato con backup**, invece del Core Data/SQLite proposto nel piano originario. Questo mantiene il formato autonomo e ispezionabile; il protocollo del motore non dipende dalla scelta di storage. Le scritture sono serializzate in un actor, raggruppate a intervalli di circa 400 ms anche durante streaming continuo. Directory privata (0700), archivio e backup 0600. Un archivio illeggibile blocca il salvataggio per preservare l’originale; il recupero backup è esplicito.
+
+Ogni sessione conserva UUID, titolo, date, bozza, archivio/preferita, system prompt, sampling e messaggi. Modifica/rigenera crea una **sessione derivata**, anziché un albero di varianti interno allo stesso thread. Le richieste congelano il contesto all’invio e mantengono la coppia session ID/message ID anche quando l’utente cambia selezione. Il backend resetta la KV cache per ogni richiesta.
+
+## Differenze dalla specifica progettuale
+
+La specifica in `SUC_STUDIO_PLAN_IT.md` resta il riferimento originario; questo documento descrive il codice consegnato. Storage atomico JSON e varianti come sessioni derivate sono le scelte v0.1. Non sono implementati catalogo multi-modello con metadati completi, migrazioni fra versioni future del database, localizzazione inglese, rendering LaTeX o avanzamento per layer. La UI è italiana; Markdown include titoli, liste, tabelle semplici, blocchi codice e highlighting basilare. Modelli e tokenizer sono riferimenti a file locali con bookmark, senza copie dei pesi.
+
+## Rete
+
+Bearer key obbligatoria tranne `/health` minimale; confronto a tempo indipendente dai prefissi. Origin browser rifiutato, Host limitato a localhost/IPv4. API LAN solo IPv4 HTTP, senza CORS o TLS. Header duplicati rifiutati; body massimo 2 MiB, header 64 KiB; timeout IO socket 15 s. Il listener non offre keep-alive, pur rispondendo HTTP/1.1 e SSE validi: i client possono riconnettersi. Il timeout socket non limita la durata del calcolo GPU.
+
+## Memoria 0.2.0
+
+Il wrapper LoadedEngine legge i metadati e riusa i parser architettura originali. Prima di creare MappedFile/ExpertStream applica memory_policy.hpp: limite `min(working set Metal, 96% RAM fisica)`, stima pesi e riserva KV specifica dell’architettura più 1 GiB, modalità auto/resident/manual. La cache SSD è il percorso ExpertStream originale. Dopo costruzione del modello controlla viste/pool effettivi prima del warm-up. Le stime non sono un admission controller del sistema e possono rifiutare modelli che entrerebbero in RAM o non prevedere tutte le allocazioni temporanee. Gli errori passano attraverso il normale evento error e il modello parziale viene distrutto tramite RAII.
+
+memory_plan è un evento del caricamento; expert_stats è emesso solo dal proprietario della generazione seriale a fine fase, con UUID della richiesta. Lo stato SSD viene azzerato a inizio richiesta senza svuotare la cache. Il timer di status non legge contatori mutabili del runtime. AppSettings.memoryMode è opzionale per migrazione compatibile con 0.1.
+
+## Harness allegati 0.3.0
+
+Attachments.swift estrae localmente il testo prima dell’invio. Il contenuto decide l’estrattore, senza whitelist di estensioni. DOCX/ODT: unzip di sistema legge selettivamente le parti XML in stdout, senza estrarre percorsi dall’archivio sul disco; XMLParser senza entità esterne, DTD rifiutati. DOC/RTF: textutil. Sottoprocessi lanciati direttamente con argv (nessuna shell), output limitato e timeout; temporanei privati eliminati dopo la conversione. PDFKit per PDF; decodifica testuale con controlli per il resto. Nessuna dipendenza scaricata.
+
+ChatAttachment conserva nome e testo, non URL/bookmark. Campi Codable opzionali per mantenere compatibilità con archivi precedenti. L’import cattura UUID sessione prima del lavoro asincrono; invio disabilitato finché la lettura non termina. modelContent combina domanda e allegati in un unico messaggio user e viene riutilizzato per tutta la cronologia. Il motore applica il limite token reale senza troncamento. Il C++ non cambia salvo stringa versione dell’helper.
+
+Dalla 0.4 gli script condividono `engine-path.sh`; la cache usa hash del contenuto e la suite CPU proviene da `../cpp/tests`. I paragrafi 0.2/0.3 descrivono le funzionalità aggiunte in quelle versioni, non un requisito di vendorizzazione attuale.
+
+
+## Personalizzazione e MCP 0.5.0
+
+PromptComposer compone un singolo messaggio system (globale, skill attive, extra sessione) prima dell’invio nativo. GenerationSnapshot conserva il testo composto. AppSettings usa campi nuovi opzionali per leggere archivi precedenti; l’API del motore continua a rispettare il prompt inviato dal proprio client.
+
+MCPClient.swift gestisce JSON-RPC stdio con Process/pipe e Streamable HTTP con URLSession effimera, session ID e parser SSE limitato a 4 MiB. Le credenziali risiedono nel Portachiavi; nessun redirect HTTP viene seguito. Il client non espone sampling/elicitation o accesso implicito ai file. Customization.swift mantiene connessioni, stato e UUID della sessione che ha avviato lo strumento. Le chiamate sono esplicite dalla UI: i risultati diventano ChatAttachment, con gli stessi limiti e la stessa persistenza degli altri allegati. Non occorrono modifiche al tool calling del C++.
+
+ExtensionViews.swift contiene editor skill/MCP e selettore strumenti. La navigazione mantiene una colonna laterale di 58 o 154 punti con preferenza persistente. generate-help.py genera HTML escapato con CSS incorporato, senza script o risorse remote, e build.sh lo include nel bundle. Il pulsante Settings apre il file HTML con il browser predefinito.
+
+
+## Backend remoto 0.6.0
+
+RemoteInference possiede una URLSession effimera per generazione, senza retry o redirect, con parser SSE limitato e aggiornamenti aggregati. Il trasporto riusa gli eventi dello store con ID richiesta: il cambio sessione non sposta i risultati. RemoteConfiguration conserva endpoint, modello e opzione parametri estesi; la chiave usa un UUID del Portachiavi. La selezione della chat è indipendente da modello locale e listener API. La chiusura del motore locale non cancella richieste remote.
+
+
+## Workspace e approvazioni 0.7.0
+
+WorkspaceAction accetta un solo oggetto suc_action completo, con nome e argomenti stringa. PromptComposer pubblica il protocollo solo per sessioni abilitate con directory. WorkspaceCoordinator riconosce le risposte completate, accoda approvazioni, conserva ActionRecord e inoltra al modello il risultato reale, catturando l’UUID della sessione. Limite di 12 azioni per turno e arresto esplicito. Le autorizzazioni di sessioni importate sono azzerate.
+
+WorkspaceTools verifica percorsi canonicalizzati rispetto al root e limita file/output. studio-command.cpp è un piccolo helper dell’app, distinto dal motore: avvia zsh in un gruppo di processi proprio per consentire timeout e cancellazione del gruppo. Non implementa una sandbox di filesystem/rete. Nessuna modifica numerica al motore condiviso.
+
+
+## Delega e hook 0.8.0
+
+AutomationHarness collega i risultati delle sessioni figlie a continuation del principale. Delega sequenziale, quattro figli per turno e un livello; le sessioni conservano parentSessionID e SubtaskRecord. La generazione locale resta nello scheduler del singolo motore. Stop propaga cancellazioni a richieste, strumenti e approvazioni dei figli.
+
+Gli hook sono configurazioni archiviate, eseguite tramite WorkspaceCommand con ambiente esplicito, stesso root e approvazioni della sessione. Prima della richiesta vengono eseguiti prima dell’invio al backend; a fine richiesta precedono la scelta di nuove azioni. Non richiamano ricorsivamente altri hook. Eventi ed esiti sono persistiti nel registro.
+
+
+## Plugin e routine 0.9.0
+
+PluginManifest v1 contiene contributi dichiarativi; l’installazione crea ID locali e non attiva nulla. Attivazione esplicita aggiunge skill/MCP/hook e disattivazione rimuove soltanto gli ID appartenenti al plugin. Marketplace pubblico HTTPS, manifest massimo 1 MiB, SHA-256 obbligatorio e redirect rifiutati. Nessuna installazione di binari o dipendenze.
+
+StudioRoutine conserva pianificazione, backend, sessione e 50 esiti. Il timer dello store avvia un solo lavoro quando il backend è disponibile e lo store è libero; la data successiva viene aggiornata prima dell’invio. Invii schedulati preservano bozze e selezione. Dopo sleep non c’è replay della coda; dopo crash le esecuzioni correnti diventano interrotte. Il fix memoria 0.8.1 dell’utente resta invariato.
+
+## Preferenze 1.0
+StudioTypography applica separatamente font UI/chat persistiti; il chrome nativo resta gestito da macOS. SMAppService.mainApp gestisce il login. PowerController mantiene una assertion NoIdleSleep e la rilascia allo stop/uscita. Le istanze Store dei test con archivio personalizzato non toccano queste preferenze del sistema.
+
+## Markdown 1.1
+ChatMarkdown separa parsing dei blocchi e attributi inline dal renderer SwiftUI. Le tabelle usano una Grid con colonne comuni. MarkdownBody installa OpenURLAction con validazione HTTP/HTTPS e NSWorkspace per il browser predefinito. Nessun HTML o contenuto remoto viene eseguito o caricato dal renderer.
+
+## Immagini e revisione 1.2
+ImageIO decodifica e normalizza gli allegati nell’harness Swift; il motore C++ resta testuale. ChatAttachment aggiunge campi opzionali compatibili con archivi precedenti. ChatMessage.remoteContent produce parti text/image_url. La revisione ritira gli ID prima della cancellazione, attende il task agentico e riutilizza l’UUID della sessione; receive ignora gli eventi degli ID ritirati.
+
+## Attività e telemetria 1.3
+GlobalActivityView usa stato condiviso per loader e accesso alle approvazioni di altre chat; le schede ActionApprovalView sono nel transcript. GenerationActivity rispetta accessibilityReduceMotion. RemoteTelemetry mantiene separati conteggi, tempi server e stima client; la misura server ha priorità. L’estensione JSON suc_metrics serializza i tempi già misurati dal servizio C++, senza modificare il motore padre o il piano memoria.
+
+## Limiti e report 1.4
+AppSettings.actionLimit normalizza il limite 1–100 con default compatibile 12. Lo stesso valore alimenta il prompt strumenti e il controllo prima di eseguire un’azione. ChatMessage.kind distingue tool_call/tool_result dai messaggi visibili e da action_notice/action_report; questi ultimi sono esclusi dal contesto. I risultati degli strumenti restano invece nel contesto originale. Il riepilogo usa i record effettivi del turno, inclusi errori e cancellazioni; le routine preservano il loro prompt visibile e il draft dell’utente.
+
+## Registro e scorrimento (1.4.1–1.4.4)
+OperationJournal conserva internamente le ultime 200 operazioni, aggiornate per identificatore; gli esiti terminali non vengono sovrascritti da eventi idle tardivi. ModelIOLog alimenta il pannello visibile **Registro log** con input, reasoning, output, stato ed errori della chat. È disattivato di default. Il flag viene propagato al processo C++ con `set_model_log`: spento, evita sia la serializzazione lato Swift sia gli eventi `model_input`/`model_output` lato server. Le entry contigue vengono aggregate, ciascuna è limitata a 64 KiB e la coda a 256 KiB; i data URL immagine sono redatti. Il pannello è chiuso di default e non persiste.
+
+## Richieste lunghe e terminale inline (1.4.4)
+RemoteInference usa un limite d’inattività di 24 ore e di risorsa di sette giorni, quindi un prefill di dieci minuti non scade. Un task parallelo interroga `GET /health` ogni 15 secondi con timeout autonomo di otto secondi; il risultato aggiorna lo stato UI ma non cancella, non duplica e non ritenta la generazione. Stop invalida URLSession e cancella anche il probe.
+
+InteractiveTerminal non espone più una shell manuale. Viene creato soltanto da un’azione `run_interactive` approvata; TerminalPanel è renderizzato nel transcript solo mentre la richiesta interattiva è attiva, con un breve filtro che evita la comparsa per processi già conclusi. `run_command` non crea terminali. Il modello attende l’exit status; input, password e output PTY restano fuori dal contesto. Il terminale usa la directory della sessione e mantiene gli stessi limiti di input/output della 1.4.2.
+La chat usa le fasi di scroll SwiftUI per sospendere il seguito automatico durante l’interazione; cambi di dimensione del contenuto richiedono un posizionamento al fondo dopo il layout, solo quando il seguito è attivo. Invio, cambio sessione e Vai alla fine lo riattivano. La lista sessioni ha un’area scrollabile vincolata allo spazio disponibile e rende visibile la nuova selezione.
+
+## Ricerca web (1.4.5)
+`Sources/WebTools.swift` porta il modulo web di ds4 (commit `9139e2a`, MIT) su WebKit; specifica in `docs/WEB_TOOLS_SPEC_IT.md`. `WebTools` valida argomenti, schema URL e `ChatSession.allowWeb`, codifica la query come ds4, salva il Markdown di `visit_page` in `.suc-web/` e produce i formati `<markdown>` / `<head -100 …>`. `WebBrowser` (MainActor) possiede un pannello nascosto fuori schermo, non attivante e non throttled (da 1.4.5_Final; misura e scelta in `docs/WEB_TOOLS_SPEC_IT.md` §2bis), la finestra «Browser SUC Studio» aperta solo dal pulsante globo e lo stato `WebActivity` pubblicato in `StudioStore.webActivity`, e una `WKWebViewConfiguration` condivisa con `WKWebsiteDataStore(forIdentifier:)` (UUID in `AppSettings.webDataStoreID`) e uno shim `getEventListeners` iniettato a inizio documento; ogni chiamata crea una `WKWebView` 1365 × 900, serializzata, rimossa a fine chiamata. Gli script ds4 sono stringhe raw identiche byte per byte (test SHA-256) eseguite con `callAsyncJavaScript` nel world `.page`, timeout 20 s per valutazione e cancellazione cooperativa. `handleAgentResponse` instrada i nomi web a `StudioStore.runWebTool`, che chiede la conferma di avvio (una volta per processo, anche in modalità automatica, errore nelle routine) prima di `WebTools.execute`. Il motore C++ non cambia.
+
+## Terminale e artifact (1.4.2)
+Il nuovo helper app-owned suc-studio-terminal crea una PTY con forkpty e inoltra byte tra shell e app. È separato dal motore C++, che resta invariato. InteractiveTerminal gestisce input, output limitato, stato e attesa asincrona; ogni chat mantiene una sola PTY. L’azione run_interactive riusa autorizzazioni e hook, ma restituisce solo exit status al modello. Il processo viene interrotto alla cancellazione della sessione o all’uscita dall’app.
+ChatArtifact è un campo opzionale dell’archivio per compatibilità con le chat precedenti. ArtifactFiles risolve percorsi relativi alla directory di lavoro, controlla file regolari/dimensioni e copia il contenuto in un identificatore indipendente. La UI usa esclusivamente quella copia per il salvataggio; non interpreta il testo del modello come un URL locale attendibile. I metadati esportati non includono i file.

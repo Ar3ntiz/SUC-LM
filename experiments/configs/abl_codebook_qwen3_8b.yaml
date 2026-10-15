@@ -1,0 +1,24 @@
+# Mandatory ablations, Qwen3-8B — part 2: vector quantization and multi-codebook, at EQUAL index rate (4 bits/weight)
+# with everything else as in SUC (one-sided rotation, 0.5% activation column residual, affine-4 head).
+#   SUC - vector quantization: block size G = 1, K = 16 -> a rotated per-tensor scalar codebook (4 bpw index),
+#                              the scalar counterpart of SUC with rotation, row scales and residual unchanged.
+#   SUC - multi-codebook:      ONE codebook (M = 1), G = 2, K = 256 -> 4 bpw index (codebook 1 KB, D4-viable),
+#                              vs additive M = 4 x (G = 8, K = 256). A single codebook at G = 8 would need
+#                              K = 2^32 for 4 bpw (not viable), so G shrinks instead.
+# Studio: ≈ 30 min (reference 6 + 2 × (encode ≈ 4-6 + evaluate 6)).
+name: abl_codebook_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16          # held-out validation sequences of the Phase 2 corpus
+rotation_groups: true       # runtime form: shared input rotation of q/k/v and gate/up
+embedding_codec: {kind: affine, bits: 4}   # embedding + untied LM head fixed at affine 4-bit g64 in every row
+codecs:
+  - {kind: vq, k: 16, block_size: 1, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}

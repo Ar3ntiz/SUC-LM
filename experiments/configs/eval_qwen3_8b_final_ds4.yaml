@@ -1,0 +1,23 @@
+# suc eval, target 1 (Qwen3-8B), the final SUC1 file on the HARD suite imported from ds4-eval (experiments/eval/
+# ds4_subset.json: 25 audited SuperGPQA, 25 AIME 2025, 17 COMPSEC items; GPQA Diamond excluded; attribution and
+# licenses in the suite header). Thinking mode, budget capped at 8192 tokens per case with a 512-token answer reserve
+# (ds4-eval's hard limit); long: ~67 × up to 8k tokens per system. C++ runtime only by default (the fastest path);
+# add suc_python / bf16 systems (and `reference`) for a cross-check.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc eval experiments/configs/eval_qwen3_8b_final_ds4.yaml > logs/eval_8b_final_ds4.log 2>&1 &
+name: eval_qwen3_8b_final_ds4
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+suite: experiments/eval/ds4_subset.json
+systems:
+  - {name: suc_cpp_separate, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_8b_final/container/model.suc1,
+     cpp_args: [--projections, separate]}
+  # - {name: bf16, kind: bf16}
+reference: null
+max_tokens: 8192
+think_reply_reserve: 512
+teacher_forced_positions: 128
+compare_to: null

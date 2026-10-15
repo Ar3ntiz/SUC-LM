@@ -1,0 +1,25 @@
+# suc eval, post-project model Qwen/Qwen3.8-Flash-Next (qwen4_exp, 180 B) on the Mac Studio, core suite: the SUC1 file
+# of the frontier queue run with raw BF16 n-gram tables (model.suc1) and after `suc repack` (row-affine 4-bit tables,
+# model_ngram4.suc1) through the Python runtime, the 4-bit-table file through the C++ runtime, and the MLX affine
+# 4-bit g64 baseline (loaded lazily from the 360 GB BF16 snapshot, converted module by module; quantizes exactly the
+# tensors SUC encodes + embedding / LM head, mlx_qwen4_exp.Model.quant_predicate; n-gram tables raw, memory-mapped).
+# BF16 itself (360 GB) does not fit. The same systems' WikiText-2 PPL / KL: scripts/system_quality.py with
+# --run-dir ~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc eval experiments/configs/eval_qwen3.8_flash_next.yaml > logs/eval_q38.log 2>&1 &
+name: eval_qwen3.8_flash_next
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-Flash-Next
+  revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+  role: target
+suite: experiments/eval/suite_core.json
+systems:
+  - {name: mlx_q4, kind: mlx_affine, bits: 4, group_size: 64}
+  - {name: suc_python_raw, kind: suc1_python, file: ~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next/container/model.suc1}
+  - {name: suc_python_ngram4, kind: suc1_python, file: ~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next/container/model_ngram4.suc1}
+  - {name: suc_cpp_ngram4, kind: suc1_cpp, file: ~/suc-queue/frontier_models/runs/Qwen__Qwen3.8-Flash-Next/container/model_ngram4.suc1}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 128
+compare_to: null

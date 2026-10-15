@@ -1,0 +1,26 @@
+# Mandatory ablations (spec §26, D3), Qwen3-8B — part 1: the best configuration ("SUC") and incoherence processing.
+# SUC = additive M=4 K=256 G=8, one-sided randomized Hadamard (input side only), + 0.5% activation-selected int8
+# residual in the column structure (Q5b), embedding / LM head affine 4-bit. Each row removes ONE component.
+# Protocol shared by every abl_* config: suc quantize, rotation_groups on, fixed affine-4 head, full WikiText-2 test,
+# KL on 16 held-out validation sequences, seed 12345. Map of rows -> files: docs/ablations_plan.md.
+# Studio: scripts/studio_queue_ablations.sh (≈ 46 min: reference 6 + 3 × (encode ≈ 7 + evaluate 6)).
+name: abl_base_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16          # held-out validation sequences of the Phase 2 corpus
+rotation_groups: true       # runtime form: shared input rotation of q/k/v and gate/up
+embedding_codec: {kind: affine, bits: 4}   # embedding + untied LM head fixed at affine 4-bit g64 in every row
+codecs:
+  # SUC (best configuration)
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+  # rotation sides: two-sided U W V^T instead of one-sided (R1 found one-sided is free; this row checks it here)
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005, residual_structure: columns}
+  # SUC - incoherence processing: no rotation at all
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate: false, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}

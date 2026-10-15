@@ -1,0 +1,24 @@
+# suc perf, Qwen/Qwen3.8-27B (dense qwen3_5) on the Mac Studio M1 Ultra: original BF16 (55 GB, fits), MLX affine 4-bit
+# g64, and the two SUC1 files (side8, base) through the C++ runtime, one session, sequentially, batch 1. The C++ graph
+# runs the prompt as decode steps (no batch prefill for this family yet). Queue: scripts/studio_qwen3.8_27b.sh.
+name: perf_qwen3.8_27b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-27B
+  revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+  role: target
+systems:
+  - {name: mlx_q4, kind: mlx_affine, bits: 4, group_size: 64}
+  - {name: bf16, kind: bf16}
+  - {name: suc_cpp_side8, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3.8_27b_side8/container/model.suc1}
+  - {name: suc_cpp_base, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3.8_27b_base/container/model.suc1}
+reference: mlx_q4
+prompt_file: experiments/perf/promessi_sposi_head.txt
+contexts: [128, 2048]
+batch_sizes: [1]
+gen_tokens: 128
+warmup: 1
+repeats: 3
+mlx_decode: pipelined
+compare_to: null

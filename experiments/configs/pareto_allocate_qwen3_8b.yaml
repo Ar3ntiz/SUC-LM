@@ -1,0 +1,49 @@
+# Pareto frontier (spec §27), Qwen3-8B: Fisher-guided greedy allocation (Q7/Q7b) over the best available block
+# candidates — every codebook candidate one-sided rotated with 0.5% activation-selected COLUMN residuals (R1, Q5b) —
+# plus lower-rate candidates for the 1-2 bpp points, RTN affine 2/3/4-bit and BF16. Embedding and untied LM head are
+# allocated in the same budget (head_candidates, Q7b), so budgets are average bpw over ALL 254 tensors ≈ model bpp.
+# The 1.05 budget is the "~1.0 bpp" point (the cheapest assignment, all VQ G=8, is ≈ 1.006 bpp).
+# Extra budgets 4.22 / 3.38 sit at the model bpp of the uniform M=4 / M=3 rows: greedy vs uniform at EQUAL bits is the
+# "SUC - semantic sensitivity" ablation (docs/ablations_plan.md).
+# Note: suc allocate has no rotation_groups option (per-tensor rotation seeds, as in Q7/Q7b); the uniform M=4 row
+# here and the SUC row of abl_base_qwen3_8b (rotation_groups on) are the same codec in the two protocols.
+# Studio estimate: Fisher ≈ 3 min, candidate scoring ≈ 30-35 min, 14 plans × ≈ 6-7 min, reference 6 → ≈ 2.2 h.
+name: pareto_allocate_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+candidates:
+  - {kind: vq, k: 256, block_size: 8, rotate_out: false}                                                  # ~1.0 bpw
+  - {kind: vq, k: 256, block_size: 8, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}   # ~1.2
+  - {kind: vq, k: 64, block_size: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}    # ~1.7
+  - {kind: vq, k: 256, block_size: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}   # ~2.2
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # ~2.2
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # ~3.2
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # ~4.2
+  - {kind: affine, bits: 2}                                                                               # 2.5
+  - {kind: affine, bits: 3}                                                                               # 3.5
+  - {kind: affine, bits: 4}                                                                               # 4.5
+  - {kind: bf16}                                                                                          # 16
+head_candidates:                    # embed + untied lm_head (151936 x 4096 each); no activation residuals possible
+  - {kind: vq, k: 256, block_size: 8, rotate_out: false}                                                  # ~1.0
+  - {kind: vq, k: 256, block_size: 4, rotate_out: false}                                                  # ~2.0
+  - {kind: affine, bits: 2}                                                                               # 2.5
+  - {kind: affine, bits: 3}                                                                               # 3.5
+  - {kind: affine, bits: 4}                                                                               # 4.5
+  - {kind: affine, bits: 8}                                                                               # 8.5
+budgets_bpp: [4.22, 4.0, 3.5, 3.38, 3.0, 2.5, 2.25, 2.0, 1.75, 1.5, 1.05]
+uniform:
+  - additive_m4_k256_g8_rot1s+res0.005_activation_cols
+  - additive_m3_k256_g8_rot1s+res0.005_activation_cols
+  - vq_k256_g4_rot1s+res0.005_activation_cols
+uniform_head: affine_b4_g64
+fisher_sequences: 32
+fisher_micro_batch: 2
+fisher_group_size: 64

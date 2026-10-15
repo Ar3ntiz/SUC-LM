@@ -1,0 +1,22 @@
+[
+ {"type": "it_explain", "think": false, "steps": 300, "prompt": "Spiegami in poche frasi perché il cielo è blu."},
+ {"type": "it_explain", "think": false, "steps": 300, "prompt": "Che cos'è la fotosintesi? Rispondi in tre frasi."},
+ {"type": "it_explain", "think": false, "steps": 300, "prompt": "Perché in inverno fa più freddo che in estate?"},
+ {"type": "it_explain", "think": false, "steps": 300, "prompt": "Spiega in breve cos'è un buco nero."},
+ {"type": "it_explain", "think": false, "steps": 300, "prompt": "Qual è la differenza tra un virus e un batterio?"},
+ {"type": "it_math", "think": true, "steps": 1500, "prompt": "Quanto fa 17 moltiplicato per 23? Ragiona passo passo."},
+ {"type": "it_math", "think": true, "steps": 1500, "prompt": "Un treno viaggia a 80 km/h per 2 ore e mezza. Quanti chilometri percorre?"},
+ {"type": "it_math", "think": true, "steps": 1500, "prompt": "Ho 3 scatole con 12 mele ciascuna e ne regalo 7. Quante mele mi restano?"},
+ {"type": "it_math", "think": true, "steps": 1500, "prompt": "Quanto è il 15% di 240?"},
+ {"type": "it_math", "think": true, "steps": 1500, "prompt": "Quanto fa 144 diviso 12, più 7 al quadrato?"},
+ {"type": "en_explain", "think": false, "steps": 300, "prompt": "Explain in a few sentences why the sky is blue."},
+ {"type": "en_explain", "think": false, "steps": 300, "prompt": "What is photosynthesis? Answer in three sentences."},
+ {"type": "en_explain", "think": false, "steps": 300, "prompt": "Why is it colder in winter than in summer?"},
+ {"type": "en_explain", "think": false, "steps": 300, "prompt": "Briefly explain what a black hole is."},
+ {"type": "en_explain", "think": false, "steps": 300, "prompt": "What is the difference between a virus and a bacterium?"},
+ {"type": "en_math", "think": true, "steps": 1500, "prompt": "What is 17 times 23? Work it out step by step."},
+ {"type": "en_math", "think": true, "steps": 1500, "prompt": "A train travels at 80 km/h for 2.5 hours. How far does it go?"},
+ {"type": "en_math", "think": true, "steps": 1500, "prompt": "I have 3 boxes with 12 apples each and give away 7. How many apples are left?"},
+ {"type": "en_math", "think": true, "steps": 1500, "prompt": "What is 15% of 240?"},
+ {"type": "en_math", "think": true, "steps": 1500, "prompt": "What is 144 divided by 12, plus 7 squared?"}
+]

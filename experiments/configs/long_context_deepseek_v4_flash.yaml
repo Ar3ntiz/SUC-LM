@@ -1,0 +1,36 @@
+# Long-context measurement of the CSA lightning indexer (top-512 of the ratio-4 compressed entries; a real choice from
+# 2048 tokens on) on deepseek-ai/DeepSeek-V4-Flash-0731: the dequantized BF16 reference (layer-streamed, one block of
+# weights resident), the SUC1 file of compress_deepseek_v4_flash_native (MXFP4-native candidate) through the Python runtime (resident, ~107.5 GB:
+# raise the GPU wired limit first, sudo sysctl iogpu.wired_limit_mb=116000), and the reference with the indexer off
+# (every visible compressed entry) as the control. scripts/long_context_eval.py (docstring: what is measured).
+#
+# Data: PG19 test (emozilla/pg19-test, pinned parquet; disjoint from the calibration sources), 2 books x 65536 tokens
+# (PPL / KL at 8k-64k = prefixes of the same causal runs), needle haystack from the next book: 4 lengths x 3 depths.
+# Chunk 256 (reference) / 128 (SUC1: the indexer scores of a chunk are chunk x 64 heads x 16k entries x 4 B = 0.5 GB at
+# 64k). Tokens per system: 2 x 65536 + 3 x (8192 + 16384 + 32768 + 65536) = 499,712.
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/long_context_eval.py --config experiments/configs/long_context_deepseek_v4_flash.yaml
+name: long_context_deepseek_v4_flash
+seed: 12345
+output_dir: experiments/results
+model:
+  id: deepseek-ai/DeepSeek-V4-Flash-0731
+  revision: 7872f01b1d1fe23eabc4c98b48bffcef5a386062
+  role: target
+lengths: [8192, 16384, 32768, 65536]
+ppl_docs: 2
+kl_stride: 4
+sel_stride: 32
+needle:
+  depths: [0.1, 0.5, 0.9]
+  cases_per_cell: 1
+chunk: 256
+hidden_budget_gb: 24.0
+resident_hidden_budget_gb: 2.5
+add_bos: true
+work_dir: ~/suc-local/long_context
+spill_dir: null
+systems:
+  - {name: reference, kind: reference, indexer: sparse}
+  - {name: suc_python, kind: suc1_python, file: experiments/artifacts/compress/compress_deepseek_v4_flash_native/container/model.suc1,
+     chunk: 128}
+  - {name: reference_dense, kind: reference, indexer: dense}

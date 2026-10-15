@@ -1,0 +1,25 @@
+# Q5x on Qwen3-30B-A3B (target 2, MoE): per-expert codebooks vs ONE shared codebook set per expert stack
+# (all 128 experts of one (layer, projection); suc.quant.stacks, codebook_scope: expert_stack, "_xs" in the names).
+# Same codec, same activation-selected residual, same bits up to the codebook overhead; the shared stacks also share
+# the rotation seeds (gate/up of a layer share V). Attention tensors are encoded per tensor in every row; embedding and
+# LM head stay BF16 (include_embeddings: false) so the comparison isolates the expert coding. RTN 4-bit = baseline.
+# Cost: the per-expert row encodes 18,432 expert tensors one k-means each (~5-7 h on the M1 Ultra); each _xs row fits
+# 144 stacks (estimate in docs/benchmarks.md, Q5x).
+name: q5x_expert_stacks_qwen3_30b_a3b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+include_embeddings: false
+codecs:
+  - {kind: affine, bits: 4}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}                              # per expert
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005, codebook_scope: expert_stack}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005, codebook_scope: expert_stack}
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005, codebook_scope: expert_stack}

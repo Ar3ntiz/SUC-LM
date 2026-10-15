@@ -1,0 +1,77 @@
+# suc compress, post-project model deepseek-ai/DeepSeek-V4-Flash-0731 (model_type deepseek_v4: 43 MoE layers, 256 routed
+# experts top-6 + shared expert, low-rank MQA with sliding window + CSA (ratio 4, lightning indexer) / HCA (ratio 128)
+# compressed KV, 4-stream hyper-connections, hash routing in layers 0-2; docs/arch/deepseek_v4.md).
+#
+# Source (D8 amended): the official FP8 (128x128 E8M0 blocks) / MXFP4 (routed experts) checkpoint, dequantized EXACTLY to
+# BF16 at load time (suc.io.quantized_source; preflight verifies every scale exponent first, run_dir/source_scales.json).
+# Every PPL / KL reference is that dequantized checkpoint. DSpark / MTP (mtp.*) is dropped.
+#
+# Goal: a SUC1 file that runs on the 128 GB Mac Studio: weights + KV + activations <= 111 GB. budget_bytes 107.5 GB is the
+# TOTAL model size (every tensor incl. raw kept ones, embedding / LM head, SUC1 overhead reserve); preflight checks
+# 107.5 GB + KV at 32k tokens (0.23 GB) + 2 GB activations <= runtime_budget_bytes 111 GB. Fisher-guided greedy
+# allocation (allocation_unit "expert": every routed-expert tensor is its own unit, one pooled codebook fit per
+# (layer, projection) stack and codec): the LEAST sensitive experts go below 3 bits (VQ G=4, ~2.2 bpp), the others to
+# additive M=3 (~3.2) or VQ G=2 (~4.2); attention / shared-expert linears only get >= 4-bit candidates
+# (candidate_roles). Fixed part (not allocated): embedding + LM head affine 4-bit g64 (0.60 GB), kept BF16/F32 tensors
+# (compressors, indexer wq_b / weights_proj, router, HC mixers, norms, sinks, tid2eid: ~1.55 GB).
+# Expected: allocated budget ~2.97 bpw over 282.7 B eligible parameters (experts ~2.95 bpw on average).
+#
+# Indexer note: at PPL windows of 4096 tokens each CSA layer has 1024 compressed entries, so the top-512 selection is
+# exercised; calibration / Fisher (512 tokens, 128 entries) never select (the Fisher proxy cannot see the indexer, which
+# is why indexer_q_b stays BF16). Fine-tuning is not supported with shared expert-stack codebooks.
+#
+# Studio (after the download): raise the GPU wired limit for the runtime (sudo sysctl iogpu.wired_limit_mb=116000), then
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_deepseek_v4_flash.yaml > logs/compress_ds4_flash.log 2>&1 &
+name: compress_deepseek_v4_flash
+seed: 12345
+output_dir: experiments/results
+model:
+  id: deepseek-ai/DeepSeek-V4-Flash-0731
+  revision: 7872f01b1d1fe23eabc4c98b48bffcef5a386062
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: greedy
+  budget_bytes: 107500000000              # 107.5 GB
+  allocation_unit: expert
+  candidates:
+    # routed experts (one pooled codebook per (layer, projection) stack and codec; one-sided input rotation)
+    - {kind: vq, k: 256, block_size: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}                                                                       # ~2.2 bpp
+    - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005,
+       residual_structure: columns, codebook_scope: expert_stack}                                          # ~3.2 bpp
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}                                                                       # ~4.2 bpp
+    # attention (wq_a, wq_b, wkv, wo_a, wo_b) and shared experts: per-tensor codebooks
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # ~4.2
+    - {kind: affine, bits: 8}                                                                                # 8.5
+    - {kind: bf16}                                                                                           # 16
+  candidate_roles:
+    vq_k256_g4_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    additive_m3_k256_g8_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    vq_k256_g2_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    vq_k256_g2_rot1s+res0.005_activation_cols: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate,
+                                                shared_expert_up, shared_expert_down]
+    affine_b8_g64: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate, shared_expert_up,
+                    shared_expert_down]
+    bf16: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate, shared_expert_up, shared_expert_down]
+  embedding_codec: {kind: affine, bits: 4}
+  fisher_sequences: 32
+  fisher_micro_batch: 2
+eval:
+  seq_len: 4096
+  max_tokens: null
+  kl_sequences: 16
+finetune: null
+rotation_groups: true
+verify_tensors: 16
+preflight:
+  runtime_budget_bytes: 111000000000      # 111 GB
+  runtime_context: 32768
+  runtime_activation_bytes: 2000000000

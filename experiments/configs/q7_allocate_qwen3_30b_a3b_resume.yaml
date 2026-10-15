@@ -1,0 +1,37 @@
+# RESUME of q7_allocate_qwen3_30b_a3b.yaml (identical settings): the first run finished candidate scoring (7148 s)
+# and wrote the candidates artifact below, then was killed out of memory in the whole-model plan validation. This
+# run skips Fisher + scoring (the artifact's units and codec names are checked against the candidates below) and
+# validates every plan layer-streamed (D8: one block resident, reference logits streamed to disk).
+# Phase 7 / Q7 on Qwen3-30B-A3B (target 2, MoE): greedy Fisher-guided allocation per bit budget vs uniform codecs,
+# every plan validated on the full model (spec §39 step 7). Budgets are average bpw over the allocated
+# (eligible linear) tensors incl. every expert; the router stays BF16 (not eligible); the embedding is encoded with a fixed 4-bit affine codec for every plan.
+# Allocation unit = expert stack (all 128 experts of one (layer, projection): 48 x 3 = 144 units + 192 attention tensors
+# instead of ~18.6k tensors; Fisher loss and bits summed over the stack's experts). The codebook candidates fit ONE
+# shared codebook set per stack (codebook_scope: expert_stack, "_xs"; suc.quant.stacks); attention tensors are still
+# encoded per tensor. The earlier per-expert version of this config was stopped (> 28 h of candidate scoring).
+name: q7_allocate_qwen3_30b_a3b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+allocation_unit: expert_stack
+candidates:                                   # Q5 lesson: every codebook candidate carries activation-selected residuals
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005, codebook_scope: expert_stack}                        # ~2.2 bpw
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.001, codebook_scope: expert_stack} # ~3.1
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005, codebook_scope: expert_stack} # ~3.2
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005, codebook_scope: expert_stack} # ~4.2
+  - {kind: affine, bits: 4}                                                         # 4.5
+  - {kind: bf16}                                                                    # 16
+budgets_bpp: [2.5, 3.0, 3.5, 4.0]
+uniform: [additive_m3_k256_g8_rot_xs+res0.005_activation, additive_m4_k256_g8_rot_xs+res0.005_activation, affine_b4_g64]
+embedding_codec: {kind: affine, bits: 4}
+fisher_sequences: 32
+fisher_micro_batch: 2
+fisher_group_size: 64
+candidates_artifact: experiments/artifacts/20261001T230423Z_q7_allocate_qwen3_30b_a3b_candidates.json

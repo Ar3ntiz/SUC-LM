@@ -1,0 +1,21 @@
+# Repeatability of the mandatory ablations, Qwen3-8B: the SUC row and its closest competitor (two-sided rotation,
+# R1: ΔKL ≈ -8% on the 8B) re-encoded with a different seed (rotation signs, k-means initialisation; the evaluation
+# data are fixed). The spread between seeds is the noise floor for every Δ in the ablation table (CLAUDE.md:
+# every claim needs repeatability). Same protocol as abl_base_qwen3_8b otherwise.
+# Studio: ≈ 32 min (reference 6 + 2 × (encode ≈ 7 + evaluate 6)).
+name: abl_repeat_qwen3_8b
+seed: 23456
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16          # held-out validation sequences of the Phase 2 corpus
+rotation_groups: true       # runtime form: shared input rotation of q/k/v and gate/up
+embedding_codec: {kind: affine, bits: 4}   # embedding + untied LM head fixed at affine 4-bit g64 in every row
+codecs:
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005, residual_structure: columns}

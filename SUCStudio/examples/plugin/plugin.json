@@ -1,0 +1,8 @@
+{
+  "formatVersion": 1,
+  "identifier": "example.clear-writing",
+  "name": "Scrittura chiara",
+  "version": "1.0.0",
+  "skills": [{"name": "Scrittura chiara", "instructions": "Rispondi in italiano con frasi chiare. Distingui fatti verificati da ipotesi e chiedi i dati mancanti."}],
+  "hooks": [{"name": "Evento console", "event": "after_tool", "command": "printf 'Evento: %s; strumento: %s\\n' \"$SUC_HOOK_EVENT\" \"$SUC_TOOL_NAME\""}]
+}

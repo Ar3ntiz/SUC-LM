@@ -1,0 +1,36 @@
+# Phase 7 / Q7b on Qwen3-8B: like q7_allocate_qwen3_8b, but the embedding and the untied LM head are
+# allocation candidates in the same greedy budget (head_candidates), including higher-precision options,
+# instead of a fixed 4-bit affine embedding_codec. Q7 finding: LM-head precision mattered more than
+# per-tensor allocation of block linears. Budgets are average bpw over ALL allocated tensors
+# (block linears + embed + lm_head, ~99.9% of the parameters), so they are close to model bpp and NOT
+# comparable to the q7 budgets (blocks only); compare plans on model bpp. The uniform baselines keep
+# embed / lm_head at affine 4-bit (uniform_head), i.e. they reproduce the q7 uniform rows.
+name: q7b_allocate_head_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+candidates:                                   # Q5 lesson: every codebook candidate carries activation-selected residuals
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005}                     # ~2.2 bpw
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.001}   # ~3.1
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}   # ~3.2
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005}   # ~4.2
+  - {kind: affine, bits: 4}                                                         # 4.5
+  - {kind: bf16}                                                                    # 16
+head_candidates:                              # embed + untied lm_head (vocab 151936 x 4096 each)
+  - {kind: affine, bits: 4}                                                         # 4.5
+  - {kind: affine, bits: 6}                                                         # 6.5
+  - {kind: affine, bits: 8}                                                         # 8.5
+  - {kind: bf16}                                                                    # 16
+budgets_bpp: [3.0, 3.5, 4.0, 4.25]
+uniform: [additive_m3_k256_g8_rot+res0.005_activation, additive_m4_k256_g8_rot+res0.005_activation, affine_b4_g64]
+uniform_head: affine_b4_g64
+fisher_sequences: 32
+fisher_micro_batch: 2
+fisher_group_size: 64

@@ -1,0 +1,21 @@
+# R1 on the dev model: two-sided (U W Vᵀ) vs one-sided (W Vᵀ, input rotation only) randomized Hadamard at equal
+# codec, with activation-selected 0.5% residuals (the Q5 setting). Question: can the online OUTPUT rotations of the
+# runtime (one launch per projection group, docs/benchmarks.md K5) be dropped without losing quality?
+# rotation_groups: q/k/v and gate/up share V, as the runtime executes them.
+name: r1_rotation_sides_qwen3_0.6b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-0.6B
+  revision: c1899de289a04d12100db370d81485cdf75e47ca
+  role: dev
+eval:
+  seq_len: 2048
+  max_tokens: 32768
+  kl_sequences: 16
+rotation_groups: true
+codecs:
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005}
+  - {kind: vq, k: 256, block_size: 4, rotate_out: false, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005}

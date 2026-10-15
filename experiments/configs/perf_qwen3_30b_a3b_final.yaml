@@ -1,0 +1,25 @@
+# suc perf, target 2 (Qwen3-30B-A3B, MoE) on the Mac Studio M1 Ultra: MLX 4-bit, BF16 (61 GB), both final SUC1 files
+# through the C++ runtime and the greedy file through the Python runtime, one session, sequentially.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc perf experiments/configs/perf_qwen3_30b_a3b_final.yaml > logs/perf_30b_final.log 2>&1 &
+name: perf_qwen3_30b_a3b_final
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+systems:
+  - {name: mlx_q4, kind: mlx_affine, bits: 4, group_size: 64}
+  - {name: bf16, kind: bf16}
+  - {name: suc_cpp_greedy, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_30b_a3b_final_greedy/container/model.suc1}
+  - {name: suc_cpp_uniform, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_30b_a3b_final/container/model.suc1}
+  - {name: suc_python_greedy, kind: suc1_python, file: experiments/artifacts/compress/compress_qwen3_30b_a3b_final_greedy/container/model.suc1}
+reference: mlx_q4
+prompt_file: experiments/perf/promessi_sposi_head.txt
+contexts: [128, 512, 2048, 8192]
+batch_sizes: [1, 4, 16]
+gen_tokens: 128
+warmup: 1
+repeats: 3
+mlx_decode: pipelined
+compare_to: null

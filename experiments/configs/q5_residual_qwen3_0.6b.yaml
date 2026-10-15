@@ -1,0 +1,23 @@
+# Q5 on the dev model: codebooks + sparse residual selected by activation importance E[x_j^2]·R²
+# (Phase 2 statistics) vs magnitude, against RTN affine. Motivated by the Q1–Q4 negative result:
+# data-free codebooks smear "super weights" on massive-activation channels (layers.2.mlp.down_proj).
+name: q5_residual_qwen3_0.6b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-0.6B
+  revision: c1899de289a04d12100db370d81485cdf75e47ca
+  role: dev
+eval:
+  seq_len: 2048
+  max_tokens: 32768
+  kl_sequences: 16
+codecs:
+  - {kind: affine, bits: 4}
+  - {kind: affine, bits: 3}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.001}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005, residual_selection: magnitude}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.001}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005}
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005}

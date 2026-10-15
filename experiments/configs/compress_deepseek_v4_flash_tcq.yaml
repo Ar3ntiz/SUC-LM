@@ -1,0 +1,77 @@
+# suc compress, DeepSeek-V4-Flash, trellis low tier (docs/low_tier_codec.md §6; owner decision 2026-10-09: full
+# integration, L=12 for DeepSeek / GLM). Same calibrate / reference (copied from compress_deepseek_v4_flash, APFS
+# clones), same Fisher and the same VQ / additive / native / attention candidates as s97 (their scores are reused from
+# the base run's candidates stage: plan.candidates_reuse), plus two routed-expert candidates: tcq 2-bit and 3-bit
+# (3INST, V=2, L=12, BlockLDLQ on the shared gate/up second moment of each MoE layer and per-expert down moments,
+# 0.5 % column residual, stack-shared input rotation). Budget as s97: 96.9 GB total (in memory on the 128 GB Studio;
+# ds4 IQ2_XXS mix 97.59 GB, KL 0.296; s97 KL to compare). Queue: scripts/studio_tcq_frontier.sh.
+name: compress_deepseek_v4_flash_tcq
+seed: 12345
+output_dir: experiments/results
+model:
+  id: deepseek-ai/DeepSeek-V4-Flash-0731
+  revision: 7872f01b1d1fe23eabc4c98b48bffcef5a386062
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: greedy
+  budget_bytes: 107500000000              # 107.5 GB
+  allocation_unit: expert
+  candidates:
+    # routed experts (one pooled codebook per (layer, projection) stack and codec; one-sided input rotation)
+    - {kind: vq, k: 256, block_size: 4, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}                                                                       # ~2.2 bpp
+    - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005,
+       residual_structure: columns, codebook_scope: expert_stack}                                          # ~3.2 bpp
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns,
+       codebook_scope: expert_stack}                                                                       # ~4.2 bpp
+    # routed experts: the checkpoint's MXFP4 codes + E8M0 scales verbatim (not scored: loss 0, 4.25 bpp + metadata)
+    - {kind: mxfp4}                                                                                          # 4.25
+    # routed experts: trellis low tier (docs/low_tier_codec.md §6; 3INST V=2, L=12, BlockLDLQ, stack-shared rotation)
+    - {kind: tcq, tcq_bits: 2, tcq_code: 3inst, tcq_V: 2, tcq_L: 12, rotate_out: false, ldlq: true,
+       residual_fraction: 0.005, residual_structure: columns, codebook_scope: expert_stack}                 # ~2.2 bpp
+    - {kind: tcq, tcq_bits: 3, tcq_code: 3inst, tcq_V: 2, tcq_L: 12, rotate_out: false, ldlq: true,
+       residual_fraction: 0.005, residual_structure: columns, codebook_scope: expert_stack}                 # ~3.2 bpp
+    # attention (wq_a, wq_b, wkv, wo_a, wo_b) and shared experts: per-tensor codebooks
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}  # ~4.2
+    - {kind: affine, bits: 8}                                                                                # 8.5
+    - {kind: bf16}                                                                                           # 16
+  candidate_roles:
+    vq_k256_g4_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    additive_m3_k256_g8_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    vq_k256_g2_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    mxfp4_native: [expert_gate, expert_up, expert_down]
+    tcq_3inst_b2_L12_v2_rot1s_xs_ldlq+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    tcq_3inst_b3_L12_v2_rot1s_xs_ldlq+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+    vq_k256_g2_rot1s+res0.005_activation_cols: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate,
+                                                shared_expert_up, shared_expert_down]
+    affine_b8_g64: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate, shared_expert_up,
+                    shared_expert_down]
+    bf16: [attn_q_a, attn_q_b, attn_kv, attn_o_a, attn_o_b, shared_expert_gate, shared_expert_up, shared_expert_down]
+  embedding_codec: {kind: affine, bits: 4}
+  allocation:                             # allocation-only overrides (not part of the candidates fingerprint)
+    budget_bytes: 96900000000            # 96.9 GB total (ds4 IQ2_XXS mix 97.59 GB)
+    exclude:
+      vq_k256_g2_rot1s_xs+res0.005_activation_cols: [expert_gate, expert_up, expert_down]
+  fisher_sequences: 32
+  fisher_micro_batch: 2
+  ldlq_sequences: 512                     # hessians stage: all calibration sequences (~6k routed rows per down expert)
+  tcq_score_rows: 256                     # tcq candidates scored on 256 rows per expert tensor (exact bits)
+  candidates_reuse: experiments/artifacts/compress/compress_deepseek_v4_flash   # VQ / affine / bf16 scores reused
+eval:
+  seq_len: 4096
+  max_tokens: null
+  kl_sequences: 16
+finetune: null
+rotation_groups: true
+verify_tensors: 16
+preflight:
+  runtime_budget_bytes: 111000000000      # 111 GB
+  runtime_context: 32768
+  runtime_activation_bytes: 2000000000

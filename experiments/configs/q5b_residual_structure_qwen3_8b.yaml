@@ -1,0 +1,26 @@
+# Q5b on Qwen3-8B: CSR vs column-structured activation-selected residuals at EQUAL bit budget
+# (docs/benchmarks.md Q5b; dev-model result 20261001T131910Z_q5b_residual_structure_qwen3_0.6b).
+# columns: dense int8 residual on the input columns with the largest Σ_r E[x_j^2]·R_rj², as many as the
+# CSR budget of 0.5% pays for; _cols0.75 spends 75% of that budget on columns and the rest on a CSR tail.
+# rotation_groups: the runtime form (shared input rotation of q/k/v and gate/up).
+name: q5b_residual_structure_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+rotation_groups: true
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+codecs:
+  - {kind: affine, bits: 4}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005, residual_structure: columns, residual_column_share: 0.75}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005}
+  - {kind: vq, k: 256, block_size: 4, residual_fraction: 0.005, residual_structure: columns}

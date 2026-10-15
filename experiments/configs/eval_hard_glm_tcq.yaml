@@ -1,0 +1,18 @@
+# suc eval HARD suite (experiments/eval/suite_hard.json, 30 cases) on the GLM-5.3-Flash tcq re-encode
+# (compress_glm5.3_flash_tcq, routed experts 2.45 bpw, fully resident, C++ runtime); paired with the ds4 Q2 GGUF run
+# gguf_eval_hard_glm_q2. Queue: scripts/studio_tcq_frontier.sh; summary: scripts/hard_suite_report.py.
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/frontier_measure.py suc eval experiments/configs/eval_hard_glm_tcq.yaml
+name: eval_hard_glm_tcq
+seed: 12345
+output_dir: experiments/results
+model:
+  id: zai-org/GLM-5.3-Flash
+  revision: eb9eb208eb0d988989d07a6a12d0fdeb5f52574a
+  role: target
+suite: experiments/eval/suite_hard.json
+systems:
+  - {name: suc_cpp_tcq, kind: suc1_cpp, file: experiments/artifacts/compress/compress_glm5.3_flash_tcq/container/model.suc1}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 0
+compare_to: null

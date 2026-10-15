@@ -1,0 +1,36 @@
+# suc compress, target 1, FINAL recommended configuration (mandatory ablations, docs/benchmarks.md): ONE low-dimensional
+# codebook per tensor, VQ G=2 K=256 (8-bit indices = 4 bpw index rate, codebook 1 KB, D4-viable), one-sided input
+# rotation (rotate_out: false), + 0.5% activation-selected int8 COLUMN residual (dense columns on the massive-activation
+# input channels, same bit budget as the 0.5% CSR); embedding and untied LM head affine 4-bit g64; shared q/k/v and
+# gate/up input rotation (fused runtime path). abl_codebook (suc quantize, same codec): PPL 9.994, KL 0.0494.
+# Fine-tuning is supported for column residuals but off here (abl_finetune: -9% KL, slightly worse PPL); to enable it
+# replace `finetune: null` by e.g. {block_steps: 100, lr: 1.0e-3, sequences: 64, micro_batch: 4}.
+# Unattended on the Mac Studio (rerun the same command to resume):
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc compress experiments/configs/compress_qwen3_8b_final.yaml > logs/compress_8b_final.log 2>&1 &
+name: compress_qwen3_8b_final
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+plan:
+  mode: uniform
+  codec: vq_k256_g2_rot1s+res0.005_activation_cols
+  candidates:
+    - {kind: vq, k: 256, block_size: 2, rotate_out: false, residual_fraction: 0.005, residual_structure: columns}
+  embedding_codec: {kind: affine, bits: 4}
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16
+finetune: null
+rotation_groups: true       # shared q/k/v and gate/up input rotation (K5: no quality change; fused runtime path)
+verify_tensors: 16

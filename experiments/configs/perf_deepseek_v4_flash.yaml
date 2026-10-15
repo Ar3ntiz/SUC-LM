@@ -1,0 +1,25 @@
+# suc perf, post-project model deepseek-ai/DeepSeek-V4-Flash-0731 on the Mac Studio M1 Ultra: base (all routed experts
+# SUC-coded) and native (MXFP4 pass-through experts where chosen) SUC1 files through the C++ runtime, the native file
+# through the Python runtime; resident (107.4 GB each, iogpu.wired_limit_mb >= ~116000), one session, sequentially.
+# No MLX 4-bit / BF16 rows: they do not fit the 111 GB budget (eval_deepseek_v4_flash.yaml header). Batch 1 only.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/python scripts/frontier_measure.py suc perf experiments/configs/perf_deepseek_v4_flash.yaml > logs/perf_ds4.log 2>&1 &
+name: perf_deepseek_v4_flash
+seed: 12345
+output_dir: experiments/results
+model:
+  id: deepseek-ai/DeepSeek-V4-Flash-0731
+  revision: 7872f01b1d1fe23eabc4c98b48bffcef5a386062
+  role: target
+systems:
+  - {name: suc_cpp_base, kind: suc1_cpp, file: experiments/artifacts/compress/compress_deepseek_v4_flash/container/model.suc1}
+  - {name: suc_cpp_native, kind: suc1_cpp, file: experiments/artifacts/compress/compress_deepseek_v4_flash_native/container/model.suc1}
+  - {name: suc_python_native, kind: suc1_python, file: experiments/artifacts/compress/compress_deepseek_v4_flash_native/container/model.suc1}
+reference: suc_cpp_native
+prompt_file: experiments/perf/promessi_sposi_head.txt
+contexts: [128, 2048, 8192]
+batch_sizes: [1]
+gen_tokens: 64
+warmup: 1
+repeats: 3
+mlx_decode: pipelined
+compare_to: null

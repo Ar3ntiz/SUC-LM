@@ -1,0 +1,21 @@
+# R1 on Qwen3-8B: two-sided vs one-sided (input rotation only) randomized Hadamard at equal codec, with
+# activation-selected 0.5% residuals. Replicates the dev-model R1 finding (one-sided costs no quality) on the
+# target model before the runtime drops its online output rotations by default. Embedding/LM head encoded with
+# the codec too (Q5 protocol), so the rows are comparable to the Q5 8B table.
+name: r1_rotation_sides_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null
+  kl_sequences: 16
+rotation_groups: true
+codecs:
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 3, rotate_out: false, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, residual_fraction: 0.005}
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate_out: false, residual_fraction: 0.005}

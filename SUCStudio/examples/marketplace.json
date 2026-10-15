@@ -1,0 +1,9 @@
+{
+  "entries": [
+    {
+      "name": "Scrittura chiara",
+      "manifestURL": "https://example.com/plugins/clear-writing/plugin.json",
+      "sha256": "2bb044bfc4b7f4cbb5c2eebb098cee86eb7149db6793f886615b799e5185d00c"
+    }
+  ]
+}

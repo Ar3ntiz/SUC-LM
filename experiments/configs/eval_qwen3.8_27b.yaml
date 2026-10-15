@@ -1,0 +1,23 @@
+# suc eval, Qwen/Qwen3.8-27B (dense qwen3_5) on the Mac Studio, core suite: the side8 SUC1 file through the C++ runtime
+# and the MLX affine 4-bit g64 baseline (from the BF16 snapshot; quantizes exactly the tensors SUC encodes + embedding /
+# LM head, mlx_qwen3_5.Model.quant_predicate). The same config drives scripts/system_quality.py (WikiText-2 PPL / KL /
+# top-1 of mlx_q4 / mlx_q8 on the 16 x 512 held-out positions of the side8 compress run):
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/system_quality.py --config experiments/configs/eval_qwen3.8_27b.yaml \
+#       --run-dir experiments/artifacts/compress/compress_qwen3.8_27b_side8 --systems mlx_q4,mlx_q8
+# Queue: scripts/studio_qwen3.8_27b.sh.
+name: eval_qwen3.8_27b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-27B
+  revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+  role: target
+suite: experiments/eval/suite_core.json
+systems:
+  - {name: suc_cpp_side8, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3.8_27b_side8/container/model.suc1}
+  - {name: mlx_q4, kind: mlx_affine, bits: 4, group_size: 64}
+  - {name: mlx_q8, kind: mlx_affine, bits: 8, group_size: 64}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 128
+compare_to: null

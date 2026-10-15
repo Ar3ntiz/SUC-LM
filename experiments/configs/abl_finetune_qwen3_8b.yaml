@@ -1,0 +1,25 @@
+# Mandatory ablations, Qwen3-8B — part 4: fine-tuning (D3). Block-wise tuning of codebooks / row scales / residual
+# values (Q6 settings: 100 steps per block, lr 1e-3, 64 calibration sequences) on the SUC configuration.
+# Fine-tuning of COLUMN-structured residuals is not implemented (suc.quant.finetune raises), so the tuned row uses
+# the CSR residual at equal bits; its untuned pair is the CSR row of abl_residual_qwen3_8b (same codec, same seed).
+# Studio: ≈ 75 min (reference 6 + encode ≈ 7 + tuning ≈ 50-60 (Q6 8B: M=3 43 min) + evaluate 6).
+name: abl_finetune_qwen3_8b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-8B
+  revision: b968826d9c46dd6066d109eabc6255188de91218
+  role: target
+eval:
+  seq_len: 2048
+  max_tokens: null          # full WikiText-2 test split (final-test set, never tuned on)
+  kl_sequences: 16          # held-out validation sequences of the Phase 2 corpus
+rotation_groups: true       # runtime form: shared input rotation of q/k/v and gate/up
+embedding_codec: {kind: affine, bits: 4}   # embedding + untied LM head fixed at affine 4-bit g64 in every row
+finetune:
+  block_steps: 100
+  lr: 1.0e-3
+  sequences: 64
+  micro_batch: 4
+codecs:
+  - {kind: additive, k: 256, block_size: 8, num_codebooks: 4, rotate_out: false, residual_fraction: 0.005}

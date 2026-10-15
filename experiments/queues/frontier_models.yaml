@@ -1,0 +1,77 @@
+# suc queue: unattended compression of the frontier models on the Mac Studio (docs/queue.md).
+#   scripts/studio_queue.sh experiments/queues/frontier_models.yaml
+#   tail -f ~/suc-queue/frontier_models/progress.log
+#
+# Default recipe = the final configuration of the project (docs/benchmarks.md, docs/final_report.md):
+#   dense: experiments/configs/compress_qwen3_8b_final.yaml   VQ G=2 K=256 (4 bpw index), one-sided input rotation,
+#          + 0.5% activation-selected int8 column residual; embedding / untied LM head affine 4-bit g64.
+#   MoE:   experiments/configs/compress_qwen3_30b_a3b_final.yaml  same codec with ONE codebook set per expert stack
+#          (codebook_scope: expert_stack, "_xs"), allocation_unit expert_stack, uniform plan; router BF16.
+# The template is picked per model from its config.json (experts > 0 -> MoE) unless `template:` is given. Each model's
+# `overrides` are deep-merged into it (lists replace); the generated config is <queue_dir>/configs/<slug>.yaml.
+# Models whose architecture has no registered SUC adapter are marked `unsupported` and skipped (rerun later with a
+# `retry` decision once the adapter exists).
+name: frontier_models
+queue_dir: ~/suc-queue/frontier_models      # local disk of the Studio (NOT the SMB share)
+hf_cache: ~/.cache/huggingface/hub          # HF_HUB_CACHE for download and compress
+work_root: null                             # compress run dirs: <queue_dir>/runs/<slug>
+source_policy: keep                         # keep the original safetensors while space allows
+wait_for_decisions: true                    # keep polling decisions.yaml while only blocked models remain
+overrides: {}                               # applied to every model before its own overrides
+space:
+  min_free_gib: 60                          # hard floor; the low-disk watchdog pauses download / compress below it
+  margin: 1.15
+  estimated_bpp: 4.6
+  workspace_factor: 3.0
+  workspace_fixed_gib: 40
+download:
+  retries: 12
+  backoff_seconds: 30
+  max_backoff_seconds: 900
+  max_workers: 8
+compress:
+  template_dense: experiments/configs/compress_qwen3_8b_final.yaml
+  template_moe: experiments/configs/compress_qwen3_30b_a3b_final.yaml
+  output_dir: experiments/results
+  calibration_mix: v3                       # v1 + 3% MATH-train share for new runs (suc.config.CALIB_MIXES)
+poll:
+  progress_seconds: 60
+  heartbeat_seconds: 30
+  decisions_seconds: 120
+# User decision (2026-10-03): run Qwen3.8-Flash-Next only, then stop and ask how to continue.
+models:
+  - id: Qwen/Qwen3.8-Flash-Next
+    revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+    template: experiments/configs/compress_qwen3.8_flash_next.yaml   # qwen4_exp specifics (PLE tables raw, expert stacks)
+    overrides: {calibration: {mix: v1}}     # compressed 2026-10 with the v1 mix: keeps its stage fingerprints
+    # overrides:                            # placeholders (other agents add adapters / quantized-source readers)
+    #   plan: {mode: greedy, budget_bpw: 4.0}
+  - id: deepseek-ai/DeepSeek-V4-Flash-0731
+    enabled: false                          # user decision 2026-10-03: Qwen3.8 first, then ask (the user enables it)
+    revision: 7872f01b1d1fe23eabc4c98b48bffcef5a386062
+    # deepseek_v4 specifics: FP8 / MXFP4 source dequantized exactly at load (adapter + store, no config key), greedy
+    # per-expert Fisher allocation for a 107.5 GB total budget (weights + KV + activations <= 111 GB, preflight)
+    template: experiments/configs/compress_deepseek_v4_flash.yaml
+    estimated_bpp: 5.2                      # SUC1 ~107.5 GB over the Hub's ~167 G stored elements (FP4 bytes, not params)
+    overrides: {}
+  - id: zai-org/GLM-5.3-Flash
+    enabled: false                          # user decision 2026-10-03: Qwen3.8 first, then ask
+    revision: eb9eb208eb0d988989d07a6a12d0fdeb5f52574a
+    overrides: {}
+  - id: deepseek-ai/DeepSeek-V4.1-Flash
+    enabled: false                          # user decision 2026-10-03: Qwen3.8 first, then ask
+    revision: 2cba9e42aa026125f3ed06c6d98c1db82f7ca027
+    overrides: {}
+    # overrides:
+    #   source: {dequant: fp8_block}        # placeholder
+  - id: moonshotai/Kimi-K3
+    enabled: false                          # user decision 2026-10-03: Qwen3.8 first, then ask
+    revision: f831ab66814297da540d832a5235f8e904f29d06
+    overrides: {}
+    # source_policy: delete_after_success   # very large checkpoint: consider freeing the source after success
+  - id: openai/gpt-oss-120b
+    enabled: false                          # user decision 2026-10-03: Qwen3.8 first, then ask
+    revision: b5c939de8f754692c1647ca79fbf85e8c1e70f8a
+    overrides: {}
+    # overrides:
+    #   source: {dequant: mxfp4}            # placeholder: MXFP4 expert weights

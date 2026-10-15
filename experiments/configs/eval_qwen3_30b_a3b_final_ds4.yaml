@@ -1,0 +1,19 @@
+# suc eval, target 2 (Qwen3-30B-A3B), the greedy final SUC1 file on the HARD ds4-eval suite (experiments/eval/
+# ds4_subset.json; see eval_qwen3_8b_final_ds4.yaml). Thinking, 8192-token cap, 512-token answer reserve.
+#   HF_HUB_OFFLINE=1 nohup .venv/bin/suc eval experiments/configs/eval_qwen3_30b_a3b_final_ds4.yaml > logs/eval_30b_final_ds4.log 2>&1 &
+name: eval_qwen3_30b_a3b_final_ds4
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+suite: experiments/eval/ds4_subset.json
+systems:
+  - {name: suc_cpp_greedy, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3_30b_a3b_final_greedy/container/model.suc1}
+  # - {name: bf16, kind: bf16}
+reference: null
+max_tokens: 8192
+think_reply_reserve: 512
+teacher_forced_positions: 128
+compare_to: null

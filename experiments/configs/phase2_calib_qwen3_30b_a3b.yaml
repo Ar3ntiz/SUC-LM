@@ -1,0 +1,25 @@
+# Phase 2 calibration + semantic sensitivity, target 2, MoE; proxies on 8 sampled experts per layer (spec §9, D5).
+# Calibration data never includes the final test set (WikiText-2 test) — spec §32.
+name: phase2_calib_qwen3_30b_a3b
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-30B-A3B
+  revision: ad44e777bcd18fa416d9da3bd8f70d33ebb85d39
+  role: target
+calibration:
+  seq_len: 512
+  n_calibration: 512
+  n_validation: 128
+  n_ood: 64
+  mix: {natural: 0.35, code: 0.25, math: 0.2, instruction: 0.2}
+  micro_batch: 8
+sensitivity:
+  kind: vq
+  block_size: 8
+  k: 256
+  rotate: true
+  measured_tensors: 24
+  eval_sequences: 16
+  experts_per_layer: 8
+  fisher_group_size: 16

@@ -1,0 +1,37 @@
+import SwiftUI
+
+struct GlobalActivityView:View {
+    @EnvironmentObject var store:StudioStore
+    var body:some View {
+        VStack(spacing:0) {
+            if store.modelState=="loading" {
+                HStack(spacing:10) { ProgressView().controlSize(.small);VStack(alignment:.leading,spacing:2) {Text("Caricamento del modello…").fontWeight(.medium);Text(URL(fileURLWithPath:store.archive.settings.modelPath).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1) };Spacer();Text("C++ / Metal").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }.padding(12).background(studioAccent.opacity(0.08)).accessibilityElement(children:.combine)
+            }
+            if let item=store.approvals.first(where:{$0.sessionID != store.archive.selected || store.tab != "chat"}) {
+                HStack { Label("Approvazione richiesta · "+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button("Apri chat") {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
+            }
+        }.font(StudioTypography.ui(.callout))
+    }
+}
+struct GenerationActivity:View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let state:String
+    var decoding:Bool{state=="generating"}
+    var label:String{decoding ? "Generazione della risposta":state=="queued" ? "In attesa del modello":state=="remote_wait" ? "Attesa remota · prefill non segnalato":"Lettura del contesto · prefill"}
+    var body:some View {
+        HStack(spacing:10) {
+            if reduceMotion {Image(systemName:decoding ? "waveform":"sparkle").foregroundStyle(studioAccent)}
+            else {
+                TimelineView(.animation(minimumInterval:1.0/15)) { context in
+                    let t=context.date.timeIntervalSinceReferenceDate
+                    if decoding {
+                        HStack(spacing:3) {ForEach(0..<4,id:\.self) { i in Capsule().fill(studioAccent.opacity(0.8)).frame(width:3,height:CGFloat(5+9*(0.5+0.5*sin(t*5+Double(i))))) }}.frame(width:22,height:22)
+                    } else {
+                        Image(systemName:"sparkle").font(.system(size:19)).foregroundStyle(studioAccent).rotationEffect(.degrees(t*45)).scaleEffect(0.9+0.1*sin(t*3)).frame(width:22,height:22)
+                    }
+                }.accessibilityHidden(true)
+            }
+            Text(label).font(StudioTypography.ui(.callout)).foregroundStyle(.secondary)
+        }.accessibilityElement(children:.ignore).accessibilityLabel(label).padding(.vertical,4)
+    }
+}

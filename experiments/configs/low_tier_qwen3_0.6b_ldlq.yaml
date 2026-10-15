@@ -1,0 +1,26 @@
+# Low tier codec study (docs/low_tier_codec.md) on the dev model, BlockLDLQ rows (full input second moments of 128
+# calibration sequences of the same compress run); plain rows: low_tier_qwen3_0.6b.yaml. Otherwise as there: trellis-coded quantization (kind tcq, bitshift
+# trellis L=16, Viterbi) vs the current low tiers (VQ G=4 K=256 ~2.2 bpp, additive M=3 G=8 ~3.2 bpp) and RTN affine,
+# every row with the same 0.5 % activation-selected column residual and one-sided (input) rotation as the DeepSeek
+# expert candidates, embedding / tied LM head affine 4-bit in every row.
+# KL on the 16 x 512 validation ids of the compress_qwen3_0.6b_final run (the rows the GGUF KLs of
+# docs/compression_report.md §6 are scored on); residual selection from that run's calibration activations.
+name: low_tier_qwen3_0.6b_ldlq
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3-0.6B
+  revision: c1899de289a04d12100db370d81485cdf75e47ca
+  role: dev
+rotation_groups: true
+activation_stats: ~/suc-local/compress/compress_qwen3_0.6b_final/calibrate/activations.safetensors
+embedding_codec: {kind: affine, bits: 4}
+eval:
+  seq_len: 2048
+  max_tokens: 32768
+  kl_sequences: 16
+  calib_artifact: ~/suc-local/compress/compress_qwen3_0.6b_final/calibrate/data.safetensors
+codecs:
+  - {kind: tcq, tcq_bits: 2, tcq_code: 1mad, tcq_V: 1, rotate_out: false, ldlq: true, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: tcq, tcq_bits: 2, tcq_code: 3inst, tcq_V: 2, rotate_out: false, ldlq: true, residual_fraction: 0.005, residual_structure: columns}
+  - {kind: tcq, tcq_bits: 3, tcq_code: 1mad, tcq_V: 1, rotate_out: false, ldlq: true, residual_fraction: 0.005, residual_structure: columns}

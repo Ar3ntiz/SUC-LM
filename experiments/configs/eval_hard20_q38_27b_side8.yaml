@@ -1,0 +1,24 @@
+# suc eval ENLARGED hard suite (experiments/eval/suite_hard20.json, 120 cases, 20 per subset; round 0 = the 30 cases of
+# suite_hard.json; thinking off; LongCtx ~8-32k tokens last) on the Qwen3.8-27B (dense qwen3_5) SUC1 side8 file
+# (compress_qwen3.8_27b_side8, 16.4 GB, C++ runtime ~/suc-local/cpp-build/suc1-generate). Paired with LM Studio's
+# Qwen3.8-27B quants through the openai_server harness (audit F03 / F04): gguf_eval_hard20_lms_q38_27b_q8_0 (GGUF Q8_0,
+# llama.cpp engine) and gguf_eval_hard20_lms_q38_27b_8bit (MLX 8-bit), scripts/gguf_llama.py lms-eval q38_27b LABEL
+# suc-cmp --suite experiments/eval/suite_hard20.json. Queue: scripts/studio_hard20.sh (per-job time cap via
+# SUC_EVAL_DEADLINE: cases not started before it are recorded SKIPPED); summary: scripts/hard_suite_report.py (section
+# "Hard suite, enlarged"). Same system / runtime flags as the side8 system of eval_qwen3.8_27b.yaml (model / revision
+# from it; no reference, no teacher forcing).
+#   HF_HUB_OFFLINE=1 .venv/bin/python scripts/frontier_measure.py suc eval experiments/configs/eval_hard20_q38_27b_side8.yaml
+name: eval_hard20_q38_27b_side8
+seed: 12345
+output_dir: experiments/results
+model:
+  id: Qwen/Qwen3.8-27B
+  revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+  role: target
+suite: experiments/eval/suite_hard20.json
+systems:
+  - {name: suc_cpp_side8, kind: suc1_cpp, file: experiments/artifacts/compress/compress_qwen3.8_27b_side8/container/model.suc1}
+reference: null
+think_reply_reserve: 256
+teacher_forced_positions: 0
+compare_to: null
