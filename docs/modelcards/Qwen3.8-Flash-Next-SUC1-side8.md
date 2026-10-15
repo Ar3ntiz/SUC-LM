@@ -1,6 +1,5 @@
 ---
-license: other
-license_name: mit
+license: mit
 base_model: Qwen/Qwen3.8-Flash-Next
 base_model_relation: quantized
 pipeline_tag: text-generation
@@ -29,6 +28,8 @@ tags:
 | Memory at run time | 73.82 GB (fully resident) |
 | Runs on | Macs with ≥ 96 GB |
 | Format / runtime | SUC1 · SUC C++ runtime (`suc1-generate`, `suc1-server`) or the SUC Studio macOS app |
+| Engine for Inference | https://github.com/Ar3ntiz/SUC-LM/ |
+| APP for Mac OSX | https://github.com/Ar3ntiz/SUC-LM/tree/main/SUCStudio |
 
 ## Quantization
 

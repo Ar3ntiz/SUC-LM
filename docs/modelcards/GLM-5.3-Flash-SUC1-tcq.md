@@ -5,7 +5,8 @@ base_model_relation: quantized
 pipeline_tag: text-generation
 library_name: suc
 tags:
-- suc1
+- SUC
+- Semantic Universal Compression
 - quantized
 - vector-quantization
 - apple-silicon
@@ -27,6 +28,8 @@ tags:
 | Memory at run time | 106.59 GB (fully resident) |
 | Runs on | Macs with 128 GB (GPU wired limit raised) |
 | Format / runtime | SUC1 · SUC C++ runtime (`suc1-generate`, `suc1-server`) or the SUC Studio macOS app |
+| Engine for Inference | https://github.com/Ar3ntiz/SUC-LM/ |
+| APP for Mac OSX | https://github.com/Ar3ntiz/SUC-LM/tree/main/SUCStudio |
 
 ## Quantization
 

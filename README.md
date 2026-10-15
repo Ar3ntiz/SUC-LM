@@ -11,7 +11,7 @@ decode speeds close to llama.cpp / ds4. Compressing the models needs a Mac Studi
 
 Italian: [README-IT.md](README-IT.md) · Specification: [docs/spec.md](docs/spec.md) · All measurements:
 [docs/compression_report.md](docs/compression_report.md) · C++ runtime: [cpp/README.md](cpp/README.md) · macOS app:
-[SUCStudio/](SUCStudio/README.md)
+[SUCStudio/](SUCStudio/README.md) | LLM Models: [https://huggingface.co/Ar3ntiz](https://huggingface.co/Ar3ntiz)
 
 ## Results (Mac Studio M1 Ultra, batch 1, status 14 October 2026)
 

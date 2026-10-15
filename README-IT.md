@@ -12,7 +12,7 @@ vecchio della serie.
 
 English: [README.md](README.md) · Specifica: [docs/spec-IT.md](docs/spec-IT.md) · Tutte le misure:
 [docs/compression_report-IT.md](docs/compression_report-IT.md) · Runtime C++: [cpp/README-IT.md](cpp/README-IT.md) · App macOS:
-[SUCStudio/](SUCStudio/README.md)
+[SUCStudio/](SUCStudio/README.md) | Modelli LLM: [https://huggingface.co/Ar3ntiz](https://huggingface.co/Ar3ntiz)
 
 ## Risultati (Mac Studio M1 Ultra, batch 1, stato al 14 ottobre 2026)
 
