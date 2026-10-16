@@ -88,15 +88,15 @@ Batched prompt prefill is not bit-identical to token-by-token prefill (small, me
 Requires an Apple Silicon Mac and the SUC C++ runtime (build: `cpp/build.sh ~/suc-local/cpp-build` in the SUC repository).
 
 ```bash
-hf download Ar3ntiz/GLM-5.3-Flash-SUC1-tcq --local-dir ~/Models/GLM-5.3-Flash-SUC1-tcq
-~/suc-local/cpp-build/suc1-generate ~/Models/GLM-5.3-Flash-SUC1-tcq/model.suc1 \
-    --tokenizer ~/Models/GLM-5.3-Flash-SUC1-tcq/tokenizer.json --chat --prompt "Hello!" --steps 256
+hf download Ar3ntiz/glm5-3_flash_tcq --local-dir ~/Models/GLM-5.3-Flash-SUC1-tcq
+~/suc-local/cpp-build/suc1-generate ~/Models/GLM-5.3-Flash-SUC1-tcq/glm5.3_flash_tcq.suc1 \
+    --tokenizer ~/Models/GLM-5.3-Flash-SUC1-tcq/GLM-5.3-Flash-tokenizer.json --chat --prompt "Hello!" --steps 256
 ```
 
 OpenAI-compatible server (`/v1/chat/completions`, `/v1/completions`, streaming):
 
 ```bash
-~/suc-local/cpp-build/suc1-server ~/Models/GLM-5.3-Flash-SUC1-tcq/model.suc1 --tokenizer ~/Models/GLM-5.3-Flash-SUC1-tcq/tokenizer.json \
+~/suc-local/cpp-build/suc1-server ~/Models/GLM-5.3-Flash-SUC1-tcq/glm5.3_flash_tcq.suc1 --tokenizer ~/Models/GLM-5.3-Flash-SUC1-tcq/GLM-5.3-Flash-tokenizer.json \
     --port 8080 --max-context 32768
 ```
 

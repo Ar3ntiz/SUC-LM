@@ -91,15 +91,15 @@ Competition math (MATH) is the weakest subset: 12/20 vs 17/20 for the IQ2_XXS GG
 Requires an Apple Silicon Mac and the SUC C++ runtime (build: `cpp/build.sh ~/suc-local/cpp-build` in the SUC repository).
 
 ```bash
-hf download Ar3ntiz/DeepSeek-V4-Flash-SUC1-tcq --local-dir ~/Models/DeepSeek-V4-Flash-SUC1-tcq
-~/suc-local/cpp-build/suc1-generate ~/Models/DeepSeek-V4-Flash-SUC1-tcq/model.suc1 \
-    --tokenizer ~/Models/DeepSeek-V4-Flash-SUC1-tcq/tokenizer.json --chat --prompt "Hello!" --steps 256
+hf download Ar3ntiz/DeepSeek_V4_Flash_tcq --local-dir ~/Models/DeepSeek-V4-Flash-SUC1-tcq
+~/suc-local/cpp-build/suc1-generate ~/Models/DeepSeek-V4-Flash-SUC1-tcq/DeepSeek-V4-Flash_tcq.suc1 \
+    --tokenizer ~/Models/DeepSeek-V4-Flash-SUC1-tcq/DeepSeek-V4-Flash-tokenizer.json --chat --prompt "Hello!" --steps 256
 ```
 
 OpenAI-compatible server (`/v1/chat/completions`, `/v1/completions`, streaming):
 
 ```bash
-~/suc-local/cpp-build/suc1-server ~/Models/DeepSeek-V4-Flash-SUC1-tcq/model.suc1 --tokenizer ~/Models/DeepSeek-V4-Flash-SUC1-tcq/tokenizer.json \
+~/suc-local/cpp-build/suc1-server ~/Models/DeepSeek-V4-Flash-SUC1-tcq/DeepSeek-V4-Flash_tcq.suc1 --tokenizer ~/Models/DeepSeek-V4-Flash-SUC1-tcq/DeepSeek-V4-Flash-tokenizer.json \
     --port 8080 --max-context 32768
 ```
 

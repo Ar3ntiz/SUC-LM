@@ -87,15 +87,15 @@ Batched prompt prefill is not bit-identical to token-by-token prefill (small, me
 Requires an Apple Silicon Mac and the SUC C++ runtime (build: `cpp/build.sh ~/suc-local/cpp-build` in the SUC repository).
 
 ```bash
-hf download Ar3ntiz/Qwen3.8-Flash-Next-SUC1-side8 --local-dir ~/Models/Qwen3.8-Flash-Next-SUC1-side8
-~/suc-local/cpp-build/suc1-generate ~/Models/Qwen3.8-Flash-Next-SUC1-side8/model.suc1 \
-    --tokenizer ~/Models/Qwen3.8-Flash-Next-SUC1-side8/tokenizer.json --chat --prompt "Hello!" --steps 256
+hf download Ar3ntiz/qwen3.8_flash_next_side8 --local-dir ~/Models/Qwen3.8-Flash-Next-SUC1-side8
+~/suc-local/cpp-build/suc1-generate ~/Models/Qwen3.8-Flash-Next-SUC1-side8/qwen3.8_flash_next_side8.suc1 \
+    --tokenizer ~/Models/Qwen3.8-Flash-Next-SUC1-side8/qwen3.8-Flash-Next-tokenizer.json --chat --prompt "Hello!" --steps 256
 ```
 
 OpenAI-compatible server (`/v1/chat/completions`, `/v1/completions`, streaming):
 
 ```bash
-~/suc-local/cpp-build/suc1-server ~/Models/Qwen3.8-Flash-Next-SUC1-side8/model.suc1 --tokenizer ~/Models/Qwen3.8-Flash-Next-SUC1-side8/tokenizer.json \
+~/suc-local/cpp-build/suc1-server ~/Models/Qwen3.8-Flash-Next-SUC1-side8/qwen3.8_flash_next_side8.suc1 --tokenizer ~/Models/Qwen3.8-Flash-Next-SUC1-side8/qwen3.8-Flash-Next-tokenizer.json \
     --port 8080 --max-context 32768
 ```
 
