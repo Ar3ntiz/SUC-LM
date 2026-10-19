@@ -1,3 +1,82 @@
+# SUC Studio 1.4.7.03
+
+Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
+
+- Apple Silicon: motore SUC C++/Metal locale oppure server remoto.
+- Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
+- Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
+- Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
+- Installazione: aprire `dist/SUC-Studio-1.4.7.03-universal.pkg`.
+  Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
+- Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
+- Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
+  Esportare/importare le sessioni dall’interfaccia; reinserire le API key e riconfigurare gli strumenti.
+
+## Novità della 1.4.6
+
+Le richieste JSON dei tool e i risultati tecnici restano nel registro azioni;
+la chat mostra la risposta finale e un piccolo riepilogo grigio, su una riga
+quando possibile. Gli errori vengono segnalati durante l’esecuzione.
+
+In Gestisci routine puoi scegliere la prima esecuzione e attivare **Ripeti nel tempo**,
+con numero intero e unità minuti, ore, giorni o mesi. Senza il flag la routine
+si disattiva prima dell’invio e viene eseguita una sola volta. Le vecchie routine
+mantengono il loro intervallo. Giorni e mesi seguono il calendario locale; dopo
+stop/riavvio non viene eseguita una raffica di recuperi arretrati.
+L’app deve restare aperta e il server deve essere disponibile. Nelle sessioni
+con approvazione automatica una routine autorizzata può avviare anche il browser
+integrato; con approvazione manuale attende conferma inline nella chat indicata.
+Un puntino giallo accanto al titolo segnala risposte o approvazioni non lette;
+si spegne aprendo la chat e viene conservato al riavvio.
+
+Le skill hanno titolo, descrizione e istruzioni. Il prompt iniziale elenca soltanto
+le descrizioni delle skill attive, con ID; il modello carica il corpo tramite
+`load_skill(id)` quando serve. Il caricamento non abilita file/comandi o altri
+permessi. Import SKILL.md supporta `name`/`title`, `description` e corpo; le
+vecchie skill restano utilizzabili con una descrizione generica modificabile.
+Limiti: descrizione 4 KiB e istruzioni 64 KiB. I plugin possono fornire una
+descrizione opzionale per ogni skill.
+
+Le nuove chat usano Output max **4000 token**; i valori già salvati restano invariati.
+
+## Aggiornamento alla 1.4.7.03
+
+Chiudere le copie dell’app prima dell’installazione. Il pacchetto installa `SUC Studio.app` e rimuove la precedente `SUC Studio Universal Preview.app` solo se ha l’identificativo previsto. Le chat, impostazioni, credenziali e risorse della Universal restano disponibili: il percorso dati storico e il bundle ID sono mantenuti intenzionalmente. La cartella sorgenti unica è ora `SUCStudio/`; il motore rimane quello di `../cpp`.
+
+## Setup e server remoto
+
+Aprire Server, scegliere Server remoto (obbligatorio su Intel), impostare URL base
+con prefisso `/v1`, API key se necessaria e ID modello. Usare Verifica / modelli,
+poi Salva server remoto. Aprire Chat e creare una sessione.
+Esempi: `http://192.0.2.20:8080/v1` oppure `http://127.0.0.1:8080/v1` per un
+motore esterno in esecuzione sullo stesso Mac. Modelli, vision, strumenti e metriche
+dipendono dalle capacità del server. Nessun modello/tokenizer locale è richiesto su Intel.
+
+## Build e verifica
+
+Mantenere `SUCStudio` dentro SUC-LM accanto a `cpp`.
+Il motore viene compilato dai sorgenti del padre, incluse modifiche non committate.
+Non usare il motore del vecchio worktree. App e helper shell/terminale sono
+compilati per arm64 e x86_64 e uniti con lipo; il motore integrato rimane arm64
+ed è bloccato su Intel. Per compilare entrambe le architetture eseguire:
+
+```sh
+./scripts/build.sh
+./scripts/test-universal.sh
+./scripts/package.sh
+```
+
+La build seleziona SDK 26.5 se presente (oppure SDKROOT esplicito).
+Un singolo installer contiene entrambe le architetture. Le build per entrambe le architetture e i test automatici non sostituiscono
+il collaudo dell’interfaccia su Mac Intel e Apple Silicon.
+Collaudo utente completato su Intel, M3 e M1 Ultra.
+
+---
+
+## Guida ereditata dalla versione stabile
+
+Le sezioni sul motore locale valgono solo su Apple Silicon.
+
 # SUC Studio — setup e utilizzo
 
 App locale per macOS 15+ e Apple Silicon. Modelli SUC1 e tokenizer non sono inclusi. Il pacchetto è locale, privo di firma Developer ID/notarizzazione; la firma ad-hoc serve all’integrità tecnica del bundle.
@@ -11,7 +90,7 @@ Installare i Command Line Tools Apple (`xcode-select --install`), con SDK macOS 
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.5_Final-arm64.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
+Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.7.03-universal.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
 
 ## Installare e iniziare
 
@@ -28,13 +107,13 @@ Nuova chat (`⌘N`), selezione dalla sidebar, ricerca su titoli/testo, rinomina,
 
 Modifica e rigenera mantengono la stessa sessione, interrompono la richiesta precedente e sostituiscono la parte di conversazione dal messaggio scelto. I controlli sessione permettono system prompt, temperatura, output massimo e thinking. Una sessione riaperta usa il modello attualmente caricato per la nuova risposta; il modello usato è registrato su ogni risposta. Nessuna cache KV viene condivisa tra conversazioni.
 
-Il menu della chat esporta Markdown o JSON e importa JSON SUC Studio. I dati si trovano in `~/Library/Application Support/SUC Studio/sessions.json`, con backup. Dopo crash le risposte parziali risultano interrotte; non vengono reinviate automaticamente. Un contesto troppo grande produce un errore, senza troncamento silenzioso.
+Il menu della chat esporta Markdown o JSON e importa JSON SUC Studio. I dati si trovano in `~/Library/Application Support/SUC Studio Universal Preview/sessions.json`, con backup. Dopo crash le risposte parziali risultano interrotte; non vengono reinviate automaticamente. Un contesto troppo grande produce un errore, senza troncamento silenzioso.
 
 ## Server LAN
 
 Caricare il modello, aprire Server, scegliere Questo Mac o Rete locale, porta e **Avvia server**. API key obbligatoria, generata e conservata nel Keychain. Copiarla dal pulsante dedicato. Per ruotarla arrestare il server; la vecchia chiave non sarà più accettata al riavvio.
 
-Dalla LAN usare l’indirizzo IPv4 del Mac al posto di `0.0.0.0`, ad esempio `http://192.168.1.10:8080/v1`. HTTP non è cifrato: usare una rete fidata. Il sistema può richiedere accesso alla rete locale/firewall. Non viene configurato alcun inoltro porte Internet.
+Dalla LAN usare l’indirizzo IPv4 del Mac al posto di `0.0.0.0`, ad esempio `http://192.0.2.10:8080/v1`. HTTP non è cifrato: usare una rete fidata. Il sistema può richiedere accesso alla rete locale/firewall. Non viene configurato alcun inoltro porte Internet.
 
 ```sh
 curl http://127.0.0.1:8080/v1/chat/completions \
@@ -132,7 +211,7 @@ L’icona 0.4 nel Dock/Finder usa lo stesso simbolo `sparkles.rectangle.stack` d
 
 Nei Settings puoi scrivere il **System prompt generale**. Ogni nuova richiesta della chat nativa combina, nell’ordine, le istruzioni generali, le skill attive nell’ordine dell’elenco e il prompt extra della sessione. Le modifiche valgono anche per i successivi messaggi delle chat esistenti; non cambiano le risposte già salvate. Ogni risposta conserva uno snapshot del prompt effettivo. Le richieste ricevute dall’API continuano a usare i messaggi system inviati dal client API.
 
-Nella sezione Skill puoi creare, modificare, eliminare o importare un file di istruzioni (anche SKILL.md), poi attivarlo con l’interruttore. Massimo 64 KiB per skill. Si importa il testo: script e file citati nella skill non sono eseguiti o caricati automaticamente. Le istruzioni concorrono al limite di contesto del modello.
+Nella sezione Skill puoi creare, modificare, eliminare o importare un file di istruzioni (anche SKILL.md), poi attivarlo con l’interruttore. Ogni skill ha titolo, descrizione (fino a 4 KiB) e istruzioni (fino a 64 KiB). All’inizio viene letto il catalogo; il corpo viene caricato con load_skill(id) quando pertinente. Si importa il testo: script e file citati nella skill non sono eseguiti o caricati automaticamente. Le istruzioni concorrono al limite di contesto del modello.
 
 ## MCP locali e remoti
 
@@ -159,7 +238,7 @@ Il pulsante **Setup e utilizzo** apre questa guida HTML nel browser predefinito,
 
 ## Chat remota — 0.6
 
-In **Server → Motore per la chat** scegli Questo Mac oppure Server remoto. Inserisci la base API (per esempio `http://192.168.1.20:8080/v1`), l’ID del modello e l’API key. Per un’altra SUC Studio usa l’indirizzo LAN del Mac server e la chiave copiata sul server. **Verifica / modelli** controlla GET /models e propone i modelli; se il server non offre questo endpoint puoi inserire l’ID manualmente. Premi **Salva server remoto** prima di tornare in chat.
+In **Server → Motore per la chat** scegli Questo Mac oppure Server remoto. Inserisci la base API (per esempio `http://192.0.2.20:8080/v1`), l’ID del modello e l’API key. Per un’altra SUC Studio usa l’indirizzo LAN del Mac server e la chiave copiata sul server. **Verifica / modelli** controlla GET /models e propone i modelli; se il server non offre questo endpoint puoi inserire l’ID manualmente. Premi **Salva server remoto** prima di tornare in chat.
 
 La modalità remota usa POST /chat/completions con streaming SSE e non richiede un modello locale. Prompt globale, skill, cronologia e testo degli allegati vengono inviati al server scelto. Le credenziali sono nel Portachiavi; non inserire segreti nella URL. Il servizio API locale può continuare a funzionare indipendentemente. Il backend non si cambia durante una risposta.
 
@@ -202,7 +281,7 @@ Per cambiare versione rimuovi esplicitamente il plugin e installa il nuovo manif
 
 ## Routine schedulabili — 0.9
 
-Da Settings → Gestisci routine imposta nome, prompt, sessione, backend richiesto, prossima data e intervallo in minuti. La routine usa il modello configurato nel backend selezionato, preserva la bozza manuale e conserva uno storico di 50 esecuzioni. Eredita directory, strumenti e approvazioni della sessione: in modalità manuale le azioni attendono l’utente.
+Da Settings → Gestisci routine imposta nome, prompt, sessione, backend richiesto, prima data e, facoltativamente, ripetizione con numero e unità (minuti, ore, giorni o mesi). La routine usa il modello configurato nel backend selezionato, preserva la bozza manuale e conserva uno storico di 50 esecuzioni. Eredita directory, strumenti e approvazioni della sessione: in modalità manuale le azioni attendono l’utente.
 
 Lo scheduler lavora mentre l’app è aperta, anche con finestra chiusa nella menu bar. Attende che il backend richiesto sia selezionato, il modello sia disponibile e non ci siano richieste in corso. Non carica automaticamente modelli locali. Dopo sleep o riapertura recupera al massimo un’esecuzione, poi calcola la prossima data; non esegue tutta la coda arretrata. Le esecuzioni interrotte da un riavvio sono segnate come tali, senza reinvio automatico. L’app non installa daemon, non accende il Mac e non esegue routine quando è chiusa.
 
@@ -257,7 +336,7 @@ L’input non viene conservato in una cronologia dell’app. L’output, limitat
 
 La richiesta segue le approvazioni manuali/automatiche e attende la conclusione del processo; non ha il timeout di 30 secondi di run_command. Il modello riceve soltanto il codice di uscita. Per leggere un risultato usa read_file; per offrirlo come file usa publish_artifact. È ammesso un solo terminale inline attivo per sessione. I comandi operano con i permessi dell’utente e non costituiscono una sandbox del filesystem.
 
-Gli artifact compaiono in fondo alla conversazione: **Salva…** esporta una copia nella posizione scelta, **Mostra nel Finder** mostra la copia conservata dall’app. write_file pubblica automaticamente il file; per file prodotti da shell o altri strumenti il modello deve chiamare `publish_artifact(path)` con un percorso relativo alla directory della sessione. Sono ammessi file regolari di qualsiasi tipo fino a 100 MiB; percorsi esterni e symlink che escono dalla directory vengono rifiutati. Ogni pubblicazione è una nuova copia persistente sotto `Application Support/SUC Studio/artifacts`, indipendente dalle modifiche successive all’originale.
+Gli artifact compaiono in fondo alla conversazione: **Salva…** esporta una copia nella posizione scelta, **Mostra nel Finder** mostra la copia conservata dall’app. write_file pubblica automaticamente il file; per file prodotti da shell o altri strumenti il modello deve chiamare `publish_artifact(path)` con un percorso relativo alla directory della sessione. Sono ammessi file regolari di qualsiasi tipo fino a 100 MiB; percorsi esterni e symlink che escono dalla directory vengono rifiutati. Ogni pubblicazione è una nuova copia persistente sotto `Application Support/SUC Studio Universal Preview/artifacts`, indipendente dalle modifiche successive all’originale.
 
 L’export JSON/Markdown della chat non incorpora i byte degli artifact: salva separatamente i file da trasferire a un altro Mac. Le copie possono occupare spazio su disco e restano disponibili alle chat duplicate; non vengono eliminate automaticamente cancellando una sessione.
 
@@ -281,12 +360,34 @@ La riga sotto il composer mostra `work directory: percorso` accanto a prefill e 
 
 In ogni sessione con **Consenti strumenti web** attivo il modello può usare due strumenti web, anche senza directory di lavoro e con **Consenti azioni del modello** spento: `web_search(query)` cerca su Google e restituisce fino a 20 link in Markdown più 1.200 caratteri del testo della pagina; `visit_page(url)` apre un indirizzo `http` o `https` noto e ne estrae titolo, contenuti e fino a 80 link. È accettato anche il nome `google_search`. Gli strumenti funzionano con ogni backend (motore locale, SUC Studio remoto, LM Studio, ds4 e altri server compatibili OpenAI) perché passano dal normale protocollo `suc_action`. Senza directory di lavoro (o con le azioni del modello spente) il prompt elenca solo questi due strumenti e invita il modello a usarli invece di dichiarare che non può navigare; le altre azioni restano ignorate. Una richiesta racchiusa in un unico blocco di codice (anche marcato `json`) viene accettata; JSON inserito in un testo no.
 
-Le pagine si aprono nel browser integrato, con WebKit di macOS e il suo user agent standard. Il browser lavora **nascosto**: non compare sopra le tue finestre, non prende il focus e non porta l’app in primo piano. Mentre una ricerca o una pagina è in corso nella sessione selezionata, nella barra in alto della chat, accanto all’icona delle impostazioni della sessione, compare un **pulsante globo** con indicatore di attività: mostra la fase («Navigazione», «Attesa caricamento», «Consenso cookie», «Scorrimento», «Estrazione») e i secondi trascorsi; il suggerimento riporta anche «Ricerca Google: …» o «Apertura pagina: …». Facendo clic si apre la finestra **Browser SUC Studio** con la pagina dal vivo e una barra di stato (fase, URL, tempo): puoi guardare cosa succede o dove si è fermato. Chiuderla non interrompe lo strumento. A fine azione (completata, con errore o interrotta) il pulsante scompare e la finestra si chiude da sola: il contenuto estratto è già in chat o nel file salvato, e una finestra vuota non resta mai sullo schermo. Alla prima azione web dopo l’avvio dell’app compare in chat la richiesta «Lo strumento web vuole usare il browser integrato (nascosto; puoi guardarlo dal pulsante globo). Consenti?», anche con approvazioni automatiche. La risposta vale fino all’uscita dall’app. Nelle routine pianificate, senza un utente che possa rispondere, il primo avvio del browser fallisce con un errore. Ogni ricerca o pagina segue poi le approvazioni manuali o automatiche della sessione, mostrando la query o l’URL.
+Le pagine si aprono nel browser integrato, con WebKit di macOS e il suo user agent standard. Il browser lavora **nascosto**: non compare sopra le tue finestre, non prende il focus e non porta l’app in primo piano. Mentre una ricerca o una pagina è in corso nella sessione selezionata, nella barra in alto della chat, accanto all’icona delle impostazioni della sessione, compare un **pulsante globo** con indicatore di attività: mostra la fase («Navigazione», «Attesa caricamento», «Consenso cookie», «Scorrimento», «Estrazione») e i secondi trascorsi; il suggerimento riporta anche «Ricerca Google: …» o «Apertura pagina: …». Facendo clic si apre la finestra **Browser SUC Studio** con la pagina dal vivo e una barra di stato (fase, URL, tempo): puoi guardare cosa succede o dove si è fermato. Chiuderla non interrompe lo strumento. A fine azione (completata, con errore o interrotta) il pulsante scompare e la finestra si chiude da sola: il contenuto estratto è già in chat o nel file salvato, e una finestra vuota non resta mai sullo schermo. Alla prima azione web dopo l’avvio dell’app compare in chat la richiesta «Lo strumento web vuole usare il browser integrato (nascosto; puoi guardarlo dal pulsante globo). Consenti?», anche con approvazioni automatiche. La risposta vale fino all’uscita dall’app. Nelle routine pianificate con approvazione automatica il browser può avviarsi senza conferma aggiuntiva; con approvazione manuale la conferma resta inline nella chat indicata, segnalata come non letta. Ogni ricerca o pagina segue poi le approvazioni manuali o automatiche della sessione, mostrando la query o l’URL.
 
 Nelle impostazioni della sessione **Consenti strumenti web** è attivo di default; spento, gli strumenti rispondono «Strumenti web disabilitati per questa sessione.» e il prompt non li elenca. `visit_page` rifiuta `file:`, `javascript:`, `data:`, `about:` e ogni altro schema. Il browser usa un profilo dedicato e persistente, separato da Safari: cookie e consenso restano tra le chiamate e i riavvii. **Settings → Ricerca web → Cancella dati del browser web** chiude il browser e cancella cookie, consenso e cache.
 
-Il comportamento replica il modulo web di ds4: una pagina nuova per chiamata in una vista 1365 × 900, attesa del caricamento (controlli ogni 250 ms, fino a 25 s), accettazione automatica del banner cookie di Google e, per `visit_page`, scorrimento progressivo per caricare commenti e contenuti pigri. Il Markdown completo di `visit_page` viene salvato in `.suc-web/visit-<data>-<n>.md` nella directory di lavoro; al modello arrivano il percorso relativo e le prime 100 righe (al massimo 8 KiB). Per leggere il resto usa `read_file`, che legge file fino a 256 KiB. Senza directory di lavoro la pagina va in `~/Library/Application Support/SUC Studio/web/visit-<data>-<n>.md`: il modello riceve il percorso assoluto e le stesse prime 100 righe, ma non può leggere il resto perché `read_file` non è disponibile; il file resta a disposizione dell’utente. Nel registro operazioni le chiamate compaiono come «Ricerca Google: …» e «Apertura pagina: …».
+Il comportamento replica il modulo web di ds4: una pagina nuova per chiamata in una vista 1365 × 900, attesa del caricamento (controlli ogni 250 ms, fino a 25 s), accettazione automatica del banner cookie di Google e, per `visit_page`, scorrimento progressivo per caricare commenti e contenuti pigri. Il Markdown completo di `visit_page` viene salvato in `.suc-web/visit-<data>-<n>.md` nella directory di lavoro; al modello arrivano il percorso relativo e le prime 100 righe (al massimo 8 KiB). Per leggere il resto usa `read_file`, che legge file fino a 256 KiB. Senza directory di lavoro la pagina va in `~/Library/Application Support/SUC Studio Universal Preview/web/visit-<data>-<n>.md`: il modello riceve il percorso assoluto e le stesse prime 100 righe, ma non può leggere il resto perché `read_file` non è disponibile; il file resta a disposizione dell’utente. Nel registro operazioni le chiamate compaiono come «Ricerca Google: …» e «Apertura pagina: …».
 
 Se Google chiede una verifica (pagina `/sorry/` o reCAPTCHA), l’app non la aggira e non porta il browser in primo piano: la pagina resta caricata e il pulsante globo diventa arancione con «Verifica Google richiesta: clicca per completarla». Lo strumento restituisce un errore che chiede di aprire il browser dal pulsante, completare la verifica e ripetere la ricerca. Completata la verifica il pulsante scompare; la finestra resta aperta finché non la chiudi. La pagina in attesa viene sostituita dalla successiva azione web. I contenuti web sono dati non attendibili: non concedono autorizzazioni e non modificano le regole della sessione. Interrompi annulla anche l’attesa della pagina.
 
 Gli script di estrazione e la logica di navigazione derivano da ds4 (https://github.com/antirez/ds4), licenza MIT, Copyright (c) 2026 The ds4.c authors; il testo della licenza è in `licenses/ds4-MIT.txt`.
+
+## Verifiche del motore 1.4.7
+
+La versione nel branch di test conserva i file SUC1 esistenti e la politica di memoria. DeepSeek e GLM usano il percorso TCQ FP32 verificato; per confrontarlo con quello storico imposta `SUC_TCQ_REUSE=0` all’avvio della CLI o del server. Le altre famiglie mantengono il kernel predefinito. Nella CLI il prefill automatico di Qwen usa fino a 1024 token per blocco; app e server conservano il proprio profilo prudente. Il valore esplicito di `--chunk` viene rispettato. Il campionamento può produrre testi diversi con lo stesso seed, mantenendo la distribuzione prevista. Il riuso del prefisso accelera l’elaborazione di contesti ripetuti corrispondenti. MTP è rinviato.
+
+CLI e server autonomo per Apple Silicon: `dist/SUC-CLI-Server-1.4.7.03-arm64.tar.gz`, con esempi di configurazione e hash dei binari inclusi. L’app e gli strumenti ausiliari Universal supportano il funzionamento come client remoto su Intel e l’inferenza locale su Apple Silicon. I risultati della verifica KL sono in `../docs/optimization/REFERENCE_KL.md`; i collaudi dei pacchetti sono registrati in `../docs/optimization/RELEASE_SMOKE_1.4.7.json`.
+
+### Profili di prefill e qualità
+
+App e server mantengono blocchi automatici di 64 righe per Qwen e DeepSeek e di 512 righe per GLM; la CLI conserva il profilo separato per i prompt lunghi. Il valore esplicito di `--chunk` per il prefill in batch viene rispettato. Cambiare i confini dei blocchi può cambiare gli arrotondamenti: la sola velocità non giustifica quindi una modifica automatica. La cache conserva un unico stato attivo del motore, senza salvare una KV cache separata per ogni chat. Qwen conserva anche un solo checkpoint degli stati ricorrenti e delle convoluzioni, allineato ai blocchi e poco prima della fine del prompt. Se il nuovo turno coincide con il prefisso salvato, rielabora solo la coda; conserva il formato SUC esistente che rimuove il ragionamento dai turni precedenti. La copia degli stati è limitata a 128 MiB e la KV cache non viene duplicata. Cambiamenti anteriori al checkpoint richiedono il prefill completo. Non occorre scaricare nuovi file SUC1.
+
+### Consegna qualificata 1.4.7 — build 28
+
+Installer Universal: macOS 15 o successivo; su Intel usa Server remoto. L’archivio CLI/server ARM64 distribuito richiede invece macOS 26.0 o successivo (target verificato nei binari). Dopo l’estrazione segui USAGE.md nell’archivio. Verifica i pacchetti dalla cartella dist con `shasum -a 256 -c SHA256SUMS-1.4.7.txt`. Il server standalone non include autenticazione: per la LAN con API key usa il server dell’app. Nessun nuovo download del modello è necessario.
+
+KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collaudi reali CLI/server/motore integrato. Consulta `docs/optimization/RELEASE_1.4.7.md` nel progetto e i documenti tecnici inclusi nel pacchetto per protocolli, impostazioni e limiti.
+
+### Streaming remoto nella 1.4.7.02
+
+La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
+
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.03-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.

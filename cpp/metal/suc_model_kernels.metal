@@ -1348,3 +1348,52 @@ template <typename T, int BM, typename TSC, int L, int V, int KV, int TT, int NW
     }
     suc_mm_store<TO, BM>(acc, y, uint(OUT), nr, OUT, r0, o0, Cs, sg, lane);
 }
+
+// Experimental prefill-only two-query tile. Reuses each K/V load, retaining
+// the vector kernel's 32-way key partition and float32 reduction order.
+template<typename T, int D, int V, int QR>
+[[kernel]] void suc_sdpa_queries(
+ const device T* queries [[buffer(0)]], const device T* keys [[buffer(1)]],
+ const device T* values [[buffer(2)]], device T* out [[buffer(3)]],
+ constant int& gqa [[buffer(4)]], constant int& N [[buffer(5)]],
+ constant size_t& kh [[buffer(6)]],constant size_t& ks [[buffer(7)]],
+ constant size_t& vh [[buffer(8)]],constant size_t& vs [[buffer(9)]],
+ constant float& scale [[buffer(10)]],constant uint& rows [[buffer(11)]],
+ uint3 tg [[threadgroup_position_in_grid]],uint3 grid [[threadgroups_per_grid]],
+ uint sg [[simdgroup_index_in_threadgroup]],uint lane [[thread_index_in_simdgroup]]) {
+ constexpr int BN=32, QD=D/32, VD=V/32;
+ thread float q[QR][QD],o[QR][VD],mx[QR],z[QR];
+ threadgroup float outputs[QR][BN*32],maxs[QR][BN],sums[QR][BN];
+ const uint r0=tg.y*QR,head=tg.x,kv=head/gqa;
+ for(int r=0;r<QR;++r){
+  for(int j=0;j<QD;++j)q[r][j]=r0+r<rows?scale*float(queries[(ulong(r0+r)*grid.x+head)*D+lane*QD+j]):0;
+  for(int j=0;j<VD;++j)o[r][j]=0;
+  mx[r]=-FLT_MAX;z[r]=0;
+ }
+ const int limit=min(N,N-int(rows)+int(r0)+QR);
+ for(int i=int(sg);i<limit;i+=BN){
+  float k[QD],v[VD];
+  for(int j=0;j<QD;++j)k[j]=float(keys[ulong(kv)*kh+ulong(i)*ks+lane*QD+j]);
+  for(int j=0;j<VD;++j)v[j]=float(values[ulong(kv)*vh+ulong(i)*vs+lane*VD+j]);
+  for(int r=0;r<QR;++r){
+   if(r0+r>=rows||i>=N-int(rows)+int(r0)+r+1)continue;
+   float score=0;for(int j=0;j<QD;++j)score+=q[r][j]*k[j];score=simd_sum(score);
+   float nm=max(mx[r],score),factor=fast::exp(mx[r]-nm),weight=fast::exp(score-nm);
+   mx[r]=nm;z[r]=z[r]*factor+weight;
+   for(int j=0;j<VD;++j)o[r][j]=o[r][j]*factor+weight*v[j];
+  }
+ }
+ for(int r=0;r<QR;++r){if(lane==0){maxs[r][sg]=mx[r];sums[r][sg]=z[r];}}
+ threadgroup_barrier(mem_flags::mem_threadgroup);
+ for(int r=0;r<QR;++r){
+  float part=maxs[r][lane],nm=simd_max(part),factor=fast::exp(part-nm);
+  float total=simd_sum(sums[r][lane]*factor);
+  for(int j=0;j<VD;++j){
+   outputs[r][lane*32+sg]=o[r][j];threadgroup_barrier(mem_flags::mem_threadgroup);
+   float value=simd_sum(outputs[r][sg*32+lane]*factor);
+   value=total==0?value:value/total;
+   threadgroup_barrier(mem_flags::mem_threadgroup);
+   if(lane==0&&r0+r<rows)out[(ulong(r0+r)*grid.x+head)*V+sg*VD+j]=T(value);
+  }
+ }
+}

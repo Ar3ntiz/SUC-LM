@@ -44,6 +44,12 @@ import UniformTypeIdentifiers
     @Published var webActivity: WebActivity? // globe button in the chat toolbar (1.4.5_Final)
     var webBrowserAllowed = false // ds4 browser_allowed: valid until the app quits
     var schedulingEnabled = true
+    var hookSessions = Set<UUID>()
+    var hookTurnIDs: [UUID:String] = [:]
+    var hookToolIDs: [UUID:String] = [:]
+    var hookContexts: [UUID:[String]] = [:]
+    var backgroundHooks: [UUID:[UUID:Task<Void,Never>]] = [:]
+    var stopHookActive = Set<UUID>()
     var requestHookTasks: [String: Task<Void, Never>] = [:]
     @Published var attachmentLoads = Set<UUID>()
     var selectedAttachmentsLoading: Bool { archive.selected.map { attachmentLoads.contains($0) } ?? false }
@@ -52,7 +58,7 @@ import UniformTypeIdentifiers
     private var retiredRequests = Set<String>()
     var remoteClients: [String: RemoteInference] = [:]
     var remoteTasks: [String: Task<Void, Never>] = [:]
-    var usesRemote: Bool { archive.settings.chatBackend == "remote" }
+    var usesRemote: Bool { StudioPlatform.effectiveBackend(archive.settings.chatBackend) == "remote" }
     var chatModel: String { usesRemote ? (archive.settings.remote?.model ?? "") : loadedModel }
     var chatStateLabel: String { usesRemote ? (chatReady ? "Server remoto · " + chatModel : "Configura server remoto") : stateLabel }
     var chatReady: Bool { usesRemote ? !(archive.settings.remote?.model.isEmpty ?? true) : modelReady }
@@ -76,7 +82,7 @@ import UniformTypeIdentifiers
     var modelReady: Bool { modelState == "ready" }
     var stateLabel: String { ["ready": "Modello pronto", "loading": "Caricamento…", "unloaded": "Nessun modello", "error": "Errore motore"][modelState] ?? modelState }
     init(storageURL: URL? = nil) {
-        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("SUC Studio")
+        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(StudioPlatform.dataDirectory)
         archiveURL = storageURL ?? root.appendingPathComponent("sessions.json"); disk = ArchiveDisk(url: archiveURL)
         do { archive = try ArchiveDisk.load(archiveURL) }
         catch {
@@ -85,6 +91,7 @@ import UniformTypeIdentifiers
         }
         if archive.sessions.isEmpty { let s = ChatSession(); archive.sessions = [s]; archive.selected = s.id }
         if !archive.sessions.contains(where: { $0.id == archive.selected }) { archive.selected = archive.sessions.first?.id }
+        if !StudioPlatform.localInferenceAvailable { archive.settings.chatBackend = "remote" }
         StudioTypography.apply(archive.settings)
         if storageURL == nil { refreshLoginStatus(); if archive.settings.keepAwake == true { setAwake(true) } }
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -135,6 +142,20 @@ import UniformTypeIdentifiers
         guard let i = archive.sessions.firstIndex(where: { $0.id == session }), let j = archive.sessions[i].messages.firstIndex(where: { $0.id == message }) else { return }
         action(&archive.sessions[i].messages[j]); archive.sessions[i].updated = Date()
     }
+    func markSessionUnreadIfNeeded(_ id: UUID) {
+        guard archive.selected != id || tab != "chat" else{return}
+        guard let i=archive.sessions.firstIndex(where:{$0.id==id}) else{return}
+        archive.sessions[i].hasUnreadMessages=true;scheduleSave()
+    }
+    func markSessionRead(_ id: UUID) {
+        guard archive.sessions.first(where:{$0.id==id})?.hasUnreadMessages==true else{return}
+        if let i=archive.sessions.firstIndex(where:{$0.id==id}) {archive.sessions[i].hasUnreadMessages=false;scheduleSave()}
+    }
+    func selectSession(_ id: UUID) {
+        archive.selected=id
+        if tab=="chat" {markSessionRead(id)}
+        scheduleSave()
+    }
     func newSession() { let s = ChatSession(); archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; search = ""; tab = "chat"; scheduleSave() }
     func duplicate(_ session: ChatSession, through index: Int? = nil) {
         var s = session; s.id = UUID(); s.title += " · copia"; s.created = Date(); s.updated = Date(); s.archived = false
@@ -146,6 +167,9 @@ import UniformTypeIdentifiers
         guard terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
         let alert = NSAlert(); alert.messageText = "Eliminare “\(s.title)”?"; alert.informativeText = "Questa azione elimina la sessione e i suoi messaggi."; alert.addButton(withTitle: "Elimina"); alert.addButton(withTitle: "Annulla")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Task{_ = await invokeHooks("SessionEnd",session:s,extra:["reason":"other"])}
+        for task in backgroundHooks.removeValue(forKey:s.id)?.values ?? [:].values {task.cancel()}
+        hookSessions.remove(s.id);hookContexts.removeValue(forKey:s.id)
         terminals.removeValue(forKey:s.id)?.stop();archive.sessions.removeAll { $0.id == s.id }; if archive.selected == s.id { archive.selected = archive.sessions.first?.id }; if archive.sessions.isEmpty { newSession() }; scheduleSave()
     }
     func pickFile(model: Bool) {
@@ -162,6 +186,7 @@ import UniformTypeIdentifiers
         scheduleSave()
     }
     func loadModel() {
+        guard StudioPlatform.localInferenceAvailable else { error = StudioPlatform.localUnavailableMessage; tab = "server"; return }
         guard !hasWork && !serverRunning else { error = "Arresta il server e attendi le richieste prima di cambiare modello."; return }
         func resolve(_ data: Data?, _ fallback: String) -> String {
             guard let data else { return fallback }; var stale = false
@@ -211,7 +236,10 @@ import UniformTypeIdentifiers
     func removeAttachment(_ id: UUID) { mutateSelected { $0.draftAttachments?.removeAll { $0.id == id } } }
     func sendMessage(sessionID: UUID? = nil, toolResult: String? = nil, isToolResult: Bool = true) {
         guard let s = archive.sessions.first(where: { $0.id == (sessionID ?? archive.selected) }), chatReady, !attachmentLoads.contains(s.id), (toolResult != nil || !agentRuns.contains(s.id)) else { return }
-        if toolResult == nil { agentIterations[s.id] = 0; subtaskCounts[s.id] = 0 }
+        let userTurn=toolResult == nil || !isToolResult
+        let firstHookTurn=userTurn && !hookSessions.contains(s.id)
+        if userTurn {hookSessions.insert(s.id)}
+        if userTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0 }
         guard !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { return }
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
             let a = NSAlert(); a.messageText = "Modello diverso per questa risposta"; a.informativeText = "La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."; a.addButton(withTitle: "Continua"); a.addButton(withTitle: "Annulla"); guard a.runModal() == .alertFirstButtonReturn else { return }
@@ -227,7 +255,11 @@ import UniformTypeIdentifiers
         do { for message in historical { try AttachmentReader.validate(message.attachments ?? []) } } catch { self.error=error.localizedDescription;return }
         let userMessage = ChatMessage(role: "user", text: text, attachments: files.isEmpty ? nil : files,kind:toolResult == nil || !isToolResult ? nil:"tool_result")
         var history: [[String:Any]] = historical.map { ["role": $0.role, "content": usesRemote ? $0.remoteContent : $0.modelContent] }
-        let effectivePrompt = PromptComposer.compose(settings: archive.settings, session: s)
+        let explicit = userTurn ? SkillDocument.explicitInstructions(text,skills:archive.settings.skills ?? []) : ""
+        let pendingContext=hookContexts.removeValue(forKey:s.id) ?? []
+        let toolCatalog=mcpTools.map{"- mcp__\($0.serverName)__\($0.name): \($0.description) · schema \($0.schema)"}.joined(separator:"\n")
+        let mcpPrompt=toolCatalog.isEmpty ? "":"Strumenti MCP attivi:\n"+toolCatalog+"\nUsa suc_action mcp_call con arguments server, tool, input (oggetto JSON codificato come stringa). Attendi il risultato reale. Si applicano le approvazioni della sessione."
+        let effectivePrompt = ([mcpPrompt,PromptComposer.compose(settings: archive.settings, session: s),explicit]+pendingContext).filter{!$0.isEmpty}.joined(separator:"\n\n")
         if !effectivePrompt.isEmpty { history.insert(["role": "system", "content": effectivePrompt], at: 0) }
         history.append(["role": "user", "content": usesRemote ? userMessage.remoteContent : userMessage.modelContent])
         let sampling = s.sampling ?? SamplingSettings()
@@ -242,12 +274,33 @@ import UniformTypeIdentifiers
             session.messages.append(userMessage); session.messages.append(response); if toolResult == nil { session.draft = ""; session.draftAttachments = nil }
         }
         let id = UUID().uuidString; requests[id] = (s.id, response.id, Date());operationJournal.update(id:id,title:"Generazione · "+chatModel,state:"In coda",sessionID:s.id)
-        if archive.settings.ioLogEnabled {appendModelIO(id,"INPUT",ModelIOLog.request(body))}
         let remote = usesRemote ? archive.settings.remote : nil
-        if (archive.settings.hooks ?? []).contains(where: { $0.enabled && $0.event == "request_start" }), !(s.workspacePath ?? "").isEmpty {
+        if userTurn && (archive.settings.hooks ?? []).contains(where: { $0.enabled && ["UserPromptSubmit","SessionStart"].contains(HookDefinition.event($0.event)) }) {
             requestHookTasks[id] = Task {
                 defer { requestHookTasks.removeValue(forKey:id) }
-                do { try await runHooks("request_start", session:s); try Task.checkCancellation(); dispatchGeneration(id:id, body:body, remote:remote) }
+                do {
+                    var contexts=[String]()
+                    if firstHookTurn {
+                        let start=await invokeHooks("SessionStart",session:s,extra:["source":s.messages.isEmpty ? "startup":"resume"])
+                        contexts+=start.context
+                    }
+                    let submitted=await invokeHooks("UserPromptSubmit",session:s,extra:["prompt":text])
+                    if let deny=submitted.deny {throw ExtensionFiles.failure(deny)}
+                    contexts+=submitted.context
+                    var request=body
+                    if !contexts.isEmpty,var messages=request["messages"] as? [[String:Any]] {
+                        let extra=contexts.joined(separator:"\n\n")
+                        let combined: String
+                        if let system=messages.firstIndex(where:{$0["role"] as? String=="system"}) {
+                            combined=(messages[system]["content"] as? String ?? "")+"\n\n"+extra
+                            messages[system]["content"]=combined
+                        } else {combined=extra;messages.insert(["role":"system","content":combined],at:0)}
+                        request["messages"]=messages
+                        mutateMessage(s.id,response.id){$0.generation?.systemPrompt=combined}
+                    }
+                    guard let encoded=try? JSONSerialization.data(withJSONObject:request),encoded.count<(remote==nil ? 2:20)*1024*1024 else{throw ExtensionFiles.failure("Contesto degli hook troppo grande per la richiesta.")}
+                    try Task.checkCancellation();dispatchGeneration(id:id,body:request,remote:remote)
+                }
                 catch { receive(["event":Task.isCancelled ? "cancelled" : "error","id":id,"payload":["message":error.localizedDescription]]) }
             }
         } else { dispatchGeneration(id:id, body:body, remote:remote) }
@@ -281,10 +334,12 @@ import UniformTypeIdentifiers
 
     func cancelSelected() {
         guard let session = archive.selected else { return }
+        if let target=archive.sessions.first(where:{$0.id==session}) {Task{_ = await invokeHooks("Interrupt",session:target)}}
         stopAgent(session)
         for (id, target) in requests where target.session == session { requestHookTasks[id]?.cancel(); if let client = remoteClients[id] { remoteTasks[id]?.cancel(); client.stop() } else { engine.send(["command": "cancel", "id": id]) }; operationJournal.update(id:id,state:"Interruzione richiesta");mutateMessage(target.session, target.message) { $0.state = "cancelling" } }
     }
     func dispatchGeneration(id: String, body: [String:Any], remote: RemoteConfiguration?) {
+        if archive.settings.ioLogEnabled {appendModelIO(id,"INPUT",ModelIOLog.request(body))}
         if let remote { sendRemote(remote,id:id,body:body) } else { engine.send(["command":"generate","id":id,"body":body]) }
     }
     func sendRemote(_ configuration: RemoteConfiguration, id: String, body: [String: Any]) {
@@ -304,6 +359,7 @@ import UniformTypeIdentifiers
         } catch { receive(["event":"error", "id":id, "payload":["message":error.localizedDescription]]) }
     }
     func startServer() {
+        guard StudioPlatform.localInferenceAvailable else { error = StudioPlatform.localUnavailableMessage; tab = "server"; return }
         guard modelReady else { error = "Carica un modello prima di avviare il server."; return }
         do { let key = try KeyStore.read(); serverBusy = true
             engine.send(["command": "start_server", "host": archive.settings.lan ? "0.0.0.0" : "127.0.0.1", "port": archive.settings.port, "key": key])
@@ -371,6 +427,7 @@ import UniformTypeIdentifiers
         case "prefill", "metrics":
             var m = latestMetrics ?? Metrics(); m.promptTokens = p["prompt_tokens"] as? Int ?? 0; m.prefillSeconds = p["prefill_s"] as? Double ?? 0
             m.completionTokens = p["completion_tokens"] as? Int ?? 0; m.decodeSeconds = p["decode_s"] as? Double ?? 0
+            m.cachedPromptTokens=RemoteTelemetry.count(p["cached_tokens"]);m.evaluatedPromptTokens=RemoteTelemetry.count(p["prefill_tokens"])
             m.reportedPrefillRate=RemoteTelemetry.positive(p["prefill_tps"]);m.reportedDecodeRate=RemoteTelemetry.positive(p["decode_tps"])
             m.prefillSource=p["prefill_source"] as? String;m.decodeSource=p["decode_source"] as? String;m.remote=p["remote"] as? Bool
             latestMetrics = m; activePhase = name == "prefill" ? "Decode" : "Metriche ricevute"
@@ -384,7 +441,7 @@ import UniformTypeIdentifiers
             appendModelIO(id,"ERRORE",p["message"] as? String ?? "Errore sconosciuto")
             finishActivity(id)
             let message = p["message"] as? String ?? "Errore sconosciuto"
-            if let t = requests.removeValue(forKey: id) { mutateMessage(t.session, t.message) { $0.state = "error"; if $0.text.isEmpty { $0.text = message } }; completeSubagent(t.session, result:.failure(MCPConnection.failure(message)));finishAgentReport(t.session,reason:"La generazione è terminata con un errore.") }
+            if let t = requests.removeValue(forKey: id) { mutateMessage(t.session, t.message) { $0.state = "error"; if $0.text.isEmpty { $0.text = message } }; markSessionUnreadIfNeeded(t.session);completeSubagent(t.session, result:.failure(MCPConnection.failure(message)));finishAgentReport(t.session,reason:"La generazione è terminata con un errore.") }
             else { error = message }; if id == loadID { modelState = "error" }; serverBusy = false; appendLog(message)
         default: break
         }
@@ -422,6 +479,9 @@ import UniformTypeIdentifiers
     func quit(completion: @escaping (Bool) -> Void) {
         if hasWork { let alert = NSAlert(); alert.messageText = "Interrompere il lavoro e uscire?"; alert.addButton(withTitle: "Interrompi ed esci"); alert.addButton(withTitle: "Annulla"); guard alert.runModal() == .alertFirstButtonReturn else { completion(false); return } }
         quitting = true; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
-        Task { do { if !saveError { try await disk.save(archive) } } catch { self.error = error.localizedDescription; quitting = false; completion(false); return }; completion(true) }
+        Task {
+            for tasks in backgroundHooks.values {for task in tasks.values{task.cancel()}}
+            for session in archive.sessions where hookSessions.contains(session.id) {_ = await invokeHooks("SessionEnd",session:session,extra:["reason":"other"])}
+            do { if !saveError { try await disk.save(archive) } } catch { self.error = error.localizedDescription; quitting = false; completion(false); return }; completion(true) }
     }
 }

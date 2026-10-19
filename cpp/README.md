@@ -628,8 +628,9 @@ transformers); `--stop-eos` then stops at `<|im_end|>`.
 
 `--temperature T [--top-k K] [--top-p P] [--min-p P] [--seed S]`: on the host, from the last logits row: top-k, then
 top-p (smallest descending prefix reaching P), then min-p, then a draw from `std::mt19937_64(seed)` (float64 softmax of
-logits / T). Reproducible per seed, NOT the draws of mlx-lm (MLX's RNG is not reimplemented); temperature 0 or top-k 1
+logits / T). Reproducible per seed within the selected CDF order, NOT the draws of mlx-lm (MLX's RNG is not reimplemented); temperature 0 or top-k 1
 is the greedy argmax. Sampling runs the synchronous decode loop (the logits row is read back every step).
+Since 1.4.7, unfiltered categorical sampling skips sorting and traverses the CDF in token-ID order; seeded text can differ from earlier builds. `SUC_SAMPLING_LEGACY=1` restores the historical sorted traversal. Active top-k/top-p/min-p filtering retains the sorted path.
 
 ### MoE: qwen3_moe (`suc/switch.hpp`, `src/metal/switch.cpp`, tool `suc1-moe`)
 
@@ -1339,7 +1340,7 @@ deepseek_v4, glm5_next), with all of its runtime and expert-streaming flags (`--
   list of token ids (one prompt per request). Unset sampling parameters take the server's flags (default: greedy).
   Not supported: `n` > 1, logprobs, echo, suffix, penalties, tools.
 - Generation: requests are serialized (batch 1, a mutex around the model; each connection has its own thread, so
-  `/health` answers during a generation), the KV cache / states are reset per request. Greedy qwen3 / qwen3_moe
+  `/health` answers during a generation), exact extensions can reuse the live KV/hybrid state. Qwen hybrid graphs also keep one chunk-aligned checkpoint before the prompt tail: recurrent/convolution/n-gram CPU copies are capped at 128 MiB, while append-only KV/indexer prefix rows stay in place. Matching turns restore it without changing the existing SUC template; earlier divergences replay. Failure/cancellation and reload invalidate state. `SUC_PREFIX_CHECKPOINTS=0` retains live-prefix reuse only; `SUC_PREFIX_CACHE=0` restores per-request replay. Greedy qwen3 / qwen3_moe
   requests run `suc1-generate`'s pipelined decode (`Model::generate`, `--depth` command buffers in flight, its
   `on_token` callback consumes each token and sends the SSE chunk while the next step runs on the GPU); sampling,
   `--sync` and the other families decode synchronously (one command buffer per token; the sampler of
@@ -1479,5 +1480,5 @@ pools, forced tile heights, streamed experts); the bit-identity tests now pass `
 - Batch > 1 decode (one request at a time today).
 - Prefill: the routed-expert tiles (8–16 rows vs ds4's 32-token dequantized tiles) and the scalar chunk attention
   are the remaining gap to ds4 (docs/prefill_vs_ds4.md).
-- Decode: Qwen3.8-Flash-Next is 16 % slower than ds4 (docs/decode_speed_vs_ds4.md).
+- Historical decode comparison: Qwen3.8-Flash-Next was 16 % slower than ds4 under the protocol in docs/decode_speed_vs_ds4.md. The new paired SUC-only matrix does not establish a revised cross-engine ratio.
 - CMake mirrors `build.sh` but is not part of the verified build.

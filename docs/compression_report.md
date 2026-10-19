@@ -4,13 +4,13 @@ Italiano: [compression_report-IT.md](compression_report-IT.md)
 
 Every compressed model of the project against its **original full-precision model** and against other runtimes:
 size, memory, speed (TTFT, prefill, decode) and quality. Every number comes from a result JSON in
-`experiments/results/` (cited as `R:<file>`). "—" = not measured. Status: 14 October 2026.
+`experiments/results/` (cited as `R:<file>`). "—" = not measured. Status: 19 October 2026.
 
 **Conventions.** *Original size* = BF16-equivalent bytes of every checkpoint tensor (the model PPL and KL are measured
 against; for DeepSeek / GLM, published in FP8 / MXFP4, the exact dequantization). *bpp* = file bits / all parameters,
 every overhead included. *Memory* = mapped file + process footprint of the C++ runtime. *Speed* = batch 1, C++
-`suc1-generate`, greedy, 256 tokens, single run (§1b–§1c). *Quality* = KL / top-1 vs the reference logits on 16 × 512
-held-out validation positions and WikiText-2 test PPL (all windows), from the `suc compress` evaluate stage. Machine:
+`suc1-generate`, greedy, protocols specified in §1; historical runs in §1b–§1c. *Quality* = KL / top-1 vs the reference logits on 16 × 512
+held-out validation positions and WikiText-2 test PPL (all windows), with updated C++ KL/top-1 in §1 and historical `suc compress` PPL. Machine:
 Mac Studio M1 Ultra 128 GB (111 GB budget for the model), except Qwen3-0.6B (Apple M3, 16 GB).
 
 ## 1. Summary
@@ -18,18 +18,18 @@ Mac Studio M1 Ultra 128 GB (111 GB budget for the model), except Qwen3-0.6B (App
 ### Size and quality
 
 The chosen SUC1 file per model. Original = BF16-equivalent size of the full-precision model that quality is measured
-against. KL / top-1 = next-token divergence / agreement vs the original on 16 × 512 held-out positions; PPL =
-WikiText-2 test.
+against. KL / top-1 = C++ runtime divergence / agreement vs the original BF16 reference on 16 × 512 held-out tokens (8176 scored positions); PPL =
+existing WikiText-2 test measurement.
 
 | Model | Type | Params | Original GB | SUC1 GB | bpp | Smaller by | Memory at run time GB | KL | top-1 | PPL original → SUC |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | Qwen3-0.6B | dense | 0.6 B | 1.50 | 0.32 | 4.26 | 4.7× | 0.42 | 0.092 | 0.853 | 20.97 → 22.83 |
-| Qwen3-8B | dense | 8.2 B | 16.38 | 4.32 | 4.22 | 3.8× | 4.63 | 0.049 | 0.902 | 9.72 → 9.99 |
-| Qwen3.8-27B (side8) | dense | 26.9 B | 53.79 | 16.36 | 4.87 | 3.3× | 16.75 | 0.023 | 0.950 | 7.05 → 7.15 |
-| Qwen3-30B-A3B | MoE | 30.5 B | 61.06 | 15.93 | 4.17 | 3.8× | 17.11 | 0.064 | 0.897 | 8.70 → 9.14 |
-| Qwen3.8-Flash-Next (side8) | MoE | 176.9 B | 353.89 | 96.32 | 4.35 | 3.7× | 73.82 ¹ | 0.064 | 0.913 | 4.70 → 4.70 |
-| DeepSeek-V4-Flash (tcq) | MoE | 284.3 B | 568.75 ² | 96.82 | 2.72 | 5.9× | 102.57 | 0.235 | 0.825 | 4.78 → 5.59 |
-| GLM-5.3-Flash (tcq) | MoE | 313.3 B | 626.65 ² | 99.00 | 2.53 | 6.3× | 106.59 | 0.307 | 0.793 | 3.27 → 4.27 |
+| Qwen3-8B | dense | 8.2 B | 16.38 | 4.32 | 4.22 | 3.8× | 4.63 | 0.050 | 0.902 | 9.72 → 9.99 |
+| Qwen3.8-27B (side8) | dense | 26.9 B | 53.79 | 16.36 | 4.87 | 3.3× | 16.75 | 0.023 | 0.949 | 7.05 → 7.15 |
+| Qwen3-30B-A3B | MoE | 30.5 B | 61.06 | 15.93 | 4.17 | 3.8× | 17.11 | 0.065 | 0.894 | 8.70 → 9.14 |
+| Qwen3.8-Flash-Next (side8) | MoE | 176.9 B | 353.89 | 96.32 | 4.35 | 3.7× | 73.82 ¹ | 0.060 | 0.915 | 4.70 → 4.70 |
+| DeepSeek-V4-Flash (tcq) | MoE | 284.3 B | 568.75 ² | 96.82 | 2.72 | 5.9× | 102.57 | 0.235 | 0.826 | 4.78 → 5.59 |
+| GLM-5.3-Flash (tcq) | MoE | 313.3 B | 626.65 ² | 99.00 | 2.53 | 6.3× | 106.59 | 0.304 | 0.796 | 3.27 → 4.27 |
 
 bpp = file bits / all parameters, every overhead included (codebooks, scales, residuals, embedding, head, metadata).
 ¹ The 4-bit n-gram tables (26.9 GB) are read from the file row by row, not kept in GPU memory. ² DeepSeek and GLM are
@@ -39,18 +39,18 @@ the third table and §4.
 
 ### Speed of the SUC C++ runtime
 
-`suc1-generate`, greedy, 256 generated tokens. *Short* = a 12–13-token prompt; *2k / 32k* = the first 2,048 / 32,768
+`suc1-generate`, greedy: short prompts retain the 256-token measurements; 2k uses the median of three 64-token runs (8B retains its earlier 256-token run); 8k/32k uses one bounded 8-token run per length. *Short* = a 12–13-token prompt; *2k / 32k* = the first 2,048 / 32,768
 tokens of the same long text. TTFT = prompt processing + first token.
 
 | Model | Decode tok/s (short prompt) | Prefill tok/s · TTFT, short | Prefill tok/s · TTFT, 2k | Prefill tok/s, 8k | Prefill tok/s · TTFT, 32k | Decode tok/s at 32k |
 |---|---:|---:|---:|---:|---:|---:|
 | Qwen3-0.6B (M3) | 143.9 | — | — | — | — | — |
-| Qwen3-8B | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 231 | 106 · 309 s | 42.5 |
-| Qwen3.8-27B (side8) | 25.3 | 43 · 0.35 s | 93 · 22.1 s | 85 | 58 · 564 s | 20.4 |
-| Qwen3-30B-A3B | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 244 | 101 · 324 s | 37.5 |
-| Qwen3.8-Flash-Next (side8) | 28.3 | 55 · 0.27 s | 341 · 6.0 s | 323 | 323 · 102 s | 29.2 |
-| DeepSeek-V4-Flash (tcq) | 24.0 | 46 · 0.30 s | 171 · 12.0 s | 163 | 138 · 238 s | 13.7 |
-| GLM-5.3-Flash (tcq) | 22.2 | 35 · 0.41 s | 116 · 17.7 s | 105 | 94 · 349 s | 13.1 |
+| Qwen3-8B | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 231 | 106 · 308 s | 42.5 |
+| Qwen3.8-27B (side8) | 25.3 | 43 · 0.35 s | 93 · 22.0 s | 83 | 59 · 558 s | 20.6 |
+| Qwen3-30B-A3B | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 243 | 101 · 324 s | 37.6 |
+| Qwen3.8-Flash-Next (side8) | 28.3 | 55 · 0.27 s | 366 · 5.6 s | 343 | 219 · 150 s | 29.7 |
+| DeepSeek-V4-Flash (tcq) | 24.0 | 46 · 0.30 s | 182 · 11.3 s | 173 | 142 · 231 s | 13.7 |
+| GLM-5.3-Flash (tcq) | 22.2 | 35 · 0.41 s | 128 · 16.1 s | 113 | 97 · 339 s | 13.2 |
 
 The batched prompt prefill is not bit-identical to token-by-token prefill (KL 0.0006–0.03 between the two,
 §1c). Decode is bit-identical to the Python runtime.
@@ -60,32 +60,32 @@ The batched prompt prefill is not bit-identical to token-by-token prefill (KL 0.
 Same machine. KL on the same positions and reference as table 1. Decode and short-prompt prefill on the same prompt.
 *Long prefill*: SUC at 32k tokens on the shared long text; ds4 / llama.cpp / LM Studio = median over the hard-suite
 prompts of 4k–31k tokens (a different prompt set: indicative). *Hard suite*: 120 graded questions (math, knowledge,
-reasoning, long context), same prompts for every system.
+reasoning, long context), same prompts for every system; Qwen3.8 side8: chunk 64, 19 October 2026 evaluation ([source](optimization/QWEN_CHUNK_QUALIFICATION.md)).
 
 | Model | System | File GB | KL | Decode tok/s | Prefill tok/s · TTFT, short | Prefill tok/s · TTFT, 2k | Long prefill tok/s | Hard suite /120 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Qwen3-0.6B | **SUC1** (M3) | 0.32 | 0.092 | 143.9 | — | — | — | — |
 | | GGUF Q4_K_M, LM Studio | 0.48 | 0.097 | 219.8 | 594 · 0.02 s | 7,785 · 0.26 s | — | — |
 | | GGUF Q8_0, LM Studio | 0.80 | 0.002 | 197.3 | 615 · 0.02 s | 8,151 · 0.25 s | — | — |
-| Qwen3-8B | **SUC1** | 4.32 | 0.049 | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 | — |
+| Qwen3-8B | **SUC1** | 4.32 | 0.050 | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 | — |
 | | GGUF Q4_K_M, LM Studio | 5.03 | 0.040 | 74.8 | 176 · 0.07 s | 884 · 2.3 s | — | — |
 | | GGUF Q8_0, LM Studio | 8.71 | 0.001 | 67.9 | 193 · 0.07 s | 1,007 · 2.0 s | — | — |
 | | MLX 4-bit, mlx-lm ³ | 4.61 | 0.092 | 95.8 | 588 (128 tok) | — · 2.7 s | — | — |
-| Qwen3.8-27B | **SUC1 side8** | 16.36 | 0.023 | 25.3 | 43 · 0.35 s | 93 · 22.1 s | 58 | 93 |
+| Qwen3.8-27B | **SUC1 side8** | 16.36 | 0.023 | 25.3 | 43 · 0.35 s | 93 · 22.0 s | 59 | 93 |
 | | GGUF Q8_0, llama.cpp | 29.05 | — | 20.8 ⁴ | — | — | 252 | 92 |
 | | MLX 8-bit, LM Studio | ≈ 28.6 | 0.002 | 19.4 ⁴ | — | — | 213 | 89 |
 | | MLX 4-bit, mlx-lm ³ | ≈ 15.2 | 0.045 | 26.0 | 169 (128 tok) | 214 · 9.6 s | — | — |
-| Qwen3-30B-A3B | **SUC1** | 15.93 | 0.064 | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 101 | — |
+| Qwen3-30B-A3B | **SUC1** | 15.93 | 0.065 | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 101 | — |
 | | GGUF Q4_K_M, LM Studio | 18.56 | 0.039 | 93.6 | 192 · 0.07 s | 1,455 · 1.4 s | — | — |
 | | GGUF Q8_0, LM Studio | 32.48 | 0.006 | 79.9 | 146 · 0.09 s | 1,642 · 1.2 s | — | — |
 | | MLX 4-bit, mlx-lm ³ | 17.2 | 0.081 | 74.8 | 753 (128 tok) | — · 1.5 s | — | — |
-| Qwen3.8-Flash-Next | **SUC1 side8** | 96.32 | 0.064 | 28.3 | 55 · 0.27 s | 341 · 6.0 s | 323 | 97 |
+| Qwen3.8-Flash-Next | **SUC1 side8** (chunk 64) | 96.32 | 0.060 | 28.3 | 55 · 0.27 s | 366 · 5.6 s | 219 | 100 |
 | | GGUF Q4, ds4 ⁵ | 177.28 | 0.061 | 33.6 | 47 · 0.31 s | — | 558 | 99 |
-| DeepSeek-V4-Flash | **SUC1 tcq** | 96.82 | 0.235 | 24.0 | 46 · 0.30 s | 171 · 12.0 s | 138 | 103 |
+| DeepSeek-V4-Flash | **SUC1 tcq** | 96.82 | 0.235 | 24.0 | 46 · 0.30 s | 182 · 11.3 s | 142 | 103 |
 | | GGUF IQ2_XXS mix, ds4 | 97.59 | 0.296 | 24.5 | 42 · 0.33 s | — | 224 | 106 |
 | | SUC1 V3, experts from SSD ⁶ | 155.05 | 0.036 | 13.1 | 43 · 0.36 s | 28 · 74 s | — | — |
 | | GGUF MXFP4, ds4, experts from SSD | 155.98 | 0.011 | 10.0 | 7 · 1.97 s | — | — | — |
-| GLM-5.3-Flash | **SUC1 tcq** | 99.00 | 0.307 | 22.2 | 35 · 0.41 s | 116 · 17.7 s | 94 | 99 |
+| GLM-5.3-Flash | **SUC1 tcq** | 99.00 | 0.304 | 22.2 | 35 · 0.41 s | 128 · 16.1 s | 97 | 99 |
 | | GGUF Q2, ds4, experts from SSD | 96.51 | 0.456 | 24.3 | 41 · 0.36 s | — | 117 | 93 |
 
 ³ Historical `suc perf` session (October 2–8): decode at a 128-token context, prefill at 128 tokens, TTFT at 2,048.
@@ -586,7 +586,7 @@ Suite `experiments/eval/suite_hard20.json` (`scripts/build_hard_suite.py --per-s
 | Qwen3.8-27B | GGUF Q8_0 (llama.cpp llama-server) | **92/120** | 18/20 | 13/20 | 6/20 | 18/20 | 17/20 | 20/20 | `20261011T213929Z_gguf_eval_hard20_llamacpp_q38_27b_q8_0` (b377beba5) |
 | Qwen3.8-27B | LM Studio MLX 8-bit | **89/120** | 17/20 | 12/20 | 5/20 | 18/20 | 17/20 | 20/20 | `20261012T025455Z_gguf_eval_hard20_lms_q38_27b_8bit` (a223a841f) |
 
-Paired per item (items graded by both systems): A = the SUC1 file, B = the other system.
+Historical paired per-item comparison (11–12 October runs; items graded by both systems): A = the SUC1 file, B = the other system.
 
 | model | A (SUC1) | B | items | both correct | only A | only B | both wrong | same answer | McNemar p | excluded |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|

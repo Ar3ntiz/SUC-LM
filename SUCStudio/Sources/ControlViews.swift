@@ -55,6 +55,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: StudioStore
     var body: some View {
         Form {
+            if StudioPlatform.localInferenceAvailable {
             Section("Modello locale") {
                 HStack { VStack(alignment: .leading, spacing: 5) { Text("Modello SUC1").fontWeight(.medium); Text(store.archive.settings.modelPath.isEmpty ? "Nessun file selezionato" : store.archive.settings.modelPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button("Scegli…") { store.pickFile(model: true) } }
                 HStack { VStack(alignment: .leading, spacing: 5) { Text("Tokenizer JSON").fontWeight(.medium); Text(store.archive.settings.tokenizerPath.isEmpty ? "Seleziona tokenizer.json del modello" : store.archive.settings.tokenizerPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button("Scegli…") { store.pickFile(model: false) } }
@@ -74,6 +75,13 @@ struct SettingsView: View {
                 if !store.expertStats.isEmpty { Text(store.expertStats).font(StudioTypography.ui(.caption)).textSelection(.enabled) }
                 Text("Automatico sceglie residente o streaming SSD per gli expert MoE. I modelli densi sono supportati se rientrano nella memoria stimata; lo streaming dei loro pesi non è disponibile. La stima include contesto e margine, ma non garantisce memoria libera durante l’uso.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 Text("Il contesto e gli expert consumano memoria oltre ai pesi. Prefill batch può differire numericamente dal percorso exact. Il modello deve rientrare nelle risorse del Mac.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            }
+            } else {
+                Section("Inferenza") {
+                    Label("Client remoto · Mac Intel", systemImage: "network")
+                    Text(StudioPlatform.localUnavailableMessage).foregroundStyle(.secondary)
+                    Button("Configura server remoto") { store.tab = "server" }
+                }
             }
             Section("System prompt generale") {
                 TextEditor(text: Binding(get: { store.archive.settings.globalSystemPrompt ?? "" }, set: { store.archive.settings.globalSystemPrompt = $0; store.scheduleSave() })).frame(minHeight: 110)
@@ -99,12 +107,12 @@ struct SettingsView: View {
                 Button("Cancella dati del browser web") { Task { await store.clearWebData() } }.disabled(!store.agentRuns.isEmpty)
                 Text("web_search e visit_page usano un browser integrato nascosto (visibile dal pulsante globo nella barra della chat) con un profilo dedicato e persistente, separato da Safari. Il pulsante chiude il browser e cancella cookie, consenso e cache.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
-            Section("SUC Studio 1.4.5_Final") {
-                Text("SwiftUI · motore SUC C++/Metal · Apple Silicon\nDistribuzione locale, senza Developer ID o notarizzazione.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Section("SUC Studio 1.4.6") {
+                Text("Universal arm64 + x86_64 · macOS 15+ · motore locale su Apple Silicon, client remoto su Intel\nDistribuzione locale, senza Developer ID o notarizzazione.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 Button("Guida setup e utilizzo") { store.openHelp() }
             }
         }.formStyle(.grouped).onDrop(of: [UTType.fileURL], isTargeted: nil) { providers in
-            guard let provider = providers.first else { return false }
+            guard StudioPlatform.localInferenceAvailable, let provider = providers.first else { return false }
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url, ["suc1", "json"].contains(url.pathExtension.lowercased()) else { return }
                 Task { @MainActor in store.selectFile(url, model: url.pathExtension.lowercased() == "suc1") }
@@ -118,9 +126,9 @@ struct MenuBarView: View {
     var show: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack { Text("SUC Studio").font(StudioTypography.ui(.headline)); Spacer(); Circle().fill(store.serverRunning ? .green : .secondary).frame(width: 8, height: 8) }
-            Text(store.serverRunning ? (store.archive.settings.lan ? "API · Rete locale" : "API · Questo Mac") : "API spenta").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-            Text(store.loadedModel.isEmpty ? "Nessun modello caricato" : store.loadedModel).font(StudioTypography.ui(.callout)).lineLimit(2)
+            HStack { Text(StudioPlatform.name).font(StudioTypography.ui(.headline)); Spacer(); Circle().fill(store.serverRunning ? .green : .secondary).frame(width: 8, height: 8) }
+            Text(store.usesRemote ? "Chat · Server remoto" : (store.serverRunning ? (store.archive.settings.lan ? "API · Rete locale" : "API · Questo Mac") : "API spenta")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Text(store.chatModel.isEmpty ? "Nessun modello selezionato" : store.chatModel).font(StudioTypography.ui(.callout)).lineLimit(2)
             if store.hasWork { HStack { ProgressView().controlSize(.small); Text(store.activePhase).font(StudioTypography.ui(.caption)) } }
             Divider()
             LabeledContent("Prefill", value: rate(store.latestMetrics?.prefillRate))
@@ -129,8 +137,8 @@ struct MenuBarView: View {
             if let memory = store.engineFootprint { LabeledContent("Memoria motore", value: String(format: "%.2f GB", memory)) }
             if !store.expertStats.isEmpty { Text(store.expertStats).font(StudioTypography.ui(.caption2)) }
             Divider()
-            Button("Apri SUC Studio", action: show).keyboardShortcut("o")
-            Button(store.serverRunning ? "Arresta API" : "Avvia API") { store.serverRunning ? store.stopServer() : store.startServer() }.disabled(!store.modelReady || store.serverBusy)
+            Button("Apri SUC Studio Universal", action: show).keyboardShortcut("o")
+            if StudioPlatform.localInferenceAvailable { Button(store.serverRunning ? "Arresta API" : "Avvia API") { store.serverRunning ? store.stopServer() : store.startServer() }.disabled(!store.modelReady || store.serverBusy) }
             Button("Esci") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
         }.padding(18).frame(width: 300)
     }

@@ -119,6 +119,15 @@ class Qwen4Model {
   std::size_t position() const;
   void reset();   // empty the caches and states, n-gram context back to EOS
 
+  // One in-place prefix checkpoint. KV/indexer rows before position() remain immutable while appending;
+  // only recurrent/conv/PLE state and host n-gram context are copied (bounded CPU memory, no duplicate KV).
+  // reset()/clear_checkpoint() invalidate it. restore requires a nonempty suffix before reading logits.
+  std::size_t checkpoint_stride() const;
+  bool save_checkpoint(std::size_t max_bytes = 128 * 1024 * 1024);
+  bool restore_checkpoint();
+  void clear_checkpoint();
+  std::size_t checkpoint_bytes() const;
+
   // Runs tokens as decode steps at the current position (up to Qwen4Options::chunk steps per command buffer) and
   // returns argmax(logits) of the last token (0 when with_logits is false).
   uint32_t forward(const std::vector<uint32_t>& tokens, bool with_logits = true);
@@ -129,7 +138,9 @@ class Qwen4Model {
 
   std::vector<float> logits() const;          // (vocab) of the last step with logits
   std::vector<float> hidden_states() const;   // (layers + 1, hc · hidden) streams of the last step
-  uint64_t chunk_fetches() const;              // streamed expert fetches of batched-prefill chunks
+  uint64_t chunk_fetches() const;
+  std::size_t ngram_cpu_workers() const;
+  std::size_t ngram_head_tasks() const;              // streamed expert fetches of batched-prefill chunks
   double last_gpu_seconds() const;
   double last_encode_seconds() const;
   double last_ngram_seconds() const;          // host time of the n-gram hashing + row gathers of the last call

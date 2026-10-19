@@ -6,7 +6,7 @@ struct ExtensionSettingsView: View {
     @State private var server: MCPConfiguration?
     var body: some View {
         Section("Skill") {
-            Text("Istruzioni riutilizzabili: quelle attive vengono aggiunte al system prompt delle chat. Puoi scriverle o importare un file SKILL.md.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Text("Titolo e descrizione delle skill attive sono visibili al modello; istruzioni e risorse vengono lette quando servono. Richiamo esplicito: @nome-skill oppure $nome-skill.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             ForEach(store.archive.settings.skills ?? []) { item in
                 HStack {
                     Toggle(item.name, isOn: Binding(get: { (store.archive.settings.skills ?? []).first { $0.id == item.id }?.enabled ?? false }, set: { var value = item; value.enabled = $0; store.saveSkill(value) }))
@@ -14,7 +14,7 @@ struct ExtensionSettingsView: View {
                     Button(role: .destructive) { store.archive.settings.skills?.removeAll { $0.id == item.id }; store.scheduleSave() } label: { Image(systemName: "trash") }.help("Elimina skill")
                 }
             }
-            HStack { Button("Nuova skill") { skill = StudioSkill() }; Button("Importa SKILL.md…") { store.importSkill() } }
+            HStack { Button("Nuova skill") { skill = StudioSkill() }; Button("Importa skill / cartella…") { store.importSkill() };Button("Scopri skill locali"){store.discoverSkills()} }
         }.sheet(item: $skill) { SkillEditor(skill: $0).environmentObject(store) }
         Section("Server MCP") {
             Text("Attiva i server da usare. Nella chat trovi gli strumenti disponibili: scegli lo strumento, eseguilo e allega il risultato al modello.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
@@ -40,13 +40,24 @@ struct SkillEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Skill").font(StudioTypography.ui(.title2).bold())
-            TextField("Nome", text: $skill.name).textFieldStyle(.roundedBorder)
+            Menu("Suggerimenti / esempi…") {
+                Button("Revisione codice"){applySample("review-code","Usa quando viene chiesta una revisione del codice o dei bug.","Leggi i file pertinenti. Cerca bug concreti e regressioni; riporta file, righe e motivazione. Non modificare file senza richiesta.")}
+                Button("Ricerca con fonti"){applySample("research","Usa per ricerche web con confronto tra fonti e dati aggiornati.","Cerca fonti primarie, verifica date e divergenze. Cita link diretti; distingui fatti, stime e ipotesi. Usa gli strumenti web solo se abilitati.")}
+                Button("Documentazione"){applySample("document-project","Usa quando occorre spiegare un progetto o aggiornare la sua guida.","Consulta README e sorgenti pertinenti. Scrivi passaggi riproducibili, esempi minimi e requisiti. Non dichiarare verifiche non eseguite.")}
+            }
+            TextField("Nome · usato con @ o $", text: $skill.name).textFieldStyle(.roundedBorder)
+            Text("Descrizione · quando il modello deve usare questa skill").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            TextEditor(text:Binding(get:{skill.description ?? ""},set:{skill.description=$0})).frame(minHeight:65,maxHeight:100)
+            Text("Istruzioni della skill").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             TextEditor(text: $skill.instructions).font(StudioTypography.ui(.body, design: .monospaced)).frame(minHeight: 260)
+            Toggle("Consenti selezione implicita da parte del modello",isOn:Binding(get:{skill.allowImplicitInvocation ?? true},set:{skill.allowImplicitInvocation=$0}))
+            if let path=skill.resourceRoot {DisclosureGroup("Risorse del pacchetto"){Text(path).font(.caption).textSelection(.enabled);ScrollView{Text(((try? ExtensionFiles.files(URL(fileURLWithPath:path))) ?? []).joined(separator:"\n")).font(.caption.monospaced()).textSelection(.enabled)}.frame(maxHeight:80)}}
             Toggle("Attiva", isOn: $skill.enabled)
-            Text("Le skill aggiungono istruzioni; script e file citati nel testo non vengono eseguiti o importati automaticamente.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-            HStack { Spacer(); Button("Annulla") { dismiss() }; Button("Salva") { store.saveSkill(skill); dismiss() }.buttonStyle(.borderedProminent).disabled(skill.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || skill.instructions.utf8.count > 64 * 1024) }
+            Text("Il modello legge inizialmente titolo e descrizione delle skill attive. Carica il testo completo con load_skill quando è pertinente. Puoi includere scripts/, references/ e assets/ nella cartella importata. I file vengono letti su richiesta; gli script richiedono i normali permessi dei comandi.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            HStack { Spacer(); Button("Annulla") { dismiss() }; Button("Salva") { store.saveSkill(skill); dismiss() }.buttonStyle(.borderedProminent).disabled(skill.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || skill.instructions.utf8.count > 64 * 1024 || (skill.description ?? "").utf8.count > 4 * 1024) }
         }.padding(24).frame(width: 620)
     }
+    private func applySample(_ name: String,_ description: String,_ instructions: String) {skill.name=name;skill.description=description;skill.instructions=instructions;skill.enabled=false}
 }
 struct MCPServerEditor: View {
     @EnvironmentObject var store: StudioStore

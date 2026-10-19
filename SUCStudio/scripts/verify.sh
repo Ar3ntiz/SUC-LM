@@ -4,12 +4,16 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/SUC Studio.app"
 plutil -lint "$APP/Contents/Info.plist"
 codesign --verify --deep --strict "$APP"
-for bin in "$APP/Contents/MacOS/SUC Studio" "$APP/Contents/Helpers/suc-studio-engine" "$APP/Contents/Helpers/suc-studio-command" "$APP/Contents/Helpers/suc-studio-terminal"; do
-  lipo "$bin" -verify_arch arm64
-  if otool -L "$bin" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/|@rpath/libswift)' ; then
+for bin in "$APP/Contents/MacOS/SUC Studio" "$APP/Contents/Helpers/suc-studio-command" "$APP/Contents/Helpers/suc-studio-terminal"; do
+  # Some Apple lipo versions reject multiple verify_arch arguments.
+  for arch in arm64 x86_64; do lipo "$bin" -verify_arch "$arch"; done
+done
+lipo "$APP/Contents/Helpers/suc-studio-engine" -verify_arch arm64
+for bin in "$APP/Contents/MacOS/SUC Studio" "$APP/Contents/Helpers/"*; do
+  if otool -L "$bin" | awk '/^[[:space:]]/ {print $1}' | grep -Ev '^(/usr/lib/|/System/Library/|@rpath/libswift)' ; then
     echo "Unexpected external dependency" >&2; exit 1
   fi
 done
-[[ -f "$APP/Contents/Resources/USAGE.md" ]]
-[[ -f "$APP/Contents/Resources/USAGE.html" ]]
-echo 'Bundle verification passed.'
+[[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Contents/Info.plist")" == local.sucstudio.universal.app ]]
+[[ -s "$APP/Contents/Resources/USAGE.md" && -s "$APP/Contents/Resources/USAGE.html" ]]
+echo 'Universal bundle verification passed (app/helpers: arm64+x86_64; engine: arm64).'

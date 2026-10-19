@@ -39,6 +39,8 @@
 #include "suc/expert_stream.hpp"
 #include "suc/glm5.hpp"
 #include "suc/model.hpp"
+#include "suc/live_prefix.hpp"
+#include "suc/inference_engine.hpp"
 #include "suc/qwen4.hpp"
 #include "suc/request_params.hpp"
 #include "suc/sampling.hpp"
@@ -82,17 +84,7 @@ static void usage() {
 // ------------------------------------------------------------------------------------------ engines
 
 // One loaded model graph behind a common interface (prefill, decode step, last logits row).
-class Engine {
- public:
-  virtual ~Engine() = default;
-  virtual void reset() = 0;
-  virtual uint32_t prefill(const std::vector<uint32_t>& prompt) = 0;   // argmax of the last prompt position
-  virtual uint32_t step(uint32_t token) = 0;                           // argmax of the new position
-  virtual std::vector<float> last_logits() = 0;                        // (vocab) of the last position
-  // Pipelined greedy decode of up to `steps` tokens after `first` (suc1-generate's loop), each passed to on_token as
-  // it completes (false stops); false when this engine has none (the caller then runs step()).
-  virtual bool generate(uint32_t, std::size_t, const std::function<bool(uint32_t)>&) { return false; }
-};
+using Engine = suc::InferenceEngine;
 
 class DenseEngine final : public Engine {   // qwen3 / qwen3_moe (suc/model.hpp)
  public:
@@ -138,6 +130,21 @@ template <class M, class O>
 class StepEngine final : public Engine {   // qwen4_exp / deepseek_v4 / glm5_next: the model's own prompt prefill (forward)
  public:
   StepEngine(Context& ctx, const MappedFile& mf, const O& o) : m_(ctx, mf, o) {}
+  std::size_t checkpoint_stride() const override {
+    if constexpr (requires { m_.checkpoint_stride(); }) return m_.checkpoint_stride();
+    return 0;
+  }
+  bool save_checkpoint() override {
+    if constexpr (requires { m_.save_checkpoint(); }) return m_.save_checkpoint();
+    return false;
+  }
+  bool restore_checkpoint() override {
+    if constexpr (requires { m_.restore_checkpoint(); }) return m_.restore_checkpoint();
+    return false;
+  }
+  void clear_checkpoint() override {
+    if constexpr (requires { m_.clear_checkpoint(); }) m_.clear_checkpoint();
+  }
   void reset() override { m_.reset(); }
   uint32_t prefill(const std::vector<uint32_t>& p) override { return m_.forward(p, true); }
   uint32_t step(uint32_t t) override { return m_.step(t, true); }
@@ -326,7 +333,7 @@ struct GenParams {
 
 struct GenResult {
   std::string text, finish = "length";
-  std::size_t completion_tokens = 0;
+  std::size_t completion_tokens = 0, cached_tokens = 0;
   double prefill_s = 0.0, decode_s = 0.0;   // decode_s: after the first token (the prefill's) to the last
   bool aborted = false;   // the client went away (streaming)
   double decode_ms_per_token() const {   // over the decode steps (the tokens after the first)
@@ -383,8 +390,9 @@ static std::string decode_text(const Tokenizer& tok, const std::vector<uint32_t>
 static GenResult generate(Server& S, const GenParams& g, const std::function<bool(const std::string&)>& emit) {
   GenResult res;
   const auto t0 = std::chrono::steady_clock::now();
-  S.engine->reset();
-  uint32_t next = S.engine->prefill(g.prompt);
+  struct CacheGuard { Engine* e; bool success=false; ~CacheGuard(){if(!success)e->invalidate_prefix();} } guard{S.engine};
+  uint32_t next = S.engine->prepare(g.prompt);
+  res.cached_tokens = S.engine->cached_tokens();
   Sampler sampler(g.sc);
   if (!g.sc.greedy()) {
     const auto l = S.engine->last_logits();
@@ -448,6 +456,7 @@ static GenResult generate(Server& S, const GenParams& g, const std::function<boo
   if (!res.aborted && text.size() > sent && !emit(text.substr(sent))) res.aborted = true;
   res.text = text;
   res.decode_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t1).count();
+  guard.success = !res.aborted;
   return res;
 }
 
@@ -526,9 +535,9 @@ static void check_prompt(const Server& S, const std::vector<uint32_t>& p) {
       throw HttpError(400, "token id " + std::to_string(t) + " out of range (vocab " + std::to_string(S.vocab) + ")");
 }
 
-static std::string usage_json(std::size_t prompt, std::size_t completion) {
+static std::string usage_json(std::size_t prompt, std::size_t completion, std::size_t cached = 0) {
   return "{\"prompt_tokens\": " + std::to_string(prompt) + ", \"completion_tokens\": " + std::to_string(completion) +
-         ", \"total_tokens\": " + std::to_string(prompt + completion) + "}";
+         ", \"total_tokens\": " + std::to_string(prompt + completion) + ",\"prompt_tokens_details\":{\"cached_tokens\":" + std::to_string(cached) + "}}";
 }
 
 // Handles one completion request (chat or text). Returns false when the connection must close.
@@ -635,7 +644,7 @@ static bool handle_completion(Server& S, int fd, const HttpRequest& rq, bool cha
     } else if (!res.aborted) {
       es.event(head + "\"choices\": [" + choice("", &res.finish, false) + "]}");
       if (include_usage)
-        es.event(head + "\"choices\": [], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens) + "}");
+        es.event(head + "\"choices\": [], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens, res.cached_tokens) + "}");
     }
     es.event("[DONE]");
     es.end();
@@ -666,7 +675,7 @@ static bool handle_completion(Server& S, int fd, const HttpRequest& rq, bool cha
   else
     body += "{\"index\": 0, \"text\": " + jstr(res.text) + ", \"logprobs\": null, \"finish_reason\": " +
             jstr(res.finish) + "}";
-  body += "], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens) + "}";
+  body += "], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens, res.cached_tokens) + "}";
   return send_response(fd, 200, body, rq.keep_alive) && rq.keep_alive;
 }
 
@@ -789,7 +798,7 @@ int main(int argc, char** argv) {
       if (!rf.dtype.empty()) return parse_act(rf.dtype);
       return torch_dtype == "float16" ? Act::F16 : torch_dtype == "float32" ? Act::F32 : Act::BF16;
     };
-    const std::size_t step_chunk = rf.batch_prefill ? (rf.chunk == 64 ? 16 : rf.chunk) : 1;
+
     std::unique_ptr<Engine> engine;
     std::string family;
     if (is_q4) {
@@ -801,7 +810,7 @@ int main(int argc, char** argv) {
       // one (decode-step bits) with --prefill exact; --prefill token: decode steps
       qo.layer_prefill = rf.batch_prefill;
       qo.exact_prefill = rf.exact_prefill;
-      qo.chunk = rf.batch_prefill ? rf.chunk : step_chunk;
+      qo.chunk = suc::service_prefill_chunk(qc.dense ? "qwen3_5" : "qwen4_exp", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       qo.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Qwen4Model, Qwen4Options>>(ctx, mf, qo);
       S.stop_ids.push_back(qc.eos);
@@ -818,8 +827,7 @@ int main(int argc, char** argv) {
       // steps (streamed: row-exact layer-major chunks of 64), as before 2026-10-10
       go.layer_prefill = rf.batch_prefill;
       go.exact_prefill = rf.exact_prefill;
-      if (rf.batch_prefill && !rf.exact_prefill && !prefill_exact_env()) go.chunk = rf.chunk == 64 ? 512 : rf.chunk;
-      else go.chunk = xs && rf.batch_prefill && rf.chunk == 64 ? 64 : step_chunk;   // streamed: layer-major chunks
+      go.chunk = suc::service_prefill_chunk("glm5_next", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       go.mixed_rows = rf.mixed_rows;
       go.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Glm5Model, Glm5Options>>(ctx, mf, go);
@@ -838,7 +846,7 @@ int main(int argc, char** argv) {
       // as qwen4_exp: fast batched chunks by default, row-exact with --prefill exact, decode steps with token
       dopt.layer_prefill = rf.batch_prefill;
       dopt.exact_prefill = rf.exact_prefill;
-      dopt.chunk = rf.batch_prefill ? rf.chunk : step_chunk;
+      dopt.chunk = suc::service_prefill_chunk("deepseek_v4", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       dopt.mixed_rows = rf.mixed_rows;
       dopt.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Ds4Model, Ds4Options>>(ctx, mf, dopt);
@@ -873,6 +881,7 @@ int main(int argc, char** argv) {
     }
     for (uint32_t t : tok.eos_ids())
       if (std::find(S.stop_ids.begin(), S.stop_ids.end(), t) == S.stop_ids.end()) S.stop_ids.push_back(t);
+    engine = std::make_unique<suc::LivePrefixEngine<Engine>>(std::move(engine));
     S.engine = engine.get();
     S.engine->step(0);   // warm-up: compile the decode pipelines, then reset
     S.engine->reset();

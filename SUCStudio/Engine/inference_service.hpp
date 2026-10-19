@@ -41,6 +41,8 @@
 #include "suc/expert_stream.hpp"
 #include "suc/glm5.hpp"
 #include "suc/model.hpp"
+#include "suc/live_prefix.hpp"
+#include "suc/inference_engine.hpp"
 #include "suc/qwen4.hpp"
 #include "suc/request_params.hpp"
 #include "suc/sampling.hpp"
@@ -58,17 +60,7 @@ using namespace suc::tools;
 // ------------------------------------------------------------------------------------------ engines
 
 // One loaded model graph behind a common interface (prefill, decode step, last logits row).
-class Engine {
- public:
-  virtual ~Engine() = default;
-  virtual void reset() = 0;
-  virtual uint32_t prefill(const std::vector<uint32_t>& prompt) = 0;   // argmax of the last prompt position
-  virtual uint32_t step(uint32_t token) = 0;                           // argmax of the new position
-  virtual std::vector<float> last_logits() = 0;                        // (vocab) of the last position
-  // Pipelined greedy decode of up to `steps` tokens after `first` (suc1-generate's loop), each passed to on_token as
-  // it completes (false stops); false when this engine has none (the caller then runs step()).
-  virtual bool generate(uint32_t, std::size_t, const std::function<bool(uint32_t)>&) { return false; }
-};
+using Engine = suc::InferenceEngine;
 
 class DenseEngine final : public Engine {   // qwen3 / qwen3_moe (suc/model.hpp)
  public:
@@ -115,6 +107,21 @@ template <class M, class O>
 class StepEngine final : public Engine {   // qwen4_exp / deepseek_v4 / glm5_next: the prompt as decode steps
  public:
   StepEngine(Context& ctx, const MappedFile& mf, const O& o) : m_(ctx, mf, o) {}
+  std::size_t checkpoint_stride() const override {
+    if constexpr (requires { m_.checkpoint_stride(); }) return m_.checkpoint_stride();
+    return 0;
+  }
+  bool save_checkpoint() override {
+    if constexpr (requires { m_.save_checkpoint(); }) return m_.save_checkpoint();
+    return false;
+  }
+  bool restore_checkpoint() override {
+    if constexpr (requires { m_.restore_checkpoint(); }) return m_.restore_checkpoint();
+    return false;
+  }
+  void clear_checkpoint() override {
+    if constexpr (requires { m_.clear_checkpoint(); }) m_.clear_checkpoint();
+  }
   void reset() override { m_.reset(); }
   uint32_t prefill(const std::vector<uint32_t>& p) override { return m_.forward(p, true); }
   uint32_t step(uint32_t t) override { return m_.step(t, true); }
@@ -320,7 +327,7 @@ struct GenParams {
 
 struct GenResult {
   std::string text, finish = "length";
-  std::size_t completion_tokens = 0;
+  std::size_t completion_tokens = 0, cached_tokens = 0;
   double prefill_s = 0.0, decode_s = 0.0;   // decode_s: after the first token (the prefill's) to the last
   bool aborted = false;   // the client went away (streaming)
   double decode_ms_per_token() const {   // over the decode steps (the tokens after the first)
@@ -388,9 +395,10 @@ static std::string decode_text(const Tokenizer& tok, const std::vector<uint32_t>
 static GenResult generate(Server& S, const GenParams& g, const std::function<bool(const std::string&)>& emit) {
   GenResult res;
   const auto t0 = std::chrono::steady_clock::now();
-  S.engine->reset();
+  struct CacheGuard { Engine* e; bool success=false; ~CacheGuard(){if(!success)e->invalidate_prefix();} } guard{S.engine};
   if(S.expert_stream) S.expert_stream->reset_stats();
-  uint32_t next = S.engine->prefill(g.prompt);
+  uint32_t next = S.engine->prepare(g.prompt);
+  res.cached_tokens = S.engine->cached_tokens();
   if (studio_cancelled()) throw std::runtime_error("Request cancelled");
   Sampler sampler(g.sc);
   if (!g.sc.greedy()) {
@@ -399,7 +407,7 @@ static GenResult generate(Server& S, const GenParams& g, const std::function<boo
   }
   const auto t1 = std::chrono::steady_clock::now();
   res.prefill_s = std::chrono::duration<double>(t1 - t0).count();
-  studio_prefill(g.prompt.size(), res.prefill_s);
+  studio_prefill(g.prompt.size()-res.cached_tokens, res.prefill_s);
   studio_expert_snapshot(S,"prefill");
   const std::size_t room = S.max_ctx - g.prompt.size();   // fed tokens stay <= max_ctx
   const std::size_t limit = std::min(g.max_tokens, room);
@@ -458,8 +466,9 @@ static GenResult generate(Server& S, const GenParams& g, const std::function<boo
   if (!res.aborted && text.size() > sent && !emit(text.substr(sent))) res.aborted = true;
   res.text = text;
   res.decode_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t1).count();
-  studio_metrics(g.prompt.size(), res.completion_tokens, res.prefill_s, res.decode_s);
+  studio_metrics(g.prompt.size()-res.cached_tokens, res.completion_tokens, res.prefill_s, res.decode_s);
   studio_expert_snapshot(S,"completed");
+  guard.success = !res.aborted;
   return res;
 }
 
@@ -543,9 +552,9 @@ static std::string timing_json(const GenResult& result) {
   return "{\"prefill_s\":" + std::to_string(result.prefill_s) + ",\"decode_s\":" + std::to_string(result.decode_s) + "}";
 }
 
-static std::string usage_json(std::size_t prompt, std::size_t completion) {
+static std::string usage_json(std::size_t prompt, std::size_t completion, std::size_t cached = 0) {
   return "{\"prompt_tokens\": " + std::to_string(prompt) + ", \"completion_tokens\": " + std::to_string(completion) +
-         ", \"total_tokens\": " + std::to_string(prompt + completion) + "}";
+         ", \"total_tokens\": " + std::to_string(prompt + completion) + ",\"prompt_tokens_details\":{\"cached_tokens\":" + std::to_string(cached) + "}}";
 }
 
 static GenParams parse_generation(Server& S, const Json& b, bool chat) {
@@ -665,7 +674,7 @@ static bool handle_completion(Server& S, int fd, const HttpRequest& rq, bool cha
     } else if (!res.aborted) {
       es.event(head + "\"choices\": [" + choice("", &res.finish, false) + "]}");
       if (include_usage)
-        es.event(head + "\"choices\": [], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens) + ", \"suc_metrics\": " + timing_json(res) + "}");
+        es.event(head + "\"choices\": [], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens, res.cached_tokens) + ", \"suc_metrics\": " + timing_json(res) + "}");
     }
     es.event("[DONE]");
     es.end();
@@ -697,7 +706,7 @@ static bool handle_completion(Server& S, int fd, const HttpRequest& rq, bool cha
   else
     body += "{\"index\": 0, \"text\": " + jstr(res.text) + ", \"logprobs\": null, \"finish_reason\": " +
             jstr(res.finish) + "}";
-  body += "], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens) + ", \"suc_metrics\": " + timing_json(res) + "}";
+  body += "], \"usage\": " + usage_json(g.prompt.size(), res.completion_tokens, res.cached_tokens) + ", \"suc_metrics\": " + timing_json(res) + "}";
   return send_response(fd, 200, body, rq.keep_alive) && rq.keep_alive;
 }
 
@@ -828,7 +837,7 @@ struct LoadedEngine {
       if (!rf.dtype.empty()) return parse_act(rf.dtype);
       return torch_dtype == "float16" ? Act::F16 : torch_dtype == "float32" ? Act::F32 : Act::BF16;
     };
-    const std::size_t step_chunk = rf.batch_prefill ? (rf.chunk == 64 ? 16 : rf.chunk) : 1;
+
 
 
     if (is_q4) {
@@ -836,8 +845,9 @@ struct LoadedEngine {
       Qwen4Options qo;
       qo.act = act_of(qc.torch_dtype);
       qo.max_context = rf.max_ctx;
-      qo.layer_prefill = rf.batch_prefill;   // batched (layer-major) prompt prefill, same bits as decode steps
-      qo.chunk = rf.batch_prefill ? rf.chunk : step_chunk;
+      qo.layer_prefill = rf.batch_prefill;   // batched layer-major prefill; exact mode selects decode-step arithmetic
+      qo.exact_prefill = rf.exact_prefill;
+      qo.chunk = suc::service_prefill_chunk(qc.dense ? "qwen3_5" : "qwen4_exp", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       qo.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Qwen4Model, Qwen4Options>>(ctx, mf, qo);
       S.stop_ids.push_back(qc.eos);
@@ -854,8 +864,7 @@ struct LoadedEngine {
       // steps (streamed: row-exact layer-major chunks of 64), as before 2026-10-10
       go.layer_prefill = rf.batch_prefill;
       go.exact_prefill = rf.exact_prefill;
-      if (rf.batch_prefill && !rf.exact_prefill && !prefill_exact_env()) go.chunk = rf.chunk == 64 ? 512 : rf.chunk;
-      else go.chunk = xs && rf.batch_prefill && rf.chunk == 64 ? 64 : step_chunk;   // streamed: layer-major chunks
+      go.chunk = suc::service_prefill_chunk("glm5_next", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       go.mixed_rows = rf.mixed_rows;
       go.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Glm5Model, Glm5Options>>(ctx, mf, go);
@@ -871,8 +880,9 @@ struct LoadedEngine {
       Ds4Options dopt;
       dopt.act = act_of(dc.torch_dtype);
       dopt.max_context = rf.max_ctx;
-      dopt.layer_prefill = rf.batch_prefill;   // batched (layer-major) prompt prefill, same bits as decode steps
-      dopt.chunk = rf.batch_prefill ? rf.chunk : step_chunk;
+      dopt.layer_prefill = rf.batch_prefill;   // batched layer-major prefill; exact mode selects decode-step arithmetic
+      dopt.exact_prefill = rf.exact_prefill;
+      dopt.chunk = suc::service_prefill_chunk("deepseek_v4", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       dopt.mixed_rows = rf.mixed_rows;
       dopt.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Ds4Model, Ds4Options>>(ctx, mf, dopt);
@@ -912,6 +922,7 @@ struct LoadedEngine {
     if(plan.reserve>=plan.limit || weights>plan.limit-plan.reserve)
       throw std::runtime_error("Memoria pesi effettiva oltre il limite prudenziale; caricamento annullato prima del warm-up");
     S.expert_stream = xs.get();
+    engine = std::make_unique<suc::LivePrefixEngine<Engine>>(std::move(engine));
     S.engine = engine.get();
     S.engine->step(0);   // warm-up: compile the decode pipelines, then reset
     S.engine->reset();

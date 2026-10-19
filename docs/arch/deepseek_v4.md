@@ -1,5 +1,9 @@
 # deepseek_v4 — deepseek-ai/DeepSeek-V4-Flash-0731
 
+## C++ runtime update, 1.4.7
+
+The architecture and compressed payload described below are unchanged. Current prefill profiles, live-prefix cache ownership/invalidation, sampler semantics and per-family TCQ dispatch are documented in [INFERENCE_1.4.7.md](../optimization/INFERENCE_1.4.7.md). Historical kernel timings and inventory milestones below retain their original scope. [Combined measurements](../optimization/COMBINED_RESULTS.md) and [reference KL](../optimization/REFERENCE_KL.md) distinguish runtime changes from compression quality. MTP remains a separate, unimplemented post-release milestone.
+
 Architecture and checkpoint analysis for running SUC on DeepSeek-V4-Flash-0731 (304 B total parameters, about
 13 B active). It is written for the post-project scaling work (CLAUDE.md "Current state"). Nothing here has been
 run on the model. All numbers come from `config.json`, the safetensors index and five fetched shard headers.

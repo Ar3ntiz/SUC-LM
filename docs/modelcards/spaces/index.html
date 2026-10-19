@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUC1 model cards</title>
+<link rel="icon" type="image/png" href="icon_256x256_2x.png">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html { background: #0d1117; }
+  body {
+    margin: 0;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #4f5fc7 0%, #2f3a8c 55%, #1d2358 100%);
+    color: #fff;
+    padding: 36px 20px;
+  }
+  .hero-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .hero img { width: 88px; height: 88px; flex: none; border-radius: 20px; }
+  .hero h1 { margin: 0; font-size: 2rem; line-height: 1.2; }
+  .hero p { margin: 6px 0 0; color: #d6dbff; }
+
+  /* Content */
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 56px; }
+  h2 { font-size: 1.3rem; margin: 40px 0 16px; }
+  a { color: #58a6ff; }
+  code {
+    background: #161b22;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.9em;
+  }
+  .table-wrap { overflow-x: auto; margin: 24px 0; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #30363d; padding: 8px 12px; text-align: left; white-space: nowrap; }
+  th { background: #161b22; }
+  td.num, th.num { text-align: right; }
+  tbody tr:nth-child(even) td { background: #0f141b; }
+
+  /* Screenshots */
+  .shots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .shots figure { margin: 0; }
+  .shots figcaption { padding: 8px 2px 0; font-size: 0.9rem; color: #9da7b3; }
+  .shot {
+    display: block;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #161b22;
+    cursor: zoom-in;
+  }
+  .shot img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; object-position: top; }
+  .shot:hover, .shot:focus-visible { border-color: #58a6ff; outline: none; }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 5vh 5vw;
+  }
+  .lightbox[hidden] { display: none; }
+  .lightbox img {
+    max-width: 80vw;
+    max-height: 80vh;
+    width: auto;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+  .lightbox button {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: #21262d;
+    color: #e6edf3;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .lightbox button:hover, .lightbox button:focus-visible { background: #30363d; outline: 2px solid #58a6ff; }
+
+  @media (max-width: 600px) {
+    .hero-inner { gap: 16px; }
+    .hero img { width: 64px; height: 64px; border-radius: 14px; }
+    .hero h1 { font-size: 1.5rem; }
+    .shots { gap: 8px; }
+    .shots figcaption { font-size: 0.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <img src="icon_256x256_2x.png" alt="SUC Studio logo">
+    <div>
+      <h1>SUC1 model cards index</h1>
+      <p>Run SUC1 models locally with SUC Studio.</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<p>
+Here you can find the SUC1 model cards published on the
+<a href="#">huggingface.co/Ar3ntiz</a> page.
+<br />
+Each card is the <code>README.md</code> of its Hugging Face repository.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Repository</th>
+      <th>Base model</th>
+      <th class="num">SUC1 GB</th>
+      <th class="num">bpp</th>
+      <th class="num">KL</th>
+      <th>Card</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ar3ntiz/Qwen3.8-27B-side8</td>
+      <td><code>Qwen/Qwen3.8-27B</code></td>
+      <td class="num">16.36</td>
+      <td class="num">4.87</td>
+      <td class="num">0.023</td>
+      <td><a href="https://huggingface.co/Ar3ntiz/qwen3_27B_side8/blob/main/README.md">Qwen3.8-27B-side8.md</a></td>
+    </tr>
+    <tr>
+      <td>Ar3ntiz/Qwen3-30B-A3B</td>
+      <td><code>Qwen/Qwen3-30B-A3B</code></td>
+      <td class="num">15.93</td>
+      <td class="num">4.17</td>
+      <td class="num">0.064</td>
+      <td><a href="https://huggingface.co/Ar3ntiz/qwen3_30b_a3b_final/blob/main/README.md">Qwen3-30B-A3B.md</a></td>
+    </tr>
+    <tr>
+      <td>Ar3ntiz/Qwen3.8-Flash-Next-side8</td>
+      <td><code>Qwen/Qwen3.8-Flash-Next</code></td>
+      <td class="num">96.32</td>
+      <td class="num">4.35</td>
+      <td class="num">0.064</td>
+      <td><a href="https://huggingface.co/Ar3ntiz/qwen3.8_flash_next_side8/blob/main/README.md">Qwen3.8-Flash-Next-side8.md</a></td>
+    </tr>
+    <tr>
+      <td>Ar3ntiz/DeepSeek-V4-Flash-tcq</td>
+      <td><code>deepseek-ai/DeepSeek-V4-Flash-0731</code></td>
+      <td class="num">96.82</td>
+      <td class="num">2.72</td>
+      <td class="num">0.235</td>
+      <td><a href="https://huggingface.co/Ar3ntiz/DeepSeek_V4_Flash_tcq/blob/main/README.md">DeepSeek-V4-Flash-tcq.md</a></td>
+    </tr>
+    <tr>
+      <td>Ar3ntiz/GLM-5.3-Flash-tcq</td>
+      <td><code>zai-org/GLM-5.3-Flash</code></td>
+      <td class="num">99.00</td>
+      <td class="num">2.53</td>
+      <td class="num">0.307</td>
+      <td><a href="https://huggingface.co/Ar3ntiz/glm5-3_flash_tcq/blob/main/README.md">GLM-5.3-Flash-tcq.md</a></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+<strong>SUC Studio</strong> for macOS is self-contained: it already includes the inference engine,
+so it’s all you need to run SUC1 models. 
+<br>
+Download it from the <a href="https://github.com/Ar3ntiz/SUC-LM/releases/tag/APP">releases page</a>.
+</p>
+
+<p>
+If you prefer to build from source or use the engine on its own, get it from the project’s Git repository at
+<a href="https://github.com/Ar3ntiz/SUC-LM">github.com/Ar3ntiz/SUC-LM</a>.
+</p>
+
+<h2>SUC Studio</h2>
+
+<ul class="shots">
+  <li>
+    <figure>
+      <a class="shot" href="chat.jpg">
+        <img src="chat.jpg" alt="SUC Studio chat window with a local model loaded" loading="lazy">
+      </a>
+      <figcaption>Chat</figcaption>
+    </figure>
+  </li>
+  <li>
+    <figure>
+      <a class="shot" href="settings.jpg">
+        <img src="settings.jpg" alt="SUC Studio settings: model, tokenizer, memory and performance" loading="lazy">
+      </a>
+      <figcaption>Settings</figcaption>
+    </figure>
+  </li>
+  <li>
+    <figure>
+      <a class="shot" href="server.jpg">
+        <img src="server.jpg" alt="SUC Studio server page exposing an OpenAI-compatible API" loading="lazy">
+      </a>
+      <figcaption>Server</figcaption>
+    </figure>
+  </li>
+</ul>
+
+</main>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview" hidden>
+  <button type="button" id="lightbox-close" aria-label="Close preview">&times;</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var closeBtn = document.getElementById('lightbox-close');
+  var lastFocus = null;
+
+  function open(link) {
+    lastFocus = link;
+    img.src = link.getAttribute('href');
+    img.alt = link.querySelector('img').alt;
+    box.hidden = false;
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function close() {
+    box.hidden = true;
+    img.removeAttribute('src');
+    document.body.style.overflow = '';
+    if (lastFocus) lastFocus.focus();
+  }
+
+  document.querySelectorAll('a.shot').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      open(link);
+    });
+  });
+
+  box.addEventListener('click', function (e) {
+    if (e.target !== img) close();
+  });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !box.hidden) close();
+  });
+})();
+</script>
+
+</body>
+</html>

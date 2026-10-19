@@ -48,7 +48,7 @@ enum WebTools {
     /// Without a work directory the page goes to an absolute path for the user (read_file is unavailable there).
     static let standaloneHint="Il file completo è salvato per l’utente; senza directory di lavoro read_file non è disponibile."
     /// Pages visited without a work directory; tests inject a temporary directory.
-    static var standaloneDirectory=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("SUC Studio/web",isDirectory:true)
+    static var standaloneDirectory=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent(StudioPlatform.dataDirectory,isDirectory:true).appendingPathComponent("web",isDirectory:true)
     static func formatVisit(url:String,path:String,markdown:String,workspace:Bool=true)->String {
         let bytes=Array(markdown.utf8)
         var total=bytes.reduce(0){$0+($1==10 ? 1:0)};if let last=bytes.last,last != 10{total+=1}
@@ -380,11 +380,15 @@ extension StudioStore {
         let browser: WebBrowser
         if let webBrowser {browser=webBrowser} else { let id=webDataStoreID;browser=WebBrowser{WKWebsiteDataStore(forIdentifier:id)};webBrowser=browser }
         if !webBrowserAllowed && !browser.hasWindow {
-            guard !webSessionUnattended(session) else { throw WebTools.failure(action.name,"l’avvio del browser richiede approvazione interattiva") }
-            let request=WorkspaceAction(name:"avvio_browser",arguments:["richiesta":WebTools.startPrompt])
-            let allowed=await approve(request,session:session,root:root,always:true)
-            guard allowed,!Task.isCancelled else { throw WebTools.failure(action.name,Task.isCancelled ? "interrupted":"avvio del browser non consentito dall’utente") }
-            webBrowserAllowed=true
+            if webSessionUnattended(session) && session.approvalMode=="automatic" {
+                // An enabled routine inherits the explicitly selected automatic approval policy.
+                webBrowserAllowed=true
+            } else {
+                let request=WorkspaceAction(name:"avvio_browser",arguments:["richiesta":WebTools.startPrompt])
+                let allowed=await approve(request,session:session,root:root,always:true)
+                guard allowed,!Task.isCancelled else { throw WebTools.failure(action.name,Task.isCancelled ? "interrupted":"avvio del browser non consentito dall’utente") }
+                webBrowserAllowed=true
+            }
         }
         browser.onActivity={[weak self] in self?.webActivity=$0}
         return try await WebTools.execute(action,root:root,browser:browser,sessionID:session.id){[weak self] in self?.appendLog("Web · "+$0)}

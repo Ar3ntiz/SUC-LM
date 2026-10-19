@@ -1,0 +1,13 @@
+{
+  "cached_tokens" : 2048,
+  "completion_tokens" : 8,
+  "decode_s" : 0.204517,
+  "decode_source" : "server",
+  "decode_tps" : 34.226983575937453,
+  "prefill_s" : 1.072738,
+  "prefill_source" : "server",
+  "prefill_tokens" : 117,
+  "prefill_tps" : 109.06670594311007,
+  "prompt_tokens" : 2165,
+  "remote" : true
+}

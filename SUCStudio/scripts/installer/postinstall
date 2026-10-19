@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+# Installer passes the destination volume as argument 3. Never follow symlinks.
+VOLUME="${3:-/}"
+CURRENT="${VOLUME%/}/Applications/SUC Studio.app"
+PREVIEW="${VOLUME%/}/Applications/SUC Studio Universal Preview.app"
+IDENTIFIER=local.sucstudio.universal.app
+if [[ -d "$CURRENT" && ! -L "$CURRENT" && -d "$PREVIEW" && ! -L "$PREVIEW" ]]; then
+  CURRENT_ID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$CURRENT/Contents/Info.plist" 2>/dev/null || true)
+  PREVIEW_ID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$PREVIEW/Contents/Info.plist" 2>/dev/null || true)
+  if [[ "$CURRENT_ID" == "$IDENTIFIER" && "$PREVIEW_ID" == "$IDENTIFIER" ]]; then
+    /bin/rm -rf -- "$PREVIEW"
+  fi
+fi
+exit 0

@@ -15,7 +15,7 @@ import CryptoKit
   store.setPlugin(plugin,enabled:true,review:false);precondition(store.archive.settings.skills?.first?.enabled==true)
   store.setPlugin(plugin,enabled:false,review:false);precondition(store.archive.settings.skills?.isEmpty==true)
   store.removePlugin(plugin);precondition(store.archive.settings.plugins!.isEmpty)
-  var routine=StudioRoutine();routine.name="Test";routine.prompt="Run scheduled prompt";routine.sessionID=store.selected!.id;routine.enabled=true;routine.intervalMinutes=60;routine.nextRun=Date(timeIntervalSince1970:1)
+  var routine=StudioRoutine();routine.name="Test";routine.prompt="Run scheduled prompt";routine.sessionID=store.selected!.id;routine.enabled=true;routine.intervalMinutes=60;routine.repeatEnabled=true;routine.repeatCount=60;routine.nextRun=Date(timeIntervalSince1970:1)
   try store.saveRoutine(routine);store.modelState="ready";store.loadedModel="test";store.mutateSelected{$0.draft="preserved"}
   let now=Date();store.schedulingEnabled=true;store.tickRoutines(now:now);store.schedulingEnabled=false
   precondition(store.requests.count==1 && store.selected!.draft=="preserved")

@@ -11,12 +11,15 @@ struct BackendSettingsView: View {
     var body: some View {
         GroupBox("Motore per la chat") {
             VStack(alignment:.leading,spacing:14) {
-                Picker("Backend", selection:Binding(get:{ store.archive.settings.chatBackend ?? "local" },set:{ store.archive.settings.chatBackend = $0; store.scheduleSave() })) {
-                    Text("Server locale").tag("local")
+                Picker("Backend", selection:Binding(get:{ StudioPlatform.effectiveBackend(store.archive.settings.chatBackend) },set:{ store.archive.settings.chatBackend = StudioPlatform.effectiveBackend($0); store.scheduleSave() })) {
+                    if StudioPlatform.localInferenceAvailable { Text("Server locale").tag("local") }
                     Text("Server remoto").tag("remote")
                 }.pickerStyle(.segmented).disabled(store.hasWork)
+                if !StudioPlatform.localInferenceAvailable {
+                    Label(StudioPlatform.localUnavailableMessage, systemImage: "network").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                }
                 if store.usesRemote {
-                    TextField("Base API · http://192.168.1.2:8080/v1",text:$config.endpoint).textFieldStyle(.roundedBorder)
+                    TextField("Base API · http://192.0.2.2:8080/v1",text:$config.endpoint).textFieldStyle(.roundedBorder)
                     HStack { TextField("ID modello",text:$config.model).textFieldStyle(.roundedBorder)
                         if !models.isEmpty { Menu("Scegli modello") { ForEach(models,id:\.self) { model in Button(model) { config.model = model } } } }
                     }
@@ -37,7 +40,7 @@ struct BackendSettingsView: View {
                     }
                     Toggle("Invia parametri SUC/estesi (thinking, top_k, min_p)",isOn:$config.sendExtensions)
                     Text("Gli allegati immagine richiedono un modello vision e un server compatibile con image_url. Se non supportati, il server può rifiutare la richiesta.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                    Text("Prompt, cronologia e allegati vengono inviati al server scelto. Il motore locale e la sua API restano indipendenti.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                    Text("Prompt, cronologia e allegati vengono inviati al server scelto. Puoi usare un server in rete oppure localhost; l’inferenza SUC integrata è disponibile solo su Apple Silicon.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                     HStack {
                         Button("Verifica / modelli") {
                             busy = true; status = "Connessione…"

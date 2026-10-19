@@ -22,8 +22,8 @@ import Foundation
     for _ in 0..<500 {if !store.requests.isEmpty{break};try await Task.sleep(nanoseconds:10_000_000)}
     assert(store.selected!.messages.contains{$0.kind=="action_notice" && $0.text.contains("Errore")})
     answer("Il file non esiste.")
-    assert(store.selected!.messages.last?.text.contains("1 non completate")==true)
-    let partial=ChatMessage(role:"assistant",text:"{\"suc_",state:"generating");assert(!partial.visibleInChat(agent:true));assert(partial.visibleInChat(agent:false))
+    assert(store.selected!.messages.last?.text.contains("1 non completata")==true)
+    let partial=ChatMessage(role:"assistant",text:"{\"suc_",state:"generating");assert(!partial.visibleInChat(agent:true));assert(!partial.visibleInChat(agent:false))
     store.mutateSelected{$0.draft="Richiesta da annullare"};store.sendMessage();let cancelled=store.requests.keys.first!
     store.cancelSelected();store.receive(["event":"delta","id":cancelled,"payload":["text":"{\"suc_action\":{\"name\":\"read_file\",\"arguments\":{\"path\":\"a.txt\"}}}"]]);store.receive(["event":"finished","id":cancelled,"payload":[:]])
     assert(!store.agentRuns.contains(store.selected!.id) && store.requests.isEmpty)

@@ -1,0 +1,5 @@
+Source commit: 7e65860573bda4c3d3789c9877482f6b75abcf07
+Local export only; no remote push or existing public history overwrite.
+Machine paths/logins/LAN addresses are replaced with public examples.
+Internal progress is summarized; raw results and release binaries are excluded.
+See docs/optimization/RELEASE_1.4.7.md for qualified results and scope.

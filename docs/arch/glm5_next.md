@@ -1,5 +1,9 @@
 # glm5_next — zai-org/GLM-5.3-Flash
 
+## C++ runtime update, 1.4.7
+
+The architecture and compressed payload described below are unchanged. Current prefill profiles, live-prefix cache ownership/invalidation, sampler semantics and per-family TCQ dispatch are documented in [INFERENCE_1.4.7.md](../optimization/INFERENCE_1.4.7.md). Historical kernel timings and inventory milestones below retain their original scope. [Combined measurements](../optimization/COMBINED_RESULTS.md) and [reference KL](../optimization/REFERENCE_KL.md) distinguish runtime changes from compression quality. MTP remains a separate, unimplemented post-release milestone.
+
 Architecture note for SUC (adapter, MLX model, encoding plan). Facts come from the pinned checkpoint files; formulas
 cite the code that defines them. Shapes marked **(H)** were read from a safetensors header, **(D)** are derived from
 `config.json`. Where something could not be verified it is stated explicitly.

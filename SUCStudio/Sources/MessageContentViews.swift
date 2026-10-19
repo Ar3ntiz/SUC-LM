@@ -78,3 +78,20 @@ struct PlainTextEditor:NSViewRepresentable {
     func updateNSView(_ scroll:NSScrollView,context:Context){context.coordinator.parent=self;if let view=scroll.documentView as? NSTextView,view.string != text{view.string=text}}
     final class Coordinator:NSObject,NSTextViewDelegate{var parent:PlainTextEditor;init(_ parent:PlainTextEditor){self.parent=parent};func textDidChange(_ notification:Notification){if let view=notification.object as? NSTextView{parent.text=view.string}}}
 }
+
+/// Quiet, compact activity summaries; operational payloads remain in the session log.
+struct ActivityMessageBox: View {
+    let message: ChatMessage
+    var body: some View {
+        HStack(alignment:.top,spacing:7) {
+            Image(systemName:message.kind=="action_notice" ? "exclamationmark.circle":"checklist")
+            Text(message.compactActivityText).textSelection(.enabled)
+        }
+        .font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
+        .padding(.horizontal,10).padding(.vertical,7)
+        .frame(maxWidth:.infinity,alignment:.leading)
+        .background(Color.secondary.opacity(0.07),in:RoundedRectangle(cornerRadius:8))
+        .contextMenu {Button("Copia"){copyText(message.compactActivityText)}}
+        .accessibilityLabel(message.kind=="action_notice" ? "Avviso attività":"Riepilogo attività")
+    }
+}

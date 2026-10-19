@@ -1,0 +1,10 @@
+{
+  "version": "1.4.7.02",
+  "build": "29",
+  "pkg_sha256": "d12e3c6ffe9259a04f695d134c72e24721138fa69e520faefeed6d5d83ebd43e",
+  "engine_sha256": "fa3dc9e896261203b66bb21189a05c3e2925b4a99983d97a0879d2f42226d6e4",
+  "installed_engine_identical": true,
+  "signature": "adhoc_verified",
+  "universal_app_helpers": true,
+  "documentation_current": true
+}

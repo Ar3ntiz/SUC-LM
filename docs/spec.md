@@ -73,6 +73,7 @@ The tracks meet at Phase 15 (transformer integration).
 > MoE, Qwen3.8 (`qwen3_5`, `qwen4_exp`), DeepSeek-V4 and GLM-5.3, tokenizers, batched prefill, SSD expert streaming and
 > the OpenAI-compatible `suc1-server` ([cpp/README.md](../cpp/README.md)). It also powers the macOS app SUC Studio
 > (`SUCStudio/`). "Deferred" below records the original plan (2026-09-30).
+> Runtime update 1.4.7: [inference behavior](optimization/INFERENCE_1.4.7.md), [combined measurements](optimization/COMBINED_RESULTS.md) and [qualification status](optimization/PROGRESS.md). This adds runtime optimizations without changing D2, the SUC1 representation or the memory policy.
 
 Kernel prototyping uses MLX custom Metal kernels (`mx.fast.metal_kernel`) called from Python. The standalone C++ runtime (§18, Phase 11) remains a required deliverable but moves to the end of the kernel track, after the fused kernels are validated. The strong 4-bit baseline on Apple Silicon is MLX's own affine quantization (`mx.quantize` / fused quantized matmul), in addition to AWQ/GPTQ where tooling permits.
 

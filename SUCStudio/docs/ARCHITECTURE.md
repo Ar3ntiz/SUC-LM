@@ -1,3 +1,47 @@
+# SUC Studio 1.4.6.04
+
+Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
+
+- Apple Silicon: motore SUC C++/Metal locale oppure server remoto.
+- Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
+- Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
+- Bundle ID: `local.sucstudio.universal.app`. Credenziali Keychain separate.
+- Installazione: aprire `dist/SUC-Studio-1.4.6.04-universal.pkg`.
+  Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
+- Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
+- Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
+  Esportare/importare le sessioni dall’interfaccia; reinserire le API key e riconfigurare gli strumenti.
+
+## Setup e server remoto
+
+Aprire Server, scegliere Server remoto (obbligatorio su Intel), impostare URL base
+con prefisso `/v1`, API key se necessaria e ID modello. Usare Verifica / modelli,
+poi Salva server remoto. Aprire Chat e creare una sessione.
+Esempi: `http://192.0.2.20:8080/v1` oppure `http://127.0.0.1:8080/v1` per un
+motore esterno in esecuzione sullo stesso Mac. Modelli, vision, strumenti e metriche
+dipendono dalle capacità del server. Nessun modello/tokenizer locale è richiesto su Intel.
+
+## Build e verifica
+
+Mantenere `SUCStudio` dentro SUC-LM accanto a `cpp`.
+Il motore viene compilato dai sorgenti del padre, incluse modifiche non committate.
+Non usare il motore del vecchio worktree. App e helper shell/terminale sono
+compilati per arm64 e x86_64 e uniti con lipo; il motore integrato rimane arm64
+ed è bloccato su Intel. Per compilare entrambe le architetture eseguire:
+
+```sh
+./scripts/build.sh
+./scripts/test-universal.sh
+./scripts/package.sh
+```
+
+La build seleziona SDK 26.5 se presente (oppure SDKROOT esplicito).
+Un singolo installer contiene entrambe le architetture. Le build per entrambe le architetture e i test automatici non sostituiscono
+il collaudo dell’interfaccia su Mac Intel e Apple Silicon.
+Collaudo utente completato su Intel, M3 e M1 Ultra.
+
+---
+
 # Architettura implementata — SUC Studio 0.9.0
 
 ## Layout con motore condiviso
@@ -132,3 +176,22 @@ La chat usa le fasi di scroll SwiftUI per sospendere il seguito automatico duran
 ## Terminale e artifact (1.4.2)
 Il nuovo helper app-owned suc-studio-terminal crea una PTY con forkpty e inoltra byte tra shell e app. È separato dal motore C++, che resta invariato. InteractiveTerminal gestisce input, output limitato, stato e attesa asincrona; ogni chat mantiene una sola PTY. L’azione run_interactive riusa autorizzazioni e hook, ma restituisce solo exit status al modello. Il processo viene interrotto alla cancellazione della sessione o all’uscita dall’app.
 ChatArtifact è un campo opzionale dell’archivio per compatibilità con le chat precedenti. ArtifactFiles risolve percorsi relativi alla directory di lavoro, controlla file regolari/dimensioni e copia il contenuto in un identificatore indipendente. La UI usa esclusivamente quella copia per il salvataggio; non interpreta il testo del modello come un URL locale attendibile. I metadati esportati non includono i file.
+
+
+## Estensioni 1.4.6.02
+
+`ExtensionPackages.swift` confina e copia i pacchetti; `SkillCatalog.swift` interpreta SKILL.md. Nome/descrizione sono il catalogo iniziale, istruzioni e risorse vengono caricate su richiesta. `PluginPackages.swift` risolve pacchetti portabili/legacy, MCP, hook, onboarding e marketplace; i dati scrivibili hanno una radice separata dal codice.
+
+`HookRuntime.swift` gestisce schema JSON, hash della definizione autorizzata, matcher, input degli eventi e risultati strutturati. Le esecuzioni shell sono separate da WorkspaceCommand: stdin JSON, stdout/stderr distinti, timeout e cancellazione del gruppo processi tramite helper. Gli handler MCP riusano connessioni attive senza ricorsione. Gli hook async accodano contesto al successivo invio, senza avviare turni. I punti di integrazione sono StudioStore, AutomationHarness e WorkspaceCoordinator.
+
+Gli argomenti dell’harness restano stringhe: updatedInput deve rispettare questo schema e i normali controlli di percorso/strumento/approvazione restano applicati. Gli hook non possono cambiare il nome dell’azione. Una sola continuazione Stop evita cicli; le restanti azioni rispettano il limite configurato. MCP stdio annulla le richieste singolarmente senza bloccare l’attesa fino al timeout. Compatibilità e limiti: CUSTOMIZATION_1.4.6.02_IT.md.
+
+## Engine 1.4.7
+
+The app retains one parent C++/Metal implementation shared with CLI/server. Fast categorical sampling avoids sorting only when filters are inactive; the seed-to-text sequence can change. Live-prefix reuse owns one actual engine state per loaded model, not one KV snapshot per conversation. Different/equal/shorter token histories replay safely; cancellation/reload invalidates modified state. App/server retain automatic chunks of 64 for Qwen/DeepSeek and 512 for GLM; CLI large-prompt policy remains distinct. DeepSeek/GLM use qualified FP32 TCQ register blocking, with a historical-path override. Runtime flags, numerical limits and the evidence protocol are in [INFERENCE_1.4.7.md](../../docs/optimization/INFERENCE_1.4.7.md). Memory policy, stored weights and model formats are unchanged. MTP is deferred.
+
+## Cache dei turni Qwen 1.4.7.03
+
+Il contratto `cpp/include/suc/inference_engine.hpp` è condiviso dal server standalone e dall’helper dell’app. Il wrapper `LivePrefixEngine` può ripristinare un checkpoint del grafo Qwen4 quando il nuovo prompt contiene il prefisso salvato, anche se il template elimina il ragionamento della risposta precedente. Il checkpoint mantiene la posizione, gli stati ricorrenti/convoluzioni e il contesto n-gram; KV e chiavi QSA precedenti restano in sede. Un solo checkpoint per modello, copie CPU limitate a 128 MiB, fallback al prefill completo in caso di incompatibilità o mancata allocazione. Cancellazione e reload invalidano lo stato. Il primo turno lungo resta da elaborare per intero.
+
+L’helper azzera la funzione catturata da ogni task asincrono concluso: il future in archivio non deve conservare il modello dopo un comando unload. Il collaudo confronta anche le mappature effettive prima/dopo unload. Template, pesi e memory policy restano invariati.

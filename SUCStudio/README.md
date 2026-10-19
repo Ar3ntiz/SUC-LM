@@ -1,127 +1,55 @@
-# SUC Studio
+# SUC Studio 1.4.7.03
 
-Italian version: [README-IT.md](README-IT.md)
+Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
-Current version: **1.4.5_Final** — installer `dist/SUC-Studio-1.4.5_Final-arm64.pkg`.
+- Apple Silicon: motore SUC C++/Metal locale oppure server remoto.
+- Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
+- Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
+- Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
+- Installazione: aprire `dist/SUC-Studio-1.4.7.03-universal.pkg`.
+  Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
+- Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
+- Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
+  Esportare/importare le sessioni dall’interfaccia; reinserire le API key e riconfigurare gli strumenti.
 
-Native macOS app (SwiftUI) for running SUC1 models with the SUC C++ / Metal runtime: local chats, an OpenAI-compatible server, remote servers, model tools and web search. Target: Apple Silicon, macOS 15+. The app's interface is in Italian.
+## Aggiornamento alla 1.4.7.03
 
-- **[USAGE.md](USAGE.md)** — installation, setup, usage and troubleshooting.
-- **[docs/QA_REPORT.md](docs/QA_REPORT.md)** — checks performed and known limits.
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — structure and the private app ↔ engine protocol.
-- **[docs/WEB_TOOLS_SPEC_IT.md](docs/WEB_TOOLS_SPEC_IT.md)** — web tools specification (Italian).
+Chiudere le copie dell’app prima dell’installazione. Il pacchetto installa `SUC Studio.app` e rimuove la precedente `SUC Studio Universal Preview.app` solo se ha l’identificativo previsto. Le chat, impostazioni, credenziali e risorse della Universal restano disponibili: il percorso dati storico e il bundle ID sono mantenuti intenzionalmente. La cartella sorgenti unica è ora `SUCStudio/`; il motore rimane quello di `../cpp`.
 
-## Main features
+## Setup e server remoto
 
-- **Local models** in SUC1 format with an automatic memory plan: fully resident when they fit the GPU memory, otherwise MoE experts streamed from the SSD.
-- **Chat** with sessions, branches, export / import, Markdown, separate reasoning, edit and regenerate, attachments (text, documents, PDF, images for vision backends).
-- Built-in **OpenAI-compatible server** (API key, optional LAN access) and a **remote client** for SUC Studio, `suc1-server` or any engine with an OpenAI-compatible API (ds4, LM Studio, llama.cpp, LLM routers), with telemetry profiles.
-- **Model tools**: work directory, file and shell tools, interactive terminal, artifacts, MCP, skills, subagents, hooks, plugins and routines, with manual or automatic approvals and an operation log.
-- **Web search** (`web_search`, `visit_page`) through a hidden built-in browser, with a globe button to watch it live.
+Aprire Server, scegliere Server remoto (obbligatorio su Intel), impostare URL base
+con prefisso `/v1`, API key se necessaria e ID modello. Usare Verifica / modelli,
+poi Salva server remoto. Aprire Chat e creare una sessione.
+Esempi: `http://192.0.2.20:8080/v1` oppure `http://127.0.0.1:8080/v1` per un
+motore esterno in esecuzione sullo stesso Mac. Modelli, vision, strumenti e metriche
+dipendono dalle capacità del server. Nessun modello/tokenizer locale è richiesto su Intel.
 
-## Build
+## Build e verifica
+
+Mantenere `SUCStudio` dentro SUC-LM accanto a `cpp`.
+Il motore viene compilato dai sorgenti del padre, incluse modifiche non committate.
+Non usare il motore del vecchio worktree. App e helper shell/terminale sono
+compilati per arm64 e x86_64 e uniti con lipo; il motore integrato rimane arm64
+ed è bloccato su Intel. Per compilare entrambe le architetture eseguire:
 
 ```sh
 ./scripts/build.sh
-./scripts/test.sh
+./scripts/test-universal.sh
 ./scripts/package.sh
 ```
 
-The build uses **a single engine source: `../cpp` of the parent SUC-LM project**, so `SUCStudio/` must stay inside the repository. `Sources/` holds the app, `Engine/` the IPC / memory / HTTP wrapper, `dist/` the app and installers, `.build/` a disposable cache. Every build hashes the engine sources, recompiles what changed (uncommitted changes included) and records the inputs in `dist/ENGINE_BUILD_MANIFEST.json`, which ships in the bundle. The built app and package are self-contained: the target Mac does not need the repository. On the development Mac the build needs `SDKROOT=…/MacOSX26.5.sdk` (the SDK 27 of the Command Line Tools lacks the SwiftUI macro plugin).
+La build seleziona SDK 26.5 se presente (oppure SDKROOT esplicito).
+Un singolo installer contiene entrambe le architetture. Le build per entrambe le architetture e i test automatici non sostituiscono
+il collaudo dell’interfaccia su Mac Intel e Apple Silicon.
+Collaudo utente completato su Intel, M3 e M1 Ultra.
 
-Model weights and tokenizers are not included (see [huggingface.co/Ar3ntiz](https://huggingface.co/Ar3ntiz)). Local distribution, ad-hoc signed, no Developer ID or notarization.
+Vedere [USAGE.md](USAGE.md), [PROGRESS.md](PROGRESS.md) e [docs/QA_REPORT.md](docs/QA_REPORT.md).
 
-## Releases (newest first)
+Novità della versione: [Changelog](dist/CHANGELOG.md).
 
-### 1.4.5_Final
-- **Hidden** web browser: no window over your work and no focus stealing; timings identical to ds4 (off-screen panel not throttled by WebKit, measured).
-- **Globe button** next to the chat settings, shown only during a web action: phase, URL and seconds; clicking it opens the browser with the live page and a status bar.
-- Google verification signalled by the orange button, never brought to the front; no empty window left when the action ends.
+## Personalizzazione 1.4.6.02
 
-### 1.4.5_Beta
-- Web tools in **every session** that allows them, even without a work directory and with model actions off (dedicated prompt listing only `web_search` and `visit_page`).
-- Without a work directory, pages are saved in `~/Library/Application Support/SUC Studio/web`.
-- Action requests are also accepted inside a single `json` code block.
+Skill, hook e plugin: consulta [la guida di compatibilità](docs/CUSTOMIZATION_1.4.6.02_IT.md). Gli editor includono suggerimenti ed esempi; i pacchetti sono installati disattivati e gli hook richiedono una revisione esplicita della definizione. Test dedicati: `./scripts/test-customization14602.sh` e `./scripts/test-mcp-http14602.sh`, entrambi inclusi in `test-universal.sh`.
 
-### 1.4.5
-- Web tools for the model: `web_search` (alias `google_search`) and `visit_page`, with the ds4 web-module logic on WebKit.
-- Dedicated, persistent browser profile that can be cleared from Settings; start confirmation once per run and a per-session switch.
-- Full page saved in `.suc-web`; Google verifications never bypassed; only http and https URLs.
-
-### 1.4.4
-- Long remote generations with a health check.
-- Memory budget up to 96 % with a more precise KV reserve.
-- Inline terminal only for interactive model requests; diagnostic I/O log off by default; sampling legend and work directory below the chat.
-
-### 1.4.3
-- Reasoning separated from the answer, code editor opened by three backticks, resizable composer.
-- Asynchronous rendering and previews keep long inputs responsive.
-- Telemetry profiles for SUC Studio, DS4, LM Studio, llama.cpp, LLM Router and custom JSON, with measured and estimated values kept apart.
-
-### 1.4.2
-- Interactive terminal in the chat for commands, confirmations and secret input, also usable by the model with the session's permissions.
-- Persistent artifacts for produced files, opened and saved on the Mac.
-
-### 1.4.1
-- Expandable operation log (queue, state and outcome of the last 200 operations).
-- The chat follows the bottom and stops on manual scrolling; scrollable session list.
-
-### 1.4.0
-- Configurable limit of consecutive actions.
-- Action JSON hidden from the transcript but kept in the model context and the log; final activity summary and immediate error reporting.
-
-### 1.3.0
-- Approvals inside the chat; model-loading indicator in every section; distinct animations for prefill and decode.
-- Remote-server telemetry with real speeds when available.
-
-### 1.2.0
-- Image attachments for vision backends, with preview and persistence.
-- Edit and regenerate in the same chat; alternating Local server / Remote server panels; hook management with examples.
-
-### 1.1.0
-- Chat links open in the system browser; revised Markdown rendering (streaming, code, tables, lists, quotes).
-
-### 1.0.0
-- Appearance section: separate fonts and sizes for interface and chat.
-- Launch at login and keep the Mac awake.
-
-### 0.9.0
-- Plugins installable from local folders or a remote marketplace, with enable and remove.
-- Scheduled routines with prompt, frequency, state and history.
-
-### 0.8.1
-- Memory plan from the real Metal working set minus an OS margin: DeepSeek and GLM run resident again instead of streaming from SSD.
-- GLM KV estimate on the MLA latents; reserve KV + 2 GiB + 3 % of the file.
-
-### 0.8.0
-- Subtasks and subagents with separate contexts; delegation limits and inherited permissions.
-- Configurable hooks for work-cycle events.
-
-### 0.7.0
-- Per-session work directory with file and command tools.
-- Manual or automatic approval, action log and model-driven tool loop.
-
-### 0.6.0
-- Chat connectable to the local engine or to a remote OpenAI-compatible server (model, API key, streaming, stop).
-
-### 0.5.0
-- Global system prompt, selectable skills, local (stdio) and remote (HTTP) MCP servers; credentials in the Keychain.
-- Collapsible section bar and offline HTML guide.
-
-### 0.4.0
-- C++ engine built directly from the parent project, with a hash-based build cache and manifest; new icon.
-
-### 0.3.0
-- Attachments: text files of any extension, Word DOC/DOCX, OpenDocument, RTF and text PDFs, with preview and export.
-
-### 0.2.0
-- Automatic memory management, resident or with an expert budget; SSD streaming of MoE experts; pre-load checks for models that are too large.
-
-### 0.1.0
-- First version: local chats and sessions, model / tokenizer settings, OpenAI-compatible server with API key and LAN access, menu bar and engine telemetry.
-
-Full history: `dist/CHANGELOG.md` (Italian); older installers stay in `dist/`.
-
-## Credits
-
-Web extraction scripts and browsing logic adapted from ds4 (https://github.com/antirez/ds4), MIT License, Copyright (c) 2026 The ds4.c authors. Full text in [licenses/ds4-MIT.txt](licenses/ds4-MIT.txt).
+Correzione della stessa 1.4.6.02: il generatore esporta Skill + Hook + MCP insieme. Le routine riconoscono il JSON operativo dopo una premessa, lo nascondono durante lo streaming e proseguono fino al risultato. Reinstallare il pacchetto e riavviare l’app; rilanciare manualmente le vecchie esecuzioni senza risultato.

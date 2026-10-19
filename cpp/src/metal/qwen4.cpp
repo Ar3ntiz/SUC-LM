@@ -1809,10 +1809,13 @@ struct Qwen4Model::Impl {
   }
 
   // Gather the rows of `ids` into dst (ngram_heads · dim activations), reading only those rows of the mapping.
-  void gather_rows(const NgramLayer& g, const std::vector<uint64_t>& ids, uint8_t* dst) const {
+  void gather_rows(const NgramLayer& g, const std::vector<uint64_t>& ids, uint8_t* dst, std::size_t only_head = ~std::size_t(0)) const {
     const std::size_t dim = g.dim, a = as();
-    std::vector<float> row(dim);
-    for (std::size_t h = 0; h < ids.size(); ++h) {
+    thread_local std::vector<float> row;
+    row.resize(dim);
+    const auto first=only_head==~std::size_t(0)?0:only_head;
+    const auto end=only_head==~std::size_t(0)?ids.size():only_head+1;
+    for (std::size_t h = first; h < end; ++h) {
       const uint64_t id = ids[h];
       if (id >= g.starts.back()) fail("n-gram row id out of range");
       const std::size_t j = std::size_t(std::upper_bound(g.starts.begin(), g.starts.end(), id) - g.starts.begin()) - 1;
@@ -1844,7 +1847,37 @@ struct Qwen4Model::Impl {
     }
   }
 
+  std::unique_ptr<ParallelWorkers> ngram_workers;
+  std::size_t ngram_tasks_last=0,ngram_workers_last=1;
+  void gather_ngram_batch(std::size_t n,const std::vector<std::vector<uint64_t>>& ids,uint8_t* dst,std::size_t nple) {
+    const std::size_t heads=cfg.ngram_heads(),tasks=n*ngram.size()*heads;
+    const auto gather=[&](std::size_t task){const auto row=task/heads,h=task%heads;
+      const auto i=row/ngram.size(),gi=row%ngram.size();const auto& g=ngram[gi];
+      gather_rows(g,ids[row],dst+(i*nple+g.index)*cfg.ple_dim*as(),h);};
+    // Four workers regressed selected-model decode on M1; parallel gathers are opt-in.
+    static const unsigned count=[] {const char* e=std::getenv("SUC_NGRAM_THREADS");return e?unsigned(std::clamp(std::atoi(e),1,16)):1u;}();
+    ngram_tasks_last=tasks;ngram_workers_last=count==1||tasks<4?1:count;
+    if(count==1||tasks<4){for(std::size_t i=0;i<tasks;++i)gather(i);return;}
+    if(!ngram_workers)ngram_workers=std::make_unique<ParallelWorkers>(count);
+    ngram_workers->run(tasks,gather);
+  }
+  struct Checkpoint {
+    std::size_t pos = 0, bytes = 0;
+    std::vector<std::vector<uint8_t>> states;
+    std::vector<std::vector<uint64_t>> ngrams;
+  };
+  std::unique_ptr<Checkpoint> checkpoint;
+  std::vector<MTL::Buffer*> recurrent_buffers() const {
+    std::vector<MTL::Buffer*> buffers;
+    for (const Layer& L : layers) {
+      if (L.lin.conv_state) buffers.push_back(L.lin.conv_state.get());
+      if (L.lin.rec_state) buffers.push_back(L.lin.rec_state.get());
+      if (L.ple) buffers.push_back(L.ple->state.get());
+    }
+    return buffers;
+  }
   void zero_states() {
+    checkpoint.reset();
     for (Layer& L : layers) {
       if (L.lin.conv_state) std::memset(L.lin.conv_state->contents(), 0, L.lin.conv_state->length());
       if (L.lin.rec_state) std::memset(L.lin.rec_state->contents(), 0, L.lin.rec_state->length());
@@ -1867,6 +1900,7 @@ std::vector<std::pair<uint64_t, uint64_t>> qwen4_table_ranges(const Suc1File& f)
 }
 
 Qwen4Model::Qwen4Model(Context& ctx, const MappedFile& mf, const Qwen4Options& opt) : p_(std::make_unique<Impl>()) {
+  ctx.set_tcq_reuse_default(false);
   Pool pool;
   Impl& m = *p_;
   m.ctx = &ctx;
@@ -2086,8 +2120,54 @@ Qwen4Model::~Qwen4Model() = default;
 
 const Qwen4Config& Qwen4Model::config() const { return p_->cfg; }
 uint64_t Qwen4Model::chunk_fetches() const { return p_->chunk_fetches; }
+std::size_t Qwen4Model::ngram_cpu_workers() const {return p_->ngram_workers_last;}
+std::size_t Qwen4Model::ngram_head_tasks() const {return p_->ngram_tasks_last;}
 std::size_t Qwen4Model::position() const { return p_->pos; }
 void Qwen4Model::reset() { p_->zero_states(); }
+std::size_t Qwen4Model::checkpoint_stride() const { return p_->opt.chunk; }
+void Qwen4Model::clear_checkpoint() { p_->checkpoint.reset(); }
+std::size_t Qwen4Model::checkpoint_bytes() const { return p_->checkpoint ? p_->checkpoint->bytes : 0; }
+bool Qwen4Model::save_checkpoint(std::size_t max_bytes) {
+  Impl& m = *p_;
+  m.checkpoint.reset(); // release the previous copy before allocating its replacement
+  if (!m.pos) return false;
+  const auto buffers = m.recurrent_buffers();
+  std::size_t bytes = 0;
+  for (auto* b : buffers) {
+    if (b->length() > max_bytes - bytes) return false;
+    bytes += b->length();
+  }
+  for (const auto& g : m.ngram) {
+    if (g.ctx.size() > (max_bytes - bytes) / sizeof(uint64_t)) return false;
+    bytes += g.ctx.size() * sizeof(uint64_t);
+  }
+  // forward() waits for all command buffers; shared state is safe to read on this serialized engine.
+  try {
+    auto cp = std::make_unique<Impl::Checkpoint>();
+    cp->pos = m.pos; cp->bytes = bytes;
+    for (auto* b : buffers) {
+      cp->states.emplace_back(b->length());
+      std::memcpy(cp->states.back().data(), b->contents(), b->length());
+    }
+    for (const auto& g : m.ngram) cp->ngrams.push_back(g.ctx);
+    m.checkpoint = std::move(cp);
+  } catch (const std::bad_alloc&) { return false; }
+  return true;
+}
+bool Qwen4Model::restore_checkpoint() {
+  Impl& m = *p_;
+  if (!m.checkpoint || m.pos < m.checkpoint->pos) return false;
+  const auto& cp = *m.checkpoint;
+  const auto buffers = m.recurrent_buffers();
+  for (std::size_t i = 0; i < buffers.size(); ++i)
+    std::memcpy(buffers[i]->contents(), cp.states[i].data(), cp.states[i].size());
+  for (std::size_t i = 0; i < m.ngram.size(); ++i) m.ngram[i].ctx = cp.ngrams[i];
+  m.pos = cp.pos;
+  m.have_logits = false;
+  // KV, indexer token keys, and completed QSA block keys below cp.pos are append-only. Later rows are
+  // ignored by causal lengths and overwritten on replay, including the first newly completed QSA block.
+  return true;
+}
 double Qwen4Model::last_gpu_seconds() const { return p_->gpu_s; }
 double Qwen4Model::last_encode_seconds() const { return p_->encode_s; }
 double Qwen4Model::last_ngram_seconds() const { return p_->ngram_s; }
@@ -2113,7 +2193,7 @@ uint32_t Qwen4Model::forward(const std::vector<uint32_t>& tokens, bool with_logi
     fail("context full (max_context " + std::to_string(m.opt.max_context) + ")");
   for (uint32_t t : tokens)
     if (t >= c.vocab) fail("token id " + std::to_string(t) + " >= vocab " + std::to_string(c.vocab));
-  const std::size_t a = m.as(), nple = c.ple_layer_ids.size();
+  const std::size_t nple = c.ple_layer_ids.size();
   uint32_t result = 0;
   m.encode_s = m.gpu_s = m.ngram_s = 0.0;
   for (std::size_t s0 = 0; s0 < tokens.size(); s0 += m.opt.chunk) {
@@ -2136,12 +2216,7 @@ uint32_t Qwen4Model::forward(const std::vector<uint32_t>& tokens, bool with_logi
         g.ctx.push_back(tokens[s0 + i]);
       }
     }
-    parallel_for(n, 4, [&](std::size_t i) {
-      for (std::size_t gi = 0; gi < m.ngram.size(); ++gi) {
-        const NgramLayer& g = m.ngram[gi];
-        m.gather_rows(g, ng_ids[i * m.ngram.size() + gi], pe + (i * nple + g.index) * c.ple_dim * a);
-      }
-    });
+    m.gather_ngram_batch(n,ng_ids,pe,nple);
     m.ngram_s += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ng).count();
     const auto t_enc = std::chrono::steady_clock::now();
     MTL::CommandBuffer* cb = m.ctx->queue()->commandBuffer();

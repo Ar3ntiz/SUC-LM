@@ -21,11 +21,11 @@ import AppKit
         if CommandLine.arguments.contains("activity") {
             store.modelState="loading";store.archive.settings.modelPath="/Models/Qwen3.suc1"
             store.mutateSelected { $0.messages=[ChatMessage(role:"user",text:"Leggi README.md e riassumi il progetto."),ChatMessage(role:"assistant",text:"",state:"prefill")] }
-            store.approvals=[ActionApproval(sessionID:store.selected!.id,title:store.selected!.title,directory:"/Users/demo/Progetto",action:WorkspaceAction(name:"read_file",arguments:["path":"README.md"]))]
+            store.approvals=[ActionApproval(sessionID:store.selected!.id,title:store.selected!.title,directory:"/Users/username/Progetto",action:WorkspaceAction(name:"read_file",arguments:["path":"README.md"]))]
         }
         if CommandLine.arguments.contains("report") {
             store.mutateSelected {
-                $0.agentEnabled=true;$0.workspacePath="/Users/demo/Progetto"
+                $0.agentEnabled=true;$0.workspacePath="/Users/username/Progetto"
                 $0.messages=[ChatMessage(role:"user",text:"Leggi il progetto e prepara una nota."),ChatMessage(role:"assistant",text:"{\"suc_action\":{\"name\":\"read_file\",\"arguments\":{\"path\":\"README.md\"}}}",kind:"tool_call"),ChatMessage(role:"user",text:"Risultato tecnico interno",kind:"tool_result"),ChatMessage(role:"assistant",text:"Ho letto il progetto e salvato la nota in **nota.md**. Puoi trovare i dettagli nel registro della sessione.")]
                 $0.actions=[ActionRecord(name:"read_file",details:"README.md",state:"completed",result:"testo"),ActionRecord(name:"write_file",details:"nota.md",state:"completed",result:"salvato")]
             }
@@ -41,7 +41,7 @@ import AppKit
             let terminal=InteractiveTerminal(command:"printf 'Preparazione report…\\nConfermare? [s/n]\\n'; read answer")
             try terminal.start(root:FileManager.default.temporaryDirectory,helper:URL(fileURLWithPath:ProcessInfo.processInfo.environment["SUC_STUDIO_TERMINAL_HELPER"]!))
             store.terminals[store.selected!.id]=terminal
-            store.mutateSelected{$0.workspacePath="/Users/demo/Progetto";$0.artifacts=[ChatArtifact(name:"report.pdf",byteCount:24576)]}
+            store.mutateSelected{$0.workspacePath="/Users/username/Progetto";$0.artifacts=[ChatArtifact(name:"report.pdf",byteCount:24576)]}
         }
         if CommandLine.arguments.contains("thinking") {store.mutateSelected{$0.messages=[ChatMessage(role:"user",text:"Confronta queste due soluzioni."),ChatMessage(reasoning:"Valuto i vincoli e confronto i risultati.\n\nLa seconda soluzione richiede meno memoria e conserva il comportamento atteso.",role:"assistant",text:"## La soluzione consigliata\n\nUsa la **seconda soluzione**: richiede meno memoria e mantiene le stesse funzionalità.")]}}
         if CommandLine.arguments.contains("longhtml") {store.mutateSelected{$0.messages=[ChatMessage(role:"user",text:"<!doctype html><html>"+String(repeating:"<div><a href=\"https://example.com/test\">test</a></div>\n",count:5000)+"</html>"),ChatMessage(role:"assistant",text:"Ho ricevuto il documento completo. Puoi aprire il testo integrale dall’anteprima.")]}}
@@ -49,14 +49,19 @@ import AppKit
         let height = CommandLine.arguments.count > 3 ? Double(CommandLine.arguments[3]) ?? 780 : 780
         store.tab = CommandLine.arguments.count > 4 ? CommandLine.arguments[4] : "chat"
         store.archive.settings.sectionSidebarCollapsed = !CommandLine.arguments.contains("expanded")
-        if CommandLine.arguments.contains("remote") { store.archive.settings.chatBackend = "remote"; store.archive.settings.remote = RemoteConfiguration(endpoint: "http://192.168.1.20:8080/v1", model: "Qwen3-8B") }
+        if CommandLine.arguments.contains("remote") { store.archive.settings.chatBackend = "remote"; store.archive.settings.remote = RemoteConfiguration(endpoint: "http://192.0.2.20:8080/v1", model: "Qwen3-8B") }
         if CommandLine.arguments.contains("largefonts") { store.archive.settings.uiFont="Helvetica Neue";store.archive.settings.uiFontSize=16;store.archive.settings.chatFont="Georgia";store.archive.settings.chatFontSize=22;StudioTypography.apply(store.archive.settings) }
         let dark = CommandLine.arguments.count > 5 && CommandLine.arguments[5] == "dark"
         store.archive.settings.appearance = dark ? "dark" : "light"
         _ = NSApplication.shared
         NSApplication.shared.setActivationPolicy(.prohibited)
         let content = CommandLine.arguments.contains("operationlog") ? AnyView(OperationLogView(initiallyExpanded:true).padding(24).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)):CommandLine.arguments.contains("hooks") ? AnyView(HooksSettingsView()):AnyView(StudioRoot())
-        let hosting = NSHostingView(rootView: content.environmentObject(store).background(Color(nsColor:.windowBackgroundColor)))
+        let selectedContent: AnyView
+        if CommandLine.arguments.contains("hookeditor") {selectedContent=AnyView(HookEditor(hook:StudioHook(name:"Contesto iniziale",event:"SessionStart",command:HookSamples.all[0].command)))}
+        else if CommandLine.arguments.contains("skill-editor") {selectedContent=AnyView(SkillEditor(skill:StudioSkill(name:"review-code",description:"Usa quando viene richiesta una revisione del codice.",instructions:"Consulta i file pertinenti. Riporta bug concreti con file e righe; distingui fatti e ipotesi.")))}
+        else if CommandLine.arguments.contains("plugin-builder") {selectedContent=AnyView(PluginBuilderView(draft:PluginBuilderDraft(includeSkill:true,includeHook:true,includeMCP:true)))}
+        else {selectedContent=content}
+        let hosting = NSHostingView(rootView: selectedContent.environmentObject(store).background(Color(nsColor:.windowBackgroundColor)))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: height), styleMask: [.borderless], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         window.contentView = hosting

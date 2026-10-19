@@ -12,7 +12,7 @@ struct MCPTool: Identifiable {
 }
 enum MCPSecrets {
     static func read(_ id: UUID) throws -> [String: String] {
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.mcp", kSecAttrAccount as String: id.uuidString, kSecReturnData as String: true]
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.universal.mcp", kSecAttrAccount as String: id.uuidString, kSecReturnData as String: true]
         var result: CFTypeRef?; let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return [:] }
         guard status == errSecSuccess, let data = result as? Data else { throw MCPConnection.failure("Portachiavi MCP non accessibile (\(status)).") }
@@ -20,13 +20,13 @@ enum MCPSecrets {
     }
     static func write(_ value: [String: String], id: UUID) throws {
         let data = try JSONEncoder().encode(value)
-        let key: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.mcp", kSecAttrAccount as String: id.uuidString]
+        let key: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.universal.mcp", kSecAttrAccount as String: id.uuidString]
         let status = SecItemUpdate(key as CFDictionary, [kSecValueData as String: data] as CFDictionary)
         if status == errSecItemNotFound { var add = key; add[kSecValueData as String] = data; guard SecItemAdd(add as CFDictionary, nil) == errSecSuccess else { throw MCPConnection.failure("Impossibile salvare le credenziali MCP.") }; return }
         guard status == errSecSuccess else { throw MCPConnection.failure("Impossibile aggiornare le credenziali MCP.") }
     }
     static func remove(_ id: UUID) {
-        SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.mcp", kSecAttrAccount as String: id.uuidString] as CFDictionary)
+        SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "local.sucstudio.universal.mcp", kSecAttrAccount as String: id.uuidString] as CFDictionary)
     }
 }
 // Credentials must never follow a redirect to another endpoint.
@@ -47,13 +47,13 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     private var protocolVersion = "2025-11-25"
     private var stopped = false
     var onDisconnect: (() -> Void)?
-    init(_ configuration: MCPConfiguration, credentials: [String: String]) { self.configuration = configuration; self.credentials = credentials }
+    init(_ configuration: MCPConfiguration, credentials: [String: String]) { self.configuration = configuration; self.credentials = (configuration.transport=="http" ? configuration.headers ?? [:] : [:]).merging(credentials,uniquingKeysWith:{$1}) }
     func start() async throws -> [MCPTool] {
         if configuration.transport == "stdio" {
             guard configuration.executable.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: configuration.executable) else { throw Self.failure("Scegli il percorso assoluto di un eseguibile MCP locale.") }
             let p = Process(), input = Pipe(), output = Pipe(), errors = Pipe(), lines = LineReader()
             p.executableURL = URL(fileURLWithPath: configuration.executable); p.arguments = configuration.arguments
-            p.environment = ProcessInfo.processInfo.environment.merging(credentials, uniquingKeysWith: { _, new in new })
+            p.environment = ProcessInfo.processInfo.environment.merging(configuration.environment ?? [:],uniquingKeysWith:{$1}).merging(credentials, uniquingKeysWith: { _, new in new })
             p.standardInput = input; p.standardOutput = output; p.standardError = errors
             output.fileHandleForReading.readabilityHandler = { [weak self] handle in
                 let bytes = handle.availableData
@@ -66,11 +66,11 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
             try p.run(); process = p; stdin = input.fileHandleForWriting; stdout = output.fileHandleForReading; stderr = errors.fileHandleForReading
         } else if configuration.transport == "http" {
             guard let url = URL(string: configuration.endpoint), ["https", "http"].contains(url.scheme ?? ""), url.host != nil, url.user == nil, url.password == nil, url.fragment == nil else { throw Self.failure("Endpoint MCP HTTP/HTTPS non valido.") }
-            let settings = URLSessionConfiguration.ephemeral; settings.timeoutIntervalForRequest = 30; settings.timeoutIntervalForResource = 60
+            let settings = URLSessionConfiguration.ephemeral; settings.timeoutIntervalForRequest = 30; settings.timeoutIntervalForResource = 3600
             http = URLSession(configuration: settings, delegate: MCPHTTPDelegate(), delegateQueue: nil)
         } else { throw Self.failure("Trasporto MCP non supportato.") }
         do {
-            let result = try await request("initialize", ["protocolVersion": protocolVersion, "capabilities": [:], "clientInfo": ["name": "SUC Studio", "version": "1.4.5_Final"]])
+            let result = try await request("initialize", ["protocolVersion": protocolVersion, "capabilities": [:], "clientInfo": ["name": StudioPlatform.name, "version": StudioPlatform.version]])
             guard let version = result["protocolVersion"] as? String, ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"].contains(version) else { throw Self.failure("Versione protocollo MCP non supportata.") }
             protocolVersion = version
             try await notify("notifications/initialized", [:])
@@ -95,8 +95,8 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         } while cursor != nil
         return tools
     }
-    func call(_ tool: MCPTool, arguments: [String: Any]) async throws -> String {
-        let result = try await request("tools/call", ["name": tool.name, "arguments": arguments])
+    func call(_ tool: MCPTool, arguments: [String: Any], timeout: Double = 30) async throws -> String {
+        let result = try await request("tools/call", ["name": tool.name, "arguments": arguments],timeout:timeout)
         var text: [String] = [], unsupported = 0
         for item in result["content"] as? [[String: Any]] ?? [] {
             if item["type"] as? String == "text", let value = item["text"] as? String { text.append(value) }
@@ -133,30 +133,39 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         timeouts.removeValue(forKey: id)?.cancel()
         do { continuation.resume(returning: try checked(object)) } catch { continuation.resume(throwing: error) }
     }
-    private func request(_ method: String, _ params: [String: Any]) async throws -> [String: Any] {
+    private func request(_ method: String, _ params: [String: Any], timeout: Double = 30) async throws -> [String: Any] {
         guard !stopped else { throw Self.failure("Server MCP scollegato.") }
         let id = UUID().uuidString
         let wire: [String: Any] = ["jsonrpc":"2.0", "id":id, "method":method, "params":params]
-        if configuration.transport == "http" { return try await httpRequest(wire, expectedID: id) }
-        return try await withCheckedThrowingContinuation { continuation in
-            pending[id] = continuation
-            timeouts[id] = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: 30_000_000_000)
-                guard !Task.isCancelled, let self, let waiting = self.pending.removeValue(forKey: id) else { return }
-                self.timeouts.removeValue(forKey: id)
-                try? self.write(["jsonrpc":"2.0", "method":"notifications/cancelled", "params":["requestId":id,"reason":"Timeout"]])
-                waiting.resume(throwing: Self.failure("Timeout MCP. L’esito di eventuali azioni può essere incerto; la chiamata non è stata ripetuta."))
+        if configuration.transport == "http" { return try await httpRequest(wire, expectedID: id,timeout:timeout) }
+        return try await withTaskCancellationHandler(operation:{
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
+                pending[id] = continuation
+                timeouts[id] = Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: UInt64(min(3600,max(0.1,timeout))*1_000_000_000))
+                    guard !Task.isCancelled, let self, let waiting = self.pending.removeValue(forKey: id) else { return }
+                    self.timeouts.removeValue(forKey: id)
+                    try? self.write(["jsonrpc":"2.0", "method":"notifications/cancelled", "params":["requestId":id,"reason":"Timeout"]])
+                    waiting.resume(throwing: Self.failure("Timeout MCP. L’esito di eventuali azioni può essere incerto; la chiamata non è stata ripetuta."))
+                }
+                do { try write(wire) } catch { pending.removeValue(forKey: id); timeouts.removeValue(forKey: id)?.cancel(); continuation.resume(throwing: error) }
             }
-            do { try write(wire) } catch { pending.removeValue(forKey: id); timeouts.removeValue(forKey: id)?.cancel(); continuation.resume(throwing: error) }
-        }
+        },onCancel:{Task{@MainActor [weak self] in
+            guard let self,let waiting=self.pending.removeValue(forKey:id) else{return}
+            self.timeouts.removeValue(forKey:id)?.cancel()
+            try? self.write(["jsonrpc":"2.0","method":"notifications/cancelled","params":["requestId":id,"reason":"Cancelled"]])
+            waiting.resume(throwing:CancellationError())
+        }})
     }
+
     private func notify(_ method: String, _ params: [String: Any]) async throws {
         let value: [String: Any] = ["jsonrpc":"2.0", "method":method, "params":params]
         if configuration.transport == "http" { _ = try await httpRequest(value, expectedID: nil) } else { try write(value) }
     }
-    private func httpRequest(_ object: [String: Any], expectedID: String?) async throws -> [String: Any] {
+    private func httpRequest(_ object: [String: Any], expectedID: String?, timeout: Double = 30) async throws -> [String: Any] {
         guard !stopped, let http, let endpoint = URL(string: configuration.endpoint) else { throw Self.failure("Server MCP scollegato.") }
-        var request = URLRequest(url: endpoint); request.httpMethod = "POST"
+        var request = URLRequest(url: endpoint);request.timeoutInterval=min(3600,max(0.1,timeout)); request.httpMethod = "POST"
         request.httpBody = try JSONSerialization.data(withJSONObject: object)
         guard (request.httpBody?.count ?? 0) <= 1024 * 1024 else { throw Self.failure("Richiesta MCP troppo grande.") }
         for (key,value) in credentials { guard !key.contains("\n"), !key.contains("\r"), !value.contains("\n"), !value.contains("\r") else { throw Self.failure("Header HTTP non valido.") }; request.setValue(value, forHTTPHeaderField: key) }

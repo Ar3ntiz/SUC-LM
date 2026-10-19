@@ -66,7 +66,15 @@ def _metadata(suc1: str | None, dataset_hash: str, config: dict) -> dict:
 def _write(name: str, suc1: str | None, dataset_hash: str, config: dict, body: dict) -> Path:
     from suc.provenance import write_result
 
-    res = {"metadata": _metadata(suc1, dataset_hash, config), "kind": name, "config": config,
+    metadata = _metadata(suc1, dataset_hash, config)
+    if build_commit := os.environ.get("SUC_BENCH_BUILD_COMMIT"):
+        # Isolated baseline binaries can be measured from a newer benchmark checkout.
+        import re
+        if not re.fullmatch(r"[0-9a-f]{40}", build_commit):
+            raise ValueError("SUC_BENCH_BUILD_COMMIT must be a full Git hash")
+        metadata["measurement_git_commit"] = metadata["git_commit"]
+        metadata["git_commit"] = build_commit
+    res = {"metadata": metadata, "kind": name, "config": config,
            "iogpu_wired_limit_mb": _wired_limit(), **body}
     path = write_result(res, Path(os.environ.get("SUC_RESULTS_DIR", REPO / "experiments" / "results")), name)
     print(path)
@@ -156,7 +164,9 @@ def cmd_generate(a, extra: list[str]) -> int:
         summary["prefill_mode"] = run.get("prefill")
         summary["ttft_s"] = pf + (summary.get("decode_ms_median") or 0.0) / 1000.0
     _write(a.name, a.suc1, hashlib.sha256(a.prompt.encode()).hexdigest(),
-           {"tool": "suc1-generate", "command": cmd[:1] + cmd[2:], "file": a.suc1, "steps": a.steps},
+           {"tool": "suc1-generate", "command": cmd[:1] + cmd[2:], "file": a.suc1, "steps": a.steps,
+            "experiment_environment": {key: os.environ.get(key) for key in
+                ("SUC_NGRAM_THREADS", "SUC_PREFIX_CACHE", "SUC_PREFILL_QUERY_TILE", "SUC_TCQ_PREFILL_HALF", "SUC_SAMPLING_LEGACY", "SUC_TCQ_REUSE")}},
            {"summary": summary, "run": run, "stderr_tail": r.stderr[-3000:],
             # stage profiles (SUC_*_PROFILE=1) in full: the tail can cut their first lines
             "stderr_profile": [ln for ln in r.stderr.splitlines()

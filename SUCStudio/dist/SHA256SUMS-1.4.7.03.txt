@@ -1,0 +1,2 @@
+70e81ef926caa390e5adfd142cd2af7ed496b8078c2965bc9bfca083b091be61  SUC-Studio-1.4.7.03-universal.pkg
+683d4f9ae41ab909383c25cac335135001ffa39e66cba42a7138addea50084d5  SUC-CLI-Server-1.4.7.03-arm64.tar.gz

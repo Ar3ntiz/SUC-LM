@@ -1,0 +1,157 @@
+{
+  "kind" : "synthetic_actual_remote_client_latency",
+  "results" : [
+    {
+      "callbacks" : 0,
+      "chunks" : 4000,
+      "client_after_server_send_s" : 0.0011699199676513672,
+      "maximum_main_actor_heartbeat_s" : 0.011721014976501465,
+      "mode" : "raw-http",
+      "received_sse_bytes" : 256071,
+      "server" : {
+        "expected_text_bytes" : 56000,
+        "send_end_unix" : 1792414170.723192,
+        "send_start_unix" : 1792414170.722975,
+        "send_wall_s" : 0.00021696090698242188,
+        "sse_bytes" : 256071
+      },
+      "wall_s" : 0.11506199836730957
+    },
+    {
+      "callbacks" : 141,
+      "chunks" : 4000,
+      "client_after_server_send_s" : 4.6721818447113037,
+      "maximum_main_actor_heartbeat_s" : 0.012580990791320801,
+      "mode" : "remote-client",
+      "server" : {
+        "expected_text_bytes" : 56000,
+        "send_end_unix" : 1792414170.7343831,
+        "send_start_unix" : 1792414170.734195,
+        "send_wall_s" : 0.0001881122589111328,
+        "sse_bytes" : 256071
+      },
+      "text_bytes" : 56000,
+      "text_sha256" : "148dcfc76cec54ea5935d0b25f19ee15c11cc8af233573215741d858ea405003",
+      "wall_s" : 4.6761189699172974
+    },
+    {
+      "callbacks" : 143,
+      "chunks" : 4000,
+      "client_after_server_send_s" : 4.7404239177703857,
+      "maximum_main_actor_heartbeat_s" : 0.01296389102935791,
+      "mode" : "remote-client-io-log",
+      "server" : {
+        "expected_text_bytes" : 56000,
+        "send_end_unix" : 1792414175.4162099,
+        "send_start_unix" : 1792414175.4160399,
+        "send_wall_s" : 0.00016999244689941406,
+        "sse_bytes" : 256071
+      },
+      "text_bytes" : 56000,
+      "text_sha256" : "148dcfc76cec54ea5935d0b25f19ee15c11cc8af233573215741d858ea405003",
+      "wall_s" : 4.7432879209518433
+    },
+    {
+      "callbacks" : 0,
+      "chunks" : 16000,
+      "client_after_server_send_s" : 0.00071811676025390625,
+      "maximum_main_actor_heartbeat_s" : 0.010158061981201172,
+      "mode" : "raw-http",
+      "received_sse_bytes" : 1024071,
+      "server" : {
+        "expected_text_bytes" : 224000,
+        "send_end_unix" : 1792414180.1787589,
+        "send_start_unix" : 1792414180.1772699,
+        "send_wall_s" : 0.0014889240264892578,
+        "sse_bytes" : 1024071
+      },
+      "wall_s" : 0.019824981689453125
+    },
+    {
+      "callbacks" : 600,
+      "chunks" : 16000,
+      "client_after_server_send_s" : 20.121031284332275,
+      "maximum_main_actor_heartbeat_s" : 0.067255020141601562,
+      "mode" : "remote-client",
+      "server" : {
+        "expected_text_bytes" : 224000,
+        "send_end_unix" : 1792414180.1856499,
+        "send_start_unix" : 1792414180.1842501,
+        "send_wall_s" : 0.0013997554779052734,
+        "sse_bytes" : 1024071
+      },
+      "text_bytes" : 224000,
+      "text_sha256" : "97d56705cb697c35d3f5379594d79ea11a63dfe13aa348bc2d43a28acb0a9553",
+      "wall_s" : 20.124739050865173
+    },
+    {
+      "callbacks" : 527,
+      "chunks" : 16000,
+      "client_after_server_send_s" : 17.67281699180603,
+      "maximum_main_actor_heartbeat_s" : 0.068867087364196777,
+      "mode" : "remote-client-io-log",
+      "server" : {
+        "expected_text_bytes" : 224000,
+        "send_end_unix" : 1792414200.315727,
+        "send_start_unix" : 1792414200.314296,
+        "send_wall_s" : 0.0014309883117675781,
+        "sse_bytes" : 1024071
+      },
+      "text_bytes" : 224000,
+      "text_sha256" : "97d56705cb697c35d3f5379594d79ea11a63dfe13aa348bc2d43a28acb0a9553",
+      "wall_s" : 17.677963018417358
+    },
+    {
+      "callbacks" : 0,
+      "chunks" : 64000,
+      "client_after_server_send_s" : 0.0037250518798828125,
+      "maximum_main_actor_heartbeat_s" : 0.010134100914001465,
+      "mode" : "raw-http",
+      "received_sse_bytes" : 4096071,
+      "server" : {
+        "expected_text_bytes" : 896000,
+        "send_end_unix" : 1792414218.0043478,
+        "send_start_unix" : 1792414217.9999301,
+        "send_wall_s" : 0.0044176578521728516,
+        "sse_bytes" : 4096071
+      },
+      "wall_s" : 0.016085982322692871
+    },
+    {
+      "callbacks" : 1980,
+      "chunks" : 64000,
+      "client_after_server_send_s" : 66.229946613311768,
+      "maximum_main_actor_heartbeat_s" : 0.088239908218383789,
+      "mode" : "remote-client",
+      "server" : {
+        "expected_text_bytes" : 896000,
+        "send_end_unix" : 1792414218.0176792,
+        "send_start_unix" : 1792414218.0139461,
+        "send_wall_s" : 0.0037331581115722656,
+        "sse_bytes" : 4096071
+      },
+      "text_bytes" : 896000,
+      "text_sha256" : "6d8b232d5f6f14acd5c350a949484d2eceb2c8f2ff275376e4e5f84fd220b881",
+      "wall_s" : 66.236856937408447
+    },
+    {
+      "callbacks" : 1968,
+      "chunks" : 64000,
+      "client_after_server_send_s" : 65.882222890853882,
+      "maximum_main_actor_heartbeat_s" : 0.013613104820251465,
+      "mode" : "remote-client-io-log",
+      "server" : {
+        "expected_text_bytes" : 896000,
+        "send_end_unix" : 1792414284.2608662,
+        "send_start_unix" : 1792414284.257081,
+        "send_wall_s" : 0.0037851333618164062,
+        "sse_bytes" : 4096071
+      },
+      "text_bytes" : 896000,
+      "text_sha256" : "6d8b232d5f6f14acd5c350a949484d2eceb2c8f2ff275376e4e5f84fd220b881",
+      "wall_s" : 65.889540076255798
+    }
+  ],
+  "scope" : "Actual RemoteInference and optional ModelIOLog; no SwiftUI window, no GPU\/model, no network beyond loopback",
+  "version" : "1.4.7"
+}

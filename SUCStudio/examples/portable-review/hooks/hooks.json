@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Consulta README.md prima di suggerire modifiche al progetto.\"}}'",
+            "timeout": 10,
+            "statusMessage": "Contesto per la revisione"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -21,6 +21,9 @@
 #include "suc/numpy_random.hpp"
 #include "suc/request_params.hpp"
 #include "suc/sampling.hpp"
+#include "suc/prefill.hpp"
+#include "suc/prompt_lookup.hpp"
+#include "suc/parallel.hpp"
 #include "suc/sha256.hpp"
 #include "suc/suc1.hpp"
 #include "suc/tokenizer.hpp"
@@ -686,6 +689,15 @@ static void test_sampling() {
   bool same = true;
   for (int i = 0; i < 100; ++i) same = same && a.sample(lg, 6) == b.sample(lg, 6);
   CHECK(same);
+  c.legacy_order = true;
+  suc::Sampler legacy_a(c), legacy_b(c);
+  for (int i = 0; i < 100; ++i) CHECK(legacy_a.sample(lg, 6) == legacy_b.sample(lg, 6));
+  c.legacy_order = false;
+  // Extreme logits and a single-element vocabulary remain well-defined.
+  const float extreme[] = {-10000, 10000, -10000};
+  suc::Sampler extreme_sampler(c);
+  CHECK(extreme_sampler.sample(extreme, 3) == 1);
+  CHECK(extreme_sampler.sample(extreme, 1) == 0);
   // min_p = 0.5: tokens with p >= 0.5 * p_max: ids 1, 3 (equal max) and 2 (e^-1/0.7 = 0.24 < 0.5: dropped)
   c.min_p = 0.5;
   c.temperature = 1.0;
@@ -710,6 +722,29 @@ int main() {
   test_mxfp4_decode();
   test_tokenizer();
   test_sampling();
+  CHECK(suc::lookup_draft({1,2,3,4,1,2},4)==std::vector<uint32_t>({2,3,4,1}));
+  CHECK(suc::lookup_draft({1,2,3},4)==std::vector<uint32_t>({3}));
+  { suc::ParallelWorkers workers(4); std::vector<int> values(257);
+    for(int pass=0;pass<20;++pass) { workers.run(values.size(),[&](std::size_t i){values[i]=int(i)+pass;}); CHECK(values[256]==256+pass); }
+    bool caught=false;try { workers.run(17,[](std::size_t i){if(i==3)throw std::runtime_error("worker error");}); }catch(const std::runtime_error&){caught=true;}CHECK(caught);
+    workers.run(values.size(),[&](std::size_t i){values[i]=42;});CHECK(values[256]==42);
+  }
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096) == 64);
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096, 1024) == 1024);
+  CHECK(suc::prefill_chunk("deepseek_v4", 8192) == 4096);
+  CHECK(suc::prefill_chunk("deepseek_v4", 32768) == 1024);
+  CHECK(suc::prefill_chunk("glm5_next", 512) == 512);
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096, 64) == 64);
+  CHECK(suc::prefill_chunk("qwen4_exp", 13, 64) == 64);
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096, 0, true) == 16);
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096, 0, false, true, true) == 64);
+  CHECK(suc::prefill_chunk("qwen4_exp", 4096, 0, true, false) == 1);
+  CHECK(suc::service_prefill_chunk("deepseek_v4", 32768) == 64);
+  CHECK(suc::service_prefill_chunk("glm5_next", 32768) == 512);
+  CHECK(suc::service_prefill_chunk("glm5_next", 32768, 64) == 64);
+  CHECK(suc::service_prefill_chunk("qwen4_exp", 32768) == 64);
+  CHECK(suc::service_prefill_chunk("glm5_next", 32768, 0, true) == 16);
+  CHECK(suc::service_prefill_chunk("glm5_next", 32768, 0, true, true, true) == 64);
   test_request_params();
   std::printf("%d checks, %d failures\n", g_checks, g_fail);
   return g_fail ? 1 : 0;

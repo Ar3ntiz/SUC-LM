@@ -12,6 +12,18 @@ class Handler(BaseHTTPRequestHandler):
   if not self.authorized():return
   value=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
   assert value['stream'] and 'top_k' not in value and 'min_p' not in value and 'seed' not in value
+  if value['model'] in ('eof','unicode','json','oversized-line','oversized-total','oversized-json'):
+   mode=value['model'];kind='text/event-stream'
+   if mode=='eof':data=b'data: {"choices":[{"delta":{"content":"EOF"},"finish_reason":"stop"}]}\n\ndata: [DONE]'
+   elif mode=='unicode':data=('data: '+json.dumps({'choices':[{'delta':{'content':'Città 🌍'},'finish_reason':'stop'}]},ensure_ascii=False)+'\r\n\r\ndata: [DONE]\r\n\r\n').encode()
+   elif mode=='json':kind='application/json';data=b'{"choices":[{"message":{"content":"JSON response"}}],"usage":{"prompt_tokens":1000,"completion_tokens":2,"prompt_tokens_details":{"cached_tokens":800}},"suc_metrics":{"prefill_s":0.5}}'
+   elif mode=='oversized-line':data=b'data: '+b'x'*(4*1024*1024+1)+b'\n'
+   elif mode=='oversized-json':kind='application/json';data=b' '*(4*1024*1024+1)
+   else:data=(b':'+b'x'*100000+b'\n')*170
+   self.send_response(200);self.send_header('Content-Type',kind);self.send_header('Content-Length',str(len(data)));self.end_headers()
+   try:self.wfile.write(data);self.wfile.flush()
+   except (BrokenPipeError,ConnectionResetError):pass
+   return
   if value['model']=='vision':
    content=value['messages'][0]['content']
    assert content[0]['type']=='text' and content[1]['type']=='image_url'

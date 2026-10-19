@@ -1,6 +1,6 @@
 # Runtime C++ di SUC
 
-English version: [README.md](README.md)
+Versione inglese: [README.md](README.md)
 
 Runtime autonomo per i file SUC1 (spec §0 D2): mappa il file in memoria (zero-copy), esegue direttamente sui codici i kernel
 Metal generati da quelli Python, e fornisce tokenizer, chat template, sampling, prefill in batch, streaming degli expert
@@ -69,7 +69,7 @@ Le directory di build vanno su un disco locale, mai sulla share SMB.
 ```bash
 # CMake (C++20)
 cmake -S cpp -B ~/suc-local/cpp-build -DCMAKE_BUILD_TYPE=Release && cmake --build ~/suc-local/cpp-build -j
-# or without CMake: same sources and flags
+# oppure senza CMake: stessi sorgenti e opzioni
 cpp/build.sh ~/suc-local/cpp-build
 ```
 
@@ -773,7 +773,7 @@ cpp/build.sh ~/suc-local/cpp-build
 ~/suc-local/cpp-build/suc-tests && ~/suc-local/cpp-build/suc-metal-tests
 .venv/bin/python -m pytest tests/unit/test_cpp_generate.py tests/unit/test_cpp_moe.py tests/unit/test_cpp_metal.py -q
 HF_HUB_OFFLINE=1 .venv/bin/python -m pytest tests/unit/test_cpp_tokenizer.py -q    # needs the Qwen3-0.6B tokenizer cached
-# M1 Ultra two-pass attention rule (expect "auto ... 0"; if not, the candidate with 0 is MLX's choice -> fix sdpa2_rule)
+# Regola di attention a due passate su M1 Ultra (atteso "auto ... 0"; altrimenti correggere sdpa2_rule usando la scelta di MLX con 0)
 for kv in 2 1 4; do .venv/bin/python benchmarks/cpp_sdpa_2pass_probe.py --heads 8 --kv-heads $kv \
   --candidates auto,off,std:64,std:128,std:256,gqa:2:128,gqa:4:128; done
 .venv/bin/python benchmarks/cpp_sdpa_2pass_probe.py --heads 8 --kv-heads 2 --positions 9300 --start 8192 \
@@ -1255,7 +1255,7 @@ fa decode a 2.4 ms/token (GPU 2.0 ms); nessuna affermazione per il modello reale
 cd ~/Projects/SUC-LM && cpp/build.sh ~/suc-local/cpp-build
 ~/suc-local/cpp-build/suc-tests && ~/suc-local/cpp-build/suc-metal-tests
 .venv/bin/python -m pytest tests/unit/test_cpp_glm5.py -q
-# owner, once: sudo sysctl iogpu.wired_limit_mb=116000
+# a cura del proprietario, una sola volta: sudo sysctl iogpu.wired_limit_mb=116000
 F=experiments/artifacts/compress/compress_glm5.3_flash/container/model.suc1   # 119.9-GB streamed file; the chosen tcq file is resident (no --expert-budget)
 ~/suc-local/cpp-build/suc1-generate $F --tokens 5,6,7,8 --steps 64 --expert-budget 95G --hot-experts auto \
   --json logs/glm53_cpp_$(date -u +%Y%m%dT%H%M%SZ).json
@@ -1340,7 +1340,7 @@ deepseek_v4, glm5_next), con tutti i suoi flag di runtime e di streaming degli e
   lista di token id (un prompt per richiesta). I parametri di sampling non impostati prendono i flag del server (predefinito: greedy).
   Non supportati: `n` > 1, logprobs, echo, suffix, penalità, tool.
 - Generazione: le richieste sono serializzate (batch 1, un mutex attorno al modello; ogni connessione ha il proprio thread, quindi
-  `/health` risponde durante una generazione), la KV cache / gli stati vengono azzerati per richiesta. Le richieste greedy qwen3 / qwen3_moe
+  `/health` risponde durante una generazione), le estensioni esatte possono riusare il prefisso attivo. I grafi ibridi Qwen conservano anche un solo checkpoint allineato ai blocchi, prima della coda del prompt: le copie CPU degli stati ricorrenti, delle convoluzioni e del contesto n-gram sono limitate a 128 MiB; le righe KV/indexer del prefisso rimangono in sede. I turni compatibili ripristinano lo stato senza modificare il formato SUC esistente; le divergenze anteriori richiedono il ricalcolo. Annullamento, errori e ricaricamento invalidano lo stato. `SUC_PREFIX_CHECKPOINTS=0` mantiene il solo riuso del prefisso attivo; `SUC_PREFIX_CACHE=0` disattiva entrambi. Le richieste greedy qwen3 / qwen3_moe
   eseguono il decode in pipeline di `suc1-generate` (`Model::generate`, `--depth` command buffer in volo, la sua
   callback `on_token` consuma ogni token e invia il chunk SSE mentre il passo successivo gira sulla GPU); il sampling,
   `--sync` e le altre famiglie fanno decode in modo sincrono (un command buffer per token; il sampler di

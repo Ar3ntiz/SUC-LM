@@ -6,7 +6,7 @@ ARCH="${ARCH:-arm64}"
 OUT="$ROOT/.build/$ARCH"
 mkdir -p "$OUT/obj" "$OUT/gen"
 CXX="$(xcrun --find clang++)"
-SDK="$(xcrun --show-sdk-path)"
+SDK="${SDKROOT:-$(xcrun --show-sdk-path)}"
 PYTHON_BIN="${PYTHON_BIN:-/usr/bin/python3}"
 [[ -x "$PYTHON_BIN" ]] || { echo "Python non disponibile: $PYTHON_BIN" >&2; exit 1; }
 FLAGS=(-std=c++20 -O2 -ffp-contract=off -arch "$ARCH" -mmacosx-version-min=15.0 -isysroot "$SDK" -isystem "$SDK/usr/include/c++/v1" -I"$ENGINE_ROOT/include" -isystem "$ENGINE_ROOT/third_party/metal-cpp" -I"$ENGINE_ROOT/tools" -pthread)

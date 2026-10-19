@@ -1326,3 +1326,7 @@ dequantization of the FP8 / MXFP4 checkpoint (DeepSeek). PPL: WikiText-2 test, 1
 windows (DeepSeek, GLM); KL: 16 × 512 validation tokens. Single seed. DeepSeek C++ speed and eval were measured on the
 `native` file (3.02 bpp, KL 0.248), not on native_max (not run in C++). No AQLM / QuIP# numbers exist for these
 models (local or published, [comparison_published.md](comparison_published.md)).
+
+## Engine 1.4.7 refactoring, 19 October 2026
+
+The six selected local M1 files were compared in three interleaved measured pairs (warmup excluded): [COMBINED_RESULTS.md](optimization/COMBINED_RESULTS.md). Raw records are `*_eff_comparison_combined_<model>_r{1,2,3}.json`; compiled candidate `6693b2c`, baseline `8f6d81c`. Full-reference KL, rejected chunk/half/lookup/n-gram paths and actual shipped CLI/server/app-engine checks are documented in [REFERENCE_KL.md](optimization/REFERENCE_KL.md), [INFERENCE_1.4.7.md](optimization/INFERENCE_1.4.7.md) and [PROGRESS.md](optimization/PROGRESS.md). All twelve 8k/32k comparisons and the real bundled-engine session checks passed; see [final qualification](optimization/FINAL_QUALIFICATION_1.4.7.md). Complete same-reference KL is unchanged on all six models; no new compression or competitor benchmark is implied.

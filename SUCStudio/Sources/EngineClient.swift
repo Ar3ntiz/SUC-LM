@@ -26,6 +26,7 @@ final class LineReader {
     var onExit: ((Int32) -> Void)?
     var onLog: ((String) -> Void)?
     func start() throws {
+        guard StudioPlatform.localInferenceAvailable else { throw NSError(domain: "SUCStudio", code: 3, userInfo: [NSLocalizedDescriptionKey: StudioPlatform.localUnavailableMessage]) }
         guard process == nil else { return }
         let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/suc-studio-engine")
         guard FileManager.default.isExecutableFile(atPath: helper.path) else { throw NSError(domain: "SUCStudio", code: 2, userInfo: [NSLocalizedDescriptionKey: "Helper assente dal bundle: ricostruire l’app con scripts/build.sh."]) }
@@ -77,7 +78,7 @@ final class LineReader {
     }
 }
 enum KeyStore {
-    static let service = "local.sucstudio.apikey"
+    static let service = "local.sucstudio.universal.apikey"
     static func read() throws -> String {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "server", kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
         var result: CFTypeRef?

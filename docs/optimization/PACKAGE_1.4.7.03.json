@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "version": "1.4.7.03",
+  "build": 30,
+  "engine_input_sha256": "1345f6d593fa590e93a278a2b2d9d48738c4919ea28131aebe33283c50fd731a",
+  "engine_source_commit": "ecfcd2ff03ed58b71b74e363e7f82f64b1c38b31",
+  "cli_minimum_system": "macOS 26.0+ (Apple Silicon, Metal)",
+  "app_minimum_system": "15.0",
+  "installer_extracted_verified": true,
+  "adhoc_signature_verified": true,
+  "universal_architectures_verified": true,
+  "tested_engine_payload_identical": true,
+  "bundled_docs_match_source": true,
+  "cli_archive_hashes_verified": true,
+  "sha256": {
+    "SUC-Studio-1.4.7.03-universal.pkg": "70e81ef926caa390e5adfd142cd2af7ed496b8078c2965bc9bfca083b091be61",
+    "SUC-CLI-Server-1.4.7.03-arm64.tar.gz": "683d4f9ae41ab909383c25cac335135001ffa39e66cba42a7138addea50084d5"
+  },
+  "installed": false
+}

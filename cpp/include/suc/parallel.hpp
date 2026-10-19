@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <exception>
+#include <functional>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -13,6 +15,16 @@ namespace suc {
 
 // Number of worker threads (SUC_THREADS environment variable, default hardware_concurrency).
 unsigned num_threads();
+// Bounded persistent workers for latency-sensitive independent CPU reads.
+class ParallelWorkers {
+ public:
+  explicit ParallelWorkers(unsigned count);
+  ~ParallelWorkers();
+  void run(std::size_t n, const std::function<void(std::size_t)>& fn);
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> p_;
+};
 void set_num_threads(unsigned n);   // 0 = default
 
 template <typename F>

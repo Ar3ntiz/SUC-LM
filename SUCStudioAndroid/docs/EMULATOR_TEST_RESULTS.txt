@@ -1,0 +1,7 @@
+PASS: full-height interactive CAPTCHA fixture, back to chat, reopen page and dynamic verification without navigation; tool resumes automatically.
+PASS: manual pasted page text becomes the actual tool result and the model completes its answer.
+PASS: real Android WebView, SSE, inline approval, web extraction, thinking, metrics, artifacts, edit/reload same session and cancellation.
+PASS: DOC, DOCX, ODT, PDF, arbitrary text extensions, image hydration and Android Keystore round-trip.
+PASS: persistent sessions and no plaintext API key in archive.
+PASS: session list remains scrollable after 35 new chats.
+

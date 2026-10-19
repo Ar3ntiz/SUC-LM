@@ -1,5 +1,9 @@
 # qwen4_exp — Qwen/Qwen3.8-Flash-Next
 
+## C++ runtime update, 1.4.7
+
+The architecture and compressed payload described below are unchanged. Current prefill profiles, live-prefix cache ownership/invalidation, sampler semantics and per-family TCQ dispatch are documented in [INFERENCE_1.4.7.md](../optimization/INFERENCE_1.4.7.md). Historical kernel timings and inventory milestones below retain their original scope. [Combined measurements](../optimization/COMBINED_RESULTS.md) and [reference KL](../optimization/REFERENCE_KL.md) distinguish runtime changes from compression quality. MTP remains a separate, unimplemented post-release milestone.
+
 Architecture note for SUC (adapter, MLX model, encoding plan). Facts come from the pinned checkpoint files; formulas
 cite the code that defines them. Shapes marked **(H)** were read from a safetensors header, **(D)** are derived from
 `config.json` (and, where stated, from the index `total_size`).
@@ -423,3 +427,9 @@ HF_HUB_OFFLINE=1 .venv/bin/python scripts/qwen4_exp_reference_check.py mlx --mod
 
 Open: n-gram table quantization (per-row 4-bit needs a gather-dequant path), hc-mixer / indexer quantization
 ablations, long-context (≥ 8k) evaluation of the QSA indexer, MTP head for speculative decoding.
+
+## C++ chat prefix checkpoints
+
+`Qwen4Model` optionally retains one in-place prefix checkpoint for server/app chat. KV rows, raw indexer keys and completed QSA block keys below the saved position are immutable while appending. The checkpoint copies Gated DeltaNet recurrent state, its convolution history, PLE convolution state and CPU n-gram history, plus the saved position; it does not copy the KV cache. Restore resets the position and invalidates last logits, so a nonempty suffix must run before sampling. Later KV/indexer rows are masked by causal lengths and overwritten during replay. Reset, errors and cancellation invalidate the checkpoint.
+
+The shared `LivePrefixEngine` selects an anchor aligned to the existing prefill chunk, at least 64 tokens before prompt end. This preserves batch boundaries and excludes the generation marker/tokenization boundary from the saved prefix. Re-rendering a Qwen assistant turn without its prior thinking can then reuse the stable earlier prefix. One checkpoint serves the loaded model, not every session; changes before that prefix still require full prefill. CPU state copies are bounded at 128 MiB with allocation-failure fallback. The inherited SUC template, model format, kernels and memory policy remain unchanged. Qualification: [CHAT_PREFIX_CHECKPOINTS.md](../optimization/CHAT_PREFIX_CHECKPOINTS.md).

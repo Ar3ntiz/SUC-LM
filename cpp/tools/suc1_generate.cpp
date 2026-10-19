@@ -35,15 +35,15 @@ using namespace suc::tools;
 // prof_ds_new_8192*, docs/prefill_vs_ds4.md; larger chunks fill the expert tiles and amortise the weight reads).
 // qwen4_exp / qwen3_5: Qwen3.8-Flash side8, 8,192 tokens, GPU ms/token 3.03 / 2.80 / 2.91 / 2.86 at chunks 512 / 1024 /
 // 2048 / 4096 (prof_q38_new_8192*).
-// Prompts beyond kLargeChunkMaxPrompt tokens use kDs4LongChunk: a 32,768-token prompt in chunks of 4096 exceeded the
+// Prompts beyond 8192 tokens use 1024-token chunks: a 32,768-token prompt in chunks of 4096 exceeded the
 // M1 Ultra's GPU memory with the 97 GB DeepSeek tcq file (chunks of 1024 measured fine there).
-constexpr std::size_t kDs4FastChunk = 4096, kDs4LongChunk = 1024, kLargeChunkMaxPrompt = 8192, kQ4FastChunk = 1024;
+
 
 static void usage() {
   std::fprintf(stderr,
                "usage: suc1-generate FILE (--tokens 1,2,3 | --tokens-file PATH) [--steps N] [--max-context N]\n"
                "                     [--dtype bf16|f16|f32] [--logits-out L.npy] [--hidden-out H.npy] [--nll-out N.npy]\n"
-               "                     [--stop-eos] [--force 4,5,6] [--json OUT.json] [--verify] [--tuning-cache PATH|-] [--quiet]\n"
+               "                     [--stop-eos] [--force 4,5,6] [--lookup-window N] [--json OUT.json] [--verify] [--tuning-cache PATH|-] [--quiet]\n"
                "                     [--no-shared-rotations] [--fuse-norm auto|on|off] [--prefill batch|exact|token] [--chunk N]\n"
                "                     [--projections fused|separate] [--fuse-swiglu auto|on|off] [--sync] [--depth N]\n"
                "                     [--fused-layout inplace|copy] [--legacy-matvec] [--single-pass-attention]\n"
@@ -88,7 +88,7 @@ static void usage() {
                "  --tokens-file: ids separated by commas / whitespace. Output: one line 'generated: ids'.\n"
                "  --dtype: activation dtype (default: the checkpoint's torch_dtype, bf16 for Qwen3).\n"
                "  qwen4_exp / qwen3_5 files (Qwen3.8-Flash-Next) run the qwen4_exp graph (suc/qwen4.hpp): the prompt in the\n"
-               "  fast batched layer-major prefill, chunks of --chunk tokens (default 1,024, at most the prompt); --prefill\n"
+               "  fast batched layer-major prefill, chunks of --chunk tokens (CLI default 1,024, at most the prompt); --prefill\n"
                "  exact = the row-exact layer-major prefill (chunks of --chunk, default 64); --prefill token = decode steps,\n"
                "  --chunk per command buffer (default 16); per-position outputs: one step per command buffer. --hidden-out\n"
                "  writes the (positions, layers + 1, hc * hidden) streams; the fused-plan / attention options do not apply.\n"
@@ -138,6 +138,7 @@ int main(int argc, char** argv) {
   std::string effort;   // "" = the model's default (qwen4_exp: xhigh, deepseek_v4: low)
   std::optional<std::string> system_text;
   SamplerConfig sc;
+  std::size_t lookup_window=0;
   try {
     for (int i = 2; i < argc; ++i) {
       const std::string a = argv[i];
@@ -157,6 +158,7 @@ int main(int argc, char** argv) {
       }
       else if (a == "--text") want_text = true;
       else if (a == "--chat") chat = true;
+      else if (a == "--lookup-window") lookup_window=std::stoul(next());
       else if (a == "--temperature") sc.temperature = std::stod(next());
       else if (a == "--top-k") sc.top_k = std::stoul(next());
       else if (a == "--top-p") sc.top_p = std::stod(next());
@@ -273,6 +275,7 @@ int main(int argc, char** argv) {
                 << ", \"residency_set_bytes\": " << ctx.residency_set_bytes()
                 << ", \"residency_skipped_bytes\": " << ctx.residency_skipped_bytes();
     };
+    if(lookup_window&&(is_q4||Ds4Config::is_ds4(f.directory()["architecture"])||Glm5Config::is_glm5(f.directory()["architecture"])))throw std::invalid_argument("--lookup-window currently supports only qwen3/qwen3_moe full-attention graphs");
     if (is_q4) {
       // ---- qwen4_exp: decode steps only (n-gram rows hashed / gathered on the host per token)
       Qwen4Options qo;
@@ -287,11 +290,14 @@ int main(int argc, char** argv) {
       // batched (layer-major) prefill by default; --prefill token = decode steps, 16 per command buffer (the old path)
       qo.layer_prefill = batch_prefill && !rows_needed;
       qo.exact_prefill = rf.exact_prefill;
-      // chunk: --chunk, else 64 (exact) / kQ4FastChunk (default batched prefill: GEMM chunks amortise weight reads)
+      // Preserve the CLI's historical automatic chunk. App/server retain their
+      // conservative shared default; explicit --chunk 64 is no longer a sentinel.
+      const std::size_t qchunk = rf.chunk_given ? chunk :
+          (!rf.exact_prefill && !prefill_exact_env() && qo.layer_prefill && !xs
+              ? std::min<std::size_t>(1024, prompt.size()) : 0);
       // the default chunk no larger than the prompt (the chunk scratch is allocated for --chunk rows)
-      const std::size_t bchunk = chunk == 64 && !rf.exact_prefill && !prefill_exact_env()
-                                     ? std::max<std::size_t>(2, std::min(kQ4FastChunk, prompt.size())) : chunk;
-      qo.chunk = rows_needed ? 1 : qo.layer_prefill ? bchunk : (chunk == 64 ? 16 : chunk);
+      qo.chunk = rows_needed ? 1 : suc::prefill_chunk(qc.dense ? "qwen3_5" : "qwen4_exp", prompt.size(),
+          qchunk, rf.exact_prefill || prefill_exact_env(), qo.layer_prefill, bool(xs));
       qo.expert_stream = xs.get();
       Qwen4Model model(ctx, mf, qo);
       const double load_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
@@ -417,7 +423,7 @@ int main(int argc, char** argv) {
           << ", \"load_s\": " << load_s << ", \"compile_s\": " << compile_s << ", \"chunk\": " << qo.chunk
           << ", \"prefill\": \"" << (qo.layer_prefill ? "batch" : "token") << "\", \"prefill_compile_s\": "
           << prefill_compile_s << ", \"prefill_gpu_s\": " << prefill_gpu_s << ", \"prefill_chunk_fetches\": "
-          << model.chunk_fetches() << ", \"prefill_logits_sha256\": \"" << prefill_logits_sha
+          << model.chunk_fetches() << ",\"ngram_cpu_workers\":" << model.ngram_cpu_workers() << ",\"ngram_head_tasks\":" << model.ngram_head_tasks() << ", \"prefill_logits_sha256\": \"" << prefill_logits_sha
           << "\", \"prefill_streams_sha256\": \"" << prefill_streams_sha << "\""
           << ", \"prefill_s\": " << prefill_s << ", \"prefill_ngram_s\": " << ngram_s
           << ", \"decode_ms_per_token_median\": " << dmed
@@ -460,12 +466,8 @@ int main(int argc, char** argv) {
       dopt.layer_prefill = batch_prefill && !rows_needed;
       dopt.exact_prefill = rf.exact_prefill;
       // the default chunk no larger than the prompt (the chunk scratch is allocated for --chunk rows)
-      const std::size_t bchunk = chunk == 64 && !rf.exact_prefill && !prefill_exact_env()
-                                     ? std::max<std::size_t>(2, std::min(prompt.size() > kLargeChunkMaxPrompt
-                                                                             ? kDs4LongChunk : kDs4FastChunk,
-                                                                         prompt.size()))
-                                     : chunk;
-      dopt.chunk = rows_needed ? 1 : dopt.layer_prefill ? bchunk : (chunk == 64 ? 16 : chunk);
+      dopt.chunk = rows_needed ? 1 : suc::prefill_chunk("deepseek_v4", prompt.size(), rf.chunk_given ? chunk : 0,
+          rf.exact_prefill || prefill_exact_env(), dopt.layer_prefill, bool(xs));
       Ds4Model model(ctx, mf, dopt);
       const double load_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
       std::vector<float> all_logits, all_hidden, nll;
@@ -736,7 +738,18 @@ int main(int argc, char** argv) {
     };
     if (!sc.greedy()) next = draw();
     // pipelined greedy decode (default when no per-step output is requested): argmax -> GPU token buffer
-    const bool pipelined = !sync_decode && !rows_needed && forced.empty() && sc.greedy();
+    const bool pipelined = !lookup_window && !sync_decode && !rows_needed && forced.empty() && sc.greedy();
+    Model::SpeculativeStats lookup_stats;
+    if(lookup_window){
+      if(!sc.greedy()||rows_needed||!forced.empty())throw std::invalid_argument("--lookup-window requires greedy generation without forced/per-position outputs");
+      if(steps){generated.push_back(next);if(!(stop_eos&&has_eos&&next==eos)&&steps>1){
+        auto extra=model.generate_lookup(next,steps-1,prompt,lookup_window,&lookup_stats,
+            stop_eos&&has_eos?std::optional<uint32_t>(uint32_t(eos)):std::nullopt);
+        generated.insert(generated.end(),extra.begin(),extra.end());
+        if(!extra.empty())decode_ms.assign(extra.size(),1000*lookup_stats.seconds/extra.size());
+      }}
+      steps=0;
+    }
     if (pipelined && steps > 0) {
       Model::GenerateStats st;
       std::optional<uint32_t> stop;
@@ -816,6 +829,9 @@ int main(int argc, char** argv) {
         << ", \"resident\": " << pm.resident << ", \"resident_peak\": " << pm.resident_peak
         << "}, \"suc_projections\": " << model.suc_projections() << ", \"other_projections\": "
         << model.other_projections();
+      o << ", \"lookup_verification\": {\"window\":" << lookup_window << ",\"batches\":" << lookup_stats.batches
+        << ",\"proposed\":" << lookup_stats.proposed << ",\"accepted\":" << lookup_stats.accepted
+        << ",\"seconds\":" << lookup_stats.seconds << ",\"experimental_rounding\":true}";
       stream_report(&o);
       o << "}\n";
     } else {

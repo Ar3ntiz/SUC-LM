@@ -1,0 +1,17 @@
+{
+  "suc1-generate": {
+    "measured_sha256": "520b8ce391fcac79af5d7e30e48cfa5258f226f6f31ffb6f1269cbeaff922631",
+    "final_sha256": "520b8ce391fcac79af5d7e30e48cfa5258f226f6f31ffb6f1269cbeaff922631",
+    "identical": true
+  },
+  "suc1-inspect": {
+    "measured_sha256": "3e616a090fbf55e869dae539b2d14ec9ae73477f901f31a749ba0c112bc47143",
+    "final_sha256": "3e616a090fbf55e869dae539b2d14ec9ae73477f901f31a749ba0c112bc47143",
+    "identical": true
+  },
+  "suc-tokenize": {
+    "measured_sha256": "90e96f46e93580a9abac3f2fd5ce9e12c808616a5920f4a12e89948f95f15e91",
+    "final_sha256": "90e96f46e93580a9abac3f2fd5ce9e12c808616a5920f4a12e89948f95f15e91",
+    "identical": true
+  }
+}

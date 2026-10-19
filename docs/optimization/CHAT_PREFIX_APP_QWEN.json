@@ -1,0 +1,95 @@
+{
+  "passed": true,
+  "records": [
+    {
+      "case": "initial",
+      "ttft_s": 22.06761679193005,
+      "wall_s": 22.423884874908254,
+      "metrics": {
+        "prompt_tokens": 2136,
+        "completion_tokens": 3,
+        "prefill_s": 22.065841,
+        "decode_s": 0.356259,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4674527496
+      }
+    },
+    {
+      "case": "followup",
+      "ttft_s": 2.1383672079537064,
+      "wall_s": 2.3459098748862743,
+      "metrics": {
+        "prompt_tokens": 117,
+        "completion_tokens": 8,
+        "prefill_s": 2.138002,
+        "decode_s": 0.207521,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "b7a127402f71271e895af2fb2038400c2a0ce36c7489a7a66c3a0a7f22cd4a72",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4674822456
+      }
+    },
+    {
+      "case": "cancel",
+      "ttft_s": 1.079426750075072,
+      "wall_s": 1.1088944592047483,
+      "metrics": {
+        "prompt_tokens": 117,
+        "completion_tokens": 1,
+        "prefill_s": 1.079058,
+        "decode_s": 0.029453,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "9b4f1699d6be02ed629f2b3fd0e6645a495750eeb47240c5aede3ed9e4c2f7bb",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4674838840
+      }
+    },
+    {
+      "case": "after_cancel",
+      "ttft_s": 19.57487175008282,
+      "wall_s": 19.77998279198073,
+      "metrics": {
+        "prompt_tokens": 2165,
+        "completion_tokens": 8,
+        "prefill_s": 19.574487,
+        "decode_s": 0.205054,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "b7a127402f71271e895af2fb2038400c2a0ce36c7489a7a66c3a0a7f22cd4a72",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4674806072
+      }
+    }
+  ],
+  "loaded_status": {
+    "requests": 0,
+    "connections": 0,
+    "footprint_bytes": 4487010592
+  },
+  "server_usage": {
+    "prompt_tokens": 2165,
+    "completion_tokens": 8,
+    "total_tokens": 2173,
+    "prompt_tokens_details": {
+      "cached_tokens": 2048
+    }
+  },
+  "unload_mapping_released": true
+}

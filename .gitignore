@@ -59,4 +59,13 @@ experiments/configs/eval_hard_q38_base.yaml
 experiments/configs/eval_qwen3.8_flash_next_iso.yaml
 experiments/configs/perf_glm5.3_flash.yaml
 experiments/configs/perf_glm5.3_flash_cpp.yaml
+scripts/efficiency_finish_147.sh
+experiments/configs/eval_efficiency_q38_chunks.yaml
+SUCStudio/docs/SOURCE_BASELINE.json
+SUCStudioAndroid/docs/TEST_RESULTS*.txt
+SUCStudio/dist/*.pkg
+SUCStudio/dist/*.tar.gz
+SUCStudio/dist/*BUILD*.json
+SUCStudio/dist/SHA256SUMS*.txt
+docs/optimization/RELEASE_SMOKE_1.4.7.json
 *.suc1

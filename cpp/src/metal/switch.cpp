@@ -535,7 +535,8 @@ void SwitchLinear::encode_kernel(Context& ctx, MTL::ComputeCommandEncoder* enc, 
                     mx * bt);
       return;
     }
-    if (fast && bt > 8 && bt % 8 == 0 && tiles->host_teidx) {
+    const bool reuse = ctx.tcq_reuse();
+    if (!reuse && fast && bt > 8 && bt % 8 == 0 && tiles->host_teidx) {
       // 16-row tiles as 8-row halves (tcq_matmul's 16-row mma tile was 3.5x slower than two 8-row tiles on the M1
       // Ultra); the other sub-stacks of a mixed stack keep their 16-row tiles
       const std::size_t h = bt / 8;
@@ -988,7 +989,10 @@ TilePlan plan_tiles(const std::vector<std::pair<uint32_t, uint32_t>>& rows, std:
   return P;
 }
 
-std::size_t MoeBlock::fast_tile_rows() const { return gate_.tcq() || up_.tcq() || down_.tcq() ? 8 : 16; }
+std::size_t MoeBlock::fast_tile_rows() const {
+  static const bool reuse=[] {const char* e=std::getenv("SUC_TCQ_REUSE");return e&&e[0]=='1';}();
+  return !reuse&&(gate_.tcq()||up_.tcq()||down_.tcq())?8:16;
+}
 
 std::size_t MoeBlock::max_tile_rows(const Context& ctx) const {
   return std::min({gate_.max_tile_rows(ctx), up_.max_tile_rows(ctx), down_.max_tile_rows(ctx)});

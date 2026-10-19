@@ -1,0 +1,161 @@
+{
+  "passed": true,
+  "binary_commit": "ecfcd2ff03ed58b71b74e363e7f82f64b1c38b31",
+  "binary_sha256_before": {
+    "/Users/username/suc-local/cpp-chat-checkpoint/suc1-server": "ca04c6348da7c58d9571472bdd9e2262e3726a874420f163e1536504a7377503",
+    "/Users/username/suc-local/cpp-chat-checkpoint/suc1-generate": "6a8fc03fc99bbf26766766d3c244f1f27168906fe0c8bc5958761a240b183088",
+    "SUCStudio/.build/arm64/suc-studio-engine": "fdb230a908224674f52614029f9b3357bfbf8b712b46bb446f3b07260e468dff"
+  },
+  "binary_sha256_after": {
+    "/Users/username/suc-local/cpp-chat-checkpoint/suc1-server": "ca04c6348da7c58d9571472bdd9e2262e3726a874420f163e1536504a7377503",
+    "/Users/username/suc-local/cpp-chat-checkpoint/suc1-generate": "6a8fc03fc99bbf26766766d3c244f1f27168906fe0c8bc5958761a240b183088",
+    "SUCStudio/.build/arm64/suc-studio-engine": "f46d5b5824d1a2b885d5431ec3b8564b514043083d2d516be9da5e574166a42a"
+  },
+  "rebuild_byte_identical": false,
+  "cases": {
+    "wide_partial_qsa_chunk63": [
+      {
+        "case": 0,
+        "tokens": 195,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 126,
+        "checkpoint_bytes": 1387024,
+        "paired_positions": 69,
+        "paired_logits": 8832,
+        "equal_logits": 8832,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 8.782327,
+        "reference_with_rows_s": 0.101901
+      },
+      {
+        "case": 1,
+        "tokens": 200,
+        "cached_tokens": 126,
+        "repeated_cached_tokens": 126,
+        "checkpoint_bytes": 1387024,
+        "paired_positions": 74,
+        "paired_logits": 9472,
+        "equal_logits": 9472,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 1.384922,
+        "reference_with_rows_s": 0.114224
+      },
+      {
+        "case": 2,
+        "tokens": 200,
+        "cached_tokens": 126,
+        "repeated_cached_tokens": 126,
+        "checkpoint_bytes": 1387024,
+        "paired_positions": 74,
+        "paired_logits": 9472,
+        "equal_logits": 9472,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 0.044578,
+        "reference_with_rows_s": 0.112709
+      },
+      {
+        "case": 3,
+        "tokens": 198,
+        "cached_tokens": 126,
+        "repeated_cached_tokens": 126,
+        "checkpoint_bytes": 1387024,
+        "paired_positions": 72,
+        "paired_logits": 9216,
+        "equal_logits": 9216,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 0.746677,
+        "reference_with_rows_s": 0.110412
+      },
+      {
+        "case": 4,
+        "tokens": 198,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 126,
+        "checkpoint_bytes": 1387024,
+        "paired_positions": 72,
+        "paired_logits": 9216,
+        "equal_logits": 9216,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 0.09947,
+        "reference_with_rows_s": 0.111273
+      }
+    ],
+    "qwen38_27b_side8_chunk64": [
+      {
+        "case": 0,
+        "tokens": 195,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 0,
+        "checkpoint_bytes": 0,
+        "paired_positions": 195,
+        "paired_logits": 48422400,
+        "equal_logits": 48422400,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 8.867748,
+        "reference_with_rows_s": 3.490506
+      },
+      {
+        "case": 1,
+        "tokens": 200,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 0,
+        "checkpoint_bytes": 0,
+        "paired_positions": 200,
+        "paired_logits": 49664000,
+        "equal_logits": 49664000,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 3.191886,
+        "reference_with_rows_s": 3.592989
+      },
+      {
+        "case": 2,
+        "tokens": 200,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 0,
+        "checkpoint_bytes": 0,
+        "paired_positions": 200,
+        "paired_logits": 49664000,
+        "equal_logits": 49664000,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 2.385503,
+        "reference_with_rows_s": 3.602228
+      },
+      {
+        "case": 3,
+        "tokens": 198,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 0,
+        "checkpoint_bytes": 0,
+        "paired_positions": 198,
+        "paired_logits": 49167360,
+        "equal_logits": 49167360,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 2.337544,
+        "reference_with_rows_s": 3.538484
+      },
+      {
+        "case": 4,
+        "tokens": 198,
+        "cached_tokens": 0,
+        "repeated_cached_tokens": 0,
+        "checkpoint_bytes": 0,
+        "paired_positions": 198,
+        "paired_logits": 49167360,
+        "equal_logits": 49167360,
+        "max_abs": 0,
+        "max_kl": 0,
+        "cached_prepare_s": 2.336488,
+        "reference_with_rows_s": 3.54905
+      }
+    ]
+  }
+}

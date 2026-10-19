@@ -1980,6 +1980,7 @@ struct Glm5Model::Impl {
 // ------------------------------------------------------------------------------------------ Glm5Model
 
 Glm5Model::Glm5Model(Context& ctx, const MappedFile& mf, const Glm5Options& opt) : p_(std::make_unique<Impl>()) {
+  ctx.set_tcq_reuse_default(true);
   Pool pool;
   Impl& m = *p_;
   m.ctx = &ctx;

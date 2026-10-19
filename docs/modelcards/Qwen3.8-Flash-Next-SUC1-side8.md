@@ -42,40 +42,40 @@ tags:
 
 ## Quality
 
-Next-token KL divergence and top-1 agreement against the original model on 16 × 512 held-out positions (lower KL is better); WikiText-2 test perplexity.
+C++ runtime next-token KL and top-1 against the original BF16 reference on 16 × 512 held-out tokens (8176 scored positions; lower KL is better); existing WikiText-2 test perplexity.
 
 | | KL | top-1 | PPL original → SUC1 |
 |---|---:|---:|---|
-| This model | 0.064 | 0.913 | 4.695 → 4.704 |
+| This model | 0.060 | 0.915 | 4.695 → 4.704 |
 
-Same protocol, other formats:
+Other formats (historical reconstructed-weight evaluation):
 
 | Format | Size GB | KL |
 |---|---:|---:|
-| SUC1 side8 (this model) | 96.32 (73.8 in memory) | 0.064 |
+| SUC1 side8 (this model) | 96.32 (73.8 in memory) | 0.060 |
 | GGUF Q4 (ds4) | 177.28 (74.8 in memory) | **0.061** |
 | MLX affine 4-bit | — | 0.202 |
 
-Answer-level evaluation, 120 graded questions (20 per subset), greedy, same prompts for every system:
+Answer-level evaluation, 120 graded questions (20 per subset), greedy, same prompts for every system: SUC1 uses chunk 64 (19 October 2026; chunk 1024 scored 98/120); the GGUF row retains its historical run. [SUC evaluation source](../optimization/QWEN_CHUNK_QUALIFICATION.md).
 
 | System | Total | GSM8K | MATH | MMLU-Pro | ARC-C | BBH | Long context |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| SUC1 side8 | 97/120 | 17 | 15 | 6 | 20 | 19 | 20 |
+| SUC1 side8 (chunk 64) | 100/120 | 17 | 15 | 8 | 20 | 20 | 20 |
 | GGUF Q4 (ds4) | 99/120 | 18 | 16 | 7 | 19 | 19 | 20 |
 
 Core suite (30 graded smoke-test questions): 30/30.
 
 ## Speed
 
-Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime. TTFT = prompt processing + first token.
+Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime: short input uses the earlier 256-token measurement; 2k uses three 64-token runs; 32k uses one bounded 8-token run. TTFT = prompt processing + first token.
 
 | Decode tok/s | Prefill tok/s · TTFT, short prompt | Prefill tok/s · TTFT, 2k tokens | Prefill tok/s · TTFT, 32k tokens |
 |---:|---:|---:|---:|
-| 28.3 | 55 · 0.27 s | 341 · 6.0 s | 323 · 102 s |
+| 28.3 | 55 · 0.27 s | 366 · 5.6 s | 219 · 150 s |
 
 | Runtime / format | Decode tok/s | Prefill tok/s · TTFT, 2k |
 |---|---:|---:|
-| SUC1 (SUC C++) | 28.3 | 341 · 6.0 s |
+| SUC1 (SUC C++) | 28.3 | 366 · 5.6 s |
 | GGUF Q4 (ds4) | 33.6 | — ⁴ |
 
 ⁴ ds4 was measured on long prompts only within the 120-question suite (different prompts): see the project report.

@@ -6,6 +6,8 @@ struct RemoteTelemetry {
     var configuration:RemoteConfiguration?
     var characters=0
     var prompt=0, completion=0
+    var cached=0
+    var evaluatedPrompt:Int?
     var prefillSeconds:Double?, decodeSeconds:Double?, prefillRate:Double?, decodeRate:Double?
     var firstText:Date?, lastText:Date?
     mutating func observeText(_ text:String,at date:Date=Date()) { guard !text.isEmpty else{return};if firstText==nil{firstText=date};lastText=date;characters+=text.count }
@@ -15,9 +17,10 @@ struct RemoteTelemetry {
         if let usage=value["usage"] as? [String:Any] {
             if let n=Self.count(usage["prompt_tokens"]),n>=0{prompt=n}
             if let n=Self.count(usage["completion_tokens"]),n>=0{completion=n}
+            if let details=usage["prompt_tokens_details"] as? [String:Any],let n=Self.count(details["cached_tokens"]){cached=n}
         }
         if let suc=value["suc_metrics"] as? [String:Any] {
-            prefillSeconds=Self.positive(suc["prefill_s"]) ?? prefillSeconds
+            if let seconds=Self.positive(suc["prefill_s"]){prefillSeconds=seconds;evaluatedPrompt=nil}
             decodeSeconds=Self.positive(suc["decode_s"]) ?? decodeSeconds
         }
         if let stats=value["stats"] as? [String:Any] {
@@ -36,7 +39,7 @@ struct RemoteTelemetry {
         if let timings=value["timings"] as? [String:Any] {
             prefillRate=Self.positive(timings["prompt_per_second"]) ?? prefillRate
             decodeRate=Self.positive(timings["predicted_per_second"]) ?? decodeRate
-            if let ms=Self.positive(timings["prompt_ms"]){prefillSeconds=ms/1000}
+            if let ms=Self.positive(timings["prompt_ms"]){prefillSeconds=ms/1000;evaluatedPrompt=Self.count(timings["prompt_n"])}
             // llama-style servers count all predicted tokens in their reported decode timing.
             if decodeRate==nil,let ms=Self.positive(timings["predicted_ms"]),let n=Self.positive(timings["predicted_n"]){decodeRate=n/(ms/1000)}
             if prompt==0,let n=Self.count(timings["prompt_n"]),n>0{prompt=n}
@@ -50,10 +53,11 @@ struct RemoteTelemetry {
         return current
     }
     func payload(final:Bool=false)->[String:Any] {
-        var result:[String:Any]=["prompt_tokens":prompt,"completion_tokens":completion,"remote":true]
+        let cachedTokens=min(cached,prompt),work=evaluatedPrompt ?? max(0,prompt-cachedTokens)
+        var result:[String:Any]=["prompt_tokens":prompt,"completion_tokens":completion,"remote":true,"cached_tokens":cachedTokens,"prefill_tokens":work]
         if let seconds=prefillSeconds{result["prefill_s"]=seconds}
         if let seconds=decodeSeconds{result["decode_s"]=seconds}
-        if let rate=prefillRate ?? prefillSeconds.flatMap({prompt>0 ? Double(prompt)/$0:nil}) {result["prefill_tps"]=rate;result["prefill_source"]="server"}
+        if let rate=prefillRate ?? prefillSeconds.flatMap({work>0 ? Double(work)/$0:nil}) {result["prefill_tps"]=rate;result["prefill_source"]="server"}
         if let rate=decodeRate ?? decodeSeconds.flatMap({completion>1 ? Double(completion-1)/$0:nil}) {result["decode_tps"]=rate;result["decode_source"]="server"}
         else if final,completion>1,let first=firstText,let last=lastText,last.timeIntervalSince(first)>0.001 {
             result["decode_tps"]=Double(completion-1)/last.timeIntervalSince(first);result["decode_source"]="client_estimate"

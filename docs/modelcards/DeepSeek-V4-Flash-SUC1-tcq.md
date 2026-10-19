@@ -41,13 +41,13 @@ tags:
 
 ## Quality
 
-Next-token KL divergence and top-1 agreement against the original model on 16 × 512 held-out positions (lower KL is better); WikiText-2 test perplexity.
+C++ runtime next-token KL and top-1 against the original BF16 reference on 16 × 512 held-out tokens (8176 scored positions; lower KL is better); existing WikiText-2 test perplexity.
 
 | | KL | top-1 | PPL original → SUC1 |
 |---|---:|---:|---|
-| This model | 0.235 | 0.825 | 4.78 → 5.59 |
+| This model | 0.235 | 0.826 | 4.78 → 5.59 |
 
-Same protocol, other formats:
+Other formats (historical reconstructed-weight evaluation):
 
 | Format | Size GB | KL |
 |---|---:|---:|
@@ -67,15 +67,15 @@ Core suite (30 graded smoke-test questions): 30/30 ⁵.
 
 ## Speed
 
-Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime. TTFT = prompt processing + first token.
+Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime: short input uses the earlier 256-token measurement; 2k uses three 64-token runs; 32k uses one bounded 8-token run. TTFT = prompt processing + first token.
 
 | Decode tok/s | Prefill tok/s · TTFT, short prompt | Prefill tok/s · TTFT, 2k tokens | Prefill tok/s · TTFT, 32k tokens |
 |---:|---:|---:|---:|
-| 24.0 | 46 · 0.30 s | 171 · 12.0 s | 138 · 238 s |
+| 24.0 | 46 · 0.30 s | 182 · 11.3 s | 142 · 231 s |
 
 | Runtime / format | Decode tok/s | Prefill tok/s · TTFT, 2k |
 |---|---:|---:|
-| SUC1 tcq (SUC C++) | 24.0 | 171 · 12.0 s |
+| SUC1 tcq (SUC C++) | 24.0 | 182 · 11.3 s |
 | GGUF IQ2_XXS mix (ds4) | 24.5 | — ⁴ |
 
 ⁴ ds4 was measured on long prompts only within the 120-question suite (different prompts): see the project report.

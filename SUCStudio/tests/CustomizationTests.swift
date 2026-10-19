@@ -6,12 +6,12 @@ import Foundation
         defer { try? FileManager.default.removeItem(at: root) }
         let store = StudioStore(storageURL: root.appendingPathComponent("archive.json"))
         store.archive.settings.globalSystemPrompt = "GLOBAL"
-        store.archive.settings.skills = [StudioSkill(name: "On", instructions: "ACTIVE", enabled: true), StudioSkill(name: "Off", instructions: "EXCLUDED", enabled: false)]
+        store.archive.settings.skills = [StudioSkill(name: "On", description: "DESCRIPTION", instructions: "ACTIVE", enabled: true), StudioSkill(name: "Off", instructions: "EXCLUDED", enabled: false)]
         store.archive.settings.sectionSidebarCollapsed = false
         store.mutateSelected { $0.systemPrompt = "EXTRA"; $0.draft = "hello" }
         let prompt = PromptComposer.compose(settings: store.archive.settings, session: store.selected!)
-        precondition(prompt.contains("GLOBAL") && prompt.contains("ACTIVE") && prompt.hasSuffix("EXTRA\n\n"+AgentProtocol.webOnlyInstructions) && !prompt.contains("EXCLUDED")) // web tools are offered by default (1.4.5_01)
-        precondition(prompt.range(of: "GLOBAL")!.lowerBound < prompt.range(of: "ACTIVE")!.lowerBound)
+        precondition(prompt.contains("GLOBAL") && prompt.contains("DESCRIPTION") && !prompt.contains("ACTIVE") && prompt.hasSuffix("EXTRA\n\n"+AgentProtocol.webOnlyInstructions) && !prompt.contains("EXCLUDED")) // web tools are offered by default (1.4.5_01)
+        precondition(prompt.range(of: "GLOBAL")!.lowerBound < prompt.range(of: "DESCRIPTION")!.lowerBound)
         store.modelState = "ready"; store.loadedModel = "fixture"; store.sendMessage()
         precondition(store.selected!.messages.last!.generation?.systemPrompt == prompt)
         store.receive(["event":"finished", "id":store.requests.keys.first!, "payload":[:]])

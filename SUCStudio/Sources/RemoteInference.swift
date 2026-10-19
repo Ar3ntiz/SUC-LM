@@ -1,5 +1,32 @@
 import Foundation
 
+// Keep the byte loop off MainActor. Crossing to the UI once per byte makes a
+// buffered response drain for seconds after the server has finished sending.
+private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Iterator.Element == UInt8 {
+    var iterator:Iterator
+    private var total=0
+    init(iterator:Iterator){self.iterator=iterator}
+    mutating func nextLine() async throws -> Data? {
+        var line=Data()
+        while let byte=try await iterator.next() {
+            try Task.checkCancellation();total+=1
+            guard total<=16*1024*1024 else{throw MCPConnection.failure("Stream remoto oltre il limite di 16 MiB.")}
+            if byte==10{return line}
+            line.append(byte)
+            guard line.count<=4*1024*1024 else{throw MCPConnection.failure("Evento remoto troppo grande.")}
+        }
+        return line.isEmpty ? nil:line
+    }
+    mutating func body() async throws -> Data {
+        var data=Data()
+        while let byte=try await iterator.next() {
+            try Task.checkCancellation();data.append(byte)
+            guard data.count<=4*1024*1024 else{throw MCPConnection.failure("Risposta remota troppo grande.")}
+        }
+        return data
+    }
+}
+
 /// One client per generation; no retries of POST requests and no credential redirects.
 @MainActor final class RemoteInference {
     static let generationInactivityLimit:TimeInterval=24*60*60
@@ -18,7 +45,7 @@ import Foundation
     }
     func stop() { http.invalidateAndCancel() }
     static func endpoint(_ base: String, path: String) throws -> URL {
-        guard var url = URL(string: base.trimmingCharacters(in: .whitespacesAndNewlines)), ["http", "https"].contains(url.scheme ?? ""), url.host != nil, url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { throw MCPConnection.failure("URL del server non valido. Indica la base API, per esempio http://192.168.1.2:8080/v1.") }
+        guard var url = URL(string: base.trimmingCharacters(in: .whitespacesAndNewlines)), ["http", "https"].contains(url.scheme ?? ""), url.host != nil, url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { throw MCPConnection.failure("URL del server non valido. Indica la base API, per esempio http://192.0.2.2:8080/v1.") }
         if url.path.isEmpty || url.path == "/" { url.appendPathComponent("v1") }
         return url.appendingPathComponent(path)
     }
@@ -70,7 +97,7 @@ import Foundation
         guard let response = response as? HTTPURLResponse, (200...299).contains(response.statusCode) else { throw MCPConnection.failure("Server remoto: HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0). Controlla endpoint, modello e API key. Nessun reinvio automatico.") }
         var telemetry=RemoteTelemetry(configuration:configuration)
         var reasoningBuffer="",lastMetrics=Date.distantPast
-        var count = 0, line = Data(), dataLines: [String] = [], buffer = "", lastFlush = Date(), finished = false, emitted = false
+        var dataLines: [String] = [], buffer = "", lastFlush = Date(), finished = false, emitted = false
         func flush() { if !reasoningBuffer.isEmpty{event(["event":"reasoning","payload":["text":reasoningBuffer]]);reasoningBuffer="";lastFlush=Date();emitted=true};if !buffer.isEmpty { event(["event":"delta","payload":["text":buffer]]); buffer = ""; lastFlush = Date(); emitted = true } }
         func consume(_ data: Data, full: Bool = false) throws -> Bool {
             if String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines) == "[DONE]" { flush();event(["event":"metrics","payload":telemetry.payload(final:true)]);return true }
@@ -90,20 +117,20 @@ import Foundation
             return full
         }
         event(["event":"started","payload":[:]])
+        var reader=RemoteResponseReader(iterator:bytes.makeAsyncIterator())
         if !((response.value(forHTTPHeaderField:"Content-Type") ?? "").lowercased().contains("text/event-stream")) {
-            for try await byte in bytes { line.append(byte); guard line.count <= 4 * 1024 * 1024 else { throw MCPConnection.failure("Risposta remota troppo grande.") } }
-            _ = try consume(line, full:true); flush();event(["event":"metrics","payload":telemetry.payload(final:true)]);return
+            _ = try consume(await reader.body(), full:true);flush();event(["event":"metrics","payload":telemetry.payload(final:true)]);return
         }
-        for try await byte in bytes {
-            try Task.checkCancellation(); count += 1
-            guard count <= 16 * 1024 * 1024 else { throw MCPConnection.failure("Stream remoto oltre il limite di 16 MiB.") }
-            if byte == 10 {
-                let value = String(decoding:line,as:UTF8.self).trimmingCharacters(in:.newlines); line.removeAll(keepingCapacity:true)
-                if value.isEmpty {
-                    if !dataLines.isEmpty { let data = Data(dataLines.joined(separator:"\n").utf8); dataLines.removeAll(); if try consume(data) { return } }
-                } else if value.hasPrefix("data:") { var text = String(value.dropFirst(5)); if text.first == " " { text.removeFirst() }; dataLines.append(text) }
-            } else { line.append(byte); guard line.count <= 4 * 1024 * 1024 else { throw MCPConnection.failure("Evento remoto troppo grande.") } }
+        while let line=try await reader.nextLine() {
+            let value=String(decoding:line,as:UTF8.self).trimmingCharacters(in:.newlines)
+            if value.isEmpty {
+                if !dataLines.isEmpty {let data=Data(dataLines.joined(separator:"\n").utf8);dataLines.removeAll();if try consume(data){return}}
+            } else if value.hasPrefix("data:") {
+                var text=String(value.dropFirst(5));if text.first==" "{text.removeFirst()};dataLines.append(text)
+            }
         }
+        if !dataLines.isEmpty {if try consume(Data(dataLines.joined(separator:"\n").utf8)){return}}
+
         flush()
         if finished { event(["event":"metrics","payload":telemetry.payload(final:true)]) }
         guard finished else { throw MCPConnection.failure("Connessione remota interrotta prima della fine della risposta.") }

@@ -13,7 +13,7 @@ def reply(value):
     elif method == 'tools/call':
         if params.get('name') == 'fail': result = {'isError': True, 'content': [{'type': 'text', 'text': 'expected failure'}]}
         else:
-            if params.get('arguments', {}).get('delay'): time.sleep(.2)
+            if params.get('arguments', {}).get('delay'): time.sleep(min(5, float(params.get('arguments', {}).get('delay_seconds', .2))))
             result = {'content': [{'type': 'text', 'text': params.get('arguments', {}).get('text', 'echo')}], 'structuredContent': {'ok': True}}
     else: return {'jsonrpc': '2.0', 'id': value['id'], 'error': {'code': -32601, 'message': 'unknown'}}
     return {'jsonrpc': '2.0', 'id': value['id'], 'result': result}

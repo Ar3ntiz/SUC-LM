@@ -2243,6 +2243,7 @@ struct Ds4Model::Impl {
 // ------------------------------------------------------------------------------------------ Ds4Model
 
 Ds4Model::Ds4Model(Context& ctx, const MappedFile& mf, const Ds4Options& opt) : p_(std::make_unique<Impl>()) {
+  ctx.set_tcq_reuse_default(true);
   Pool pool;
   Impl& m = *p_;
   m.ctx = &ctx;

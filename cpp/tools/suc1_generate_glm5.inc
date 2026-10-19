@@ -8,7 +8,7 @@
 {
   // 8,192 tokens, M1 Ultra: 99.8 / 99.7 / 105.9 tok/s at chunks 1024 / 2048 / 4096 (prof_glm_new_8192*,
   // docs/prefill_vs_ds4.md); prompts beyond kLargeChunkMaxPrompt tokens in chunks of 1024 (GPU memory, as deepseek_v4)
-  const std::size_t kGlmFastChunk = prompt.size() > kLargeChunkMaxPrompt ? kDs4LongChunk : 4096;
+
   if (xs && mixed_rows == ExpertStack::Rows::All)
     throw std::invalid_argument("--expert-budget with --mixed-experts all: streamed stacks run routed rows only");
   Glm5Options gopt;
@@ -26,9 +26,8 @@
   const bool exact = rf.exact_prefill || prefill_exact_env();
   gopt.layer_prefill = batch_prefill && !rows_needed;
   gopt.exact_prefill = rf.exact_prefill;
-  if (rows_needed || !batch_prefill) gopt.chunk = 1;
-  else if (exact) gopt.chunk = chunk == 64 ? (xs ? 64 : 16) : chunk;   // streamed: row-exact layer-major chunks of 64
-  else gopt.chunk = std::max<std::size_t>(2, std::min(chunk == 64 ? kGlmFastChunk : chunk, prompt.size()));
+  gopt.chunk = rows_needed ? 1 : suc::prefill_chunk("glm5_next", prompt.size(), rf.chunk_given ? chunk : 0,
+      exact, batch_prefill, bool(xs));
   Glm5Model model(ctx, mf, gopt);
   const bool fast_prefill = model.batched_prefill();
   const double load_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();

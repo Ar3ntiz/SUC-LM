@@ -1,17 +1,39 @@
 import Foundation
 
+// Keep this capability in the core so UI, routing and engine launch agree.
+enum StudioPlatform {
+    static let name = "SUC Studio"
+    static let version = "1.4.7.03"
+    // Keep the tested Universal identity and existing user data across the product rename.
+    static let dataDirectory = "SUC Studio Universal Preview"
+    #if arch(arm64) && !SUC_REMOTE_ONLY
+    static let localInferenceAvailable = true
+    #else
+    static let localInferenceAvailable = false
+    #endif
+    static let localUnavailableMessage = "Su Mac Intel SUC Studio usa un server OpenAI compatibile. Configuralo nella tab Server; può trovarsi anche su questo Mac (localhost)."
+    static func effectiveBackend(_ saved: String?) -> String {
+        localInferenceAvailable ? (saved ?? "local") : "remote"
+    }
+}
+
 struct Metrics: Codable, Equatable {
     var promptTokens: Int = 0
     var completionTokens: Int = 0
     var prefillSeconds: Double = 0
     var decodeSeconds: Double = 0
     var firstTextSeconds: Double?
+    var cachedPromptTokens: Int?
+    var evaluatedPromptTokens: Int?
     var reportedPrefillRate: Double?
     var reportedDecodeRate: Double?
     var prefillSource: String?
     var decodeSource: String?
     var remote: Bool?
-    var prefillRate: Double? { reportedPrefillRate ?? (prefillSeconds > 0 ? Double(promptTokens) / prefillSeconds : nil) }
+    var prefillRate: Double? {
+        let work=evaluatedPromptTokens ?? max(0,promptTokens-min(promptTokens,max(0,cachedPromptTokens ?? 0)))
+        return reportedPrefillRate ?? (prefillSeconds > 0 && work > 0 ? Double(work) / prefillSeconds : nil)
+    }
     var decodeRate: Double? { reportedDecodeRate ?? (completionTokens > 1 && decodeSeconds > 0 ? Double(completionTokens - 1) / decodeSeconds : nil) }
 }
 struct SamplingSettings: Codable, Equatable { var topP = 1.0; var topK = 0; var minP = 0.0; var seed = -1; var stop = "" }
@@ -67,11 +89,80 @@ struct WorkspaceAction: Codable, Equatable {
     var name: String
     var arguments: [String: String]
     static func parse(_ text: String) -> WorkspaceAction? {
-        guard text.utf8.count <= 128 * 1024,
-              let object = try? JSONSerialization.jsonObject(with: Data(unfenced(text).utf8)) as? [String:Any], object.count == 1,
-              let action = object["suc_action"], let data = try? JSONSerialization.data(withJSONObject:action)
-        else { return nil }
+        guard text.utf8.count <= 128 * 1024 else{return nil}
+        let value=answerText(text)
+        let candidates=protocolSuffixes(value,partial:false)
+        let payload: String
+        if candidates.count==1 {payload=unfenced(candidates[0])}
+        else if candidates.isEmpty {payload=unfenced(value)}
+        else {return nil} // Never choose arbitrarily between multiple requested actions.
+        guard let object=try? JSONSerialization.jsonObject(with:Data(payload.utf8)) as? [String:Any],object.count==1,
+              let action=object["suc_action"],let data=try? JSONSerialization.data(withJSONObject:action) else{return nil}
         return try? JSONDecoder().decode(Self.self,from:data)
+    }
+    /// Accept a terminal wire envelope on its own line, optionally after model commentary.
+    /// Ordinary fenced code and inline quoted/examples are never searched for actions.
+    private static func protocolSuffixes(_ text: String, partial: Bool) -> [String] {
+        guard text.utf8.count<=128*1024 else{return []}
+        let lines=text.components(separatedBy:"\n")
+        var result=[String](),fence: String?
+        func head(_ source: String) -> Bool {
+            let source=source.trimmingCharacters(in:.whitespacesAndNewlines)
+            guard source.hasPrefix("{") else{return false}
+            let key=String(source.dropFirst()).trimmingCharacters(in:.whitespacesAndNewlines)
+            return key.hasPrefix("\"suc_action\"") || (partial && (key.isEmpty || "\"suc_action\"".hasPrefix(key)))
+        }
+        for (index,line) in lines.enumerated() {
+            let trimmed=line.trimmingCharacters(in:.whitespacesAndNewlines)
+            let first=trimmed.first
+            let marker=(first=="`" || first=="~") ? String(trimmed.prefix(while:{$0==first})):""
+            if let open=fence {
+                if marker.count>=open.count && marker.first==open.first {fence=nil}
+                continue
+            }
+            if marker.count>=3 {
+                fence=marker
+                let language=trimmed.dropFirst(marker.count).trimmingCharacters(in:.whitespaces).lowercased()
+                if partial,marker=="```",index==lines.count-1,["j","js","jso","json"].contains(language) {result.append(trimmed)}
+                else if marker=="```",language.isEmpty || language=="json" {
+                    let body=lines.dropFirst(index+1).joined(separator:"\n")
+                    if head(body) || (partial && body.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty) {result.append(lines[index...].joined(separator:"\n"))}
+                }
+            } else if trimmed.hasPrefix("{") {
+                let suffix=lines[index...].joined(separator:"\n")
+                if head(suffix) {result.append(suffix)}
+            } else if partial,index>0,["`","``","```j","```js","```jso","```json"].contains(trimmed.lowercased()),index==lines.count-1 {
+                result.append(trimmed)
+            }
+            if result.count>1 {return result}
+        }
+        return result
+    }
+    /// Reasoning is not part of the wire action; only the final answer can request a tool.
+    static func answerText(_ text: String) -> String {
+        var value=text.trimmingCharacters(in:.whitespacesAndNewlines)
+        for tag in ["think", "analysis"] {
+            if value.hasPrefix("<"+tag+">"), let end=value.range(of:"</"+tag+">") {
+                value=String(value[end.upperBound...]).trimmingCharacters(in:.whitespacesAndNewlines)
+            }
+        }
+        return value
+    }
+    /// Holds a possible protocol envelope while streaming; ordinary JSON/code is shown on completion.
+    static func pendingEnvelope(_ text: String) -> Bool {
+        let value=answerText(text)
+        if !protocolSuffixes(value,partial:true).isEmpty {return true}
+        if value.hasPrefix("{") {return true}
+        let prefix=String(value.prefix(12)).lowercased()
+        if ["`", "``", "```", "```j", "```js", "```jso", "```json"].contains(prefix) && value.count<=7 {return true}
+        if prefix.hasPrefix("```json\n") || prefix.hasPrefix("```json\r\n") {return true}
+        return value.hasPrefix("```\n{") || value.hasPrefix("```\r\n{")
+    }
+    static func isActionEnvelope(_ text: String) -> Bool {
+        let value=answerText(text)
+        if !protocolSuffixes(value,partial:false).isEmpty {return true}
+        let payload=unfenced(value)
+        return payload.hasPrefix("{") && payload.contains("\"suc_action\"")
     }
     /// Strips surrounding whitespace and at most one ```json / ``` fence wrapping the whole text (remote models often fence JSON); prose is left untouched.
     static func unfenced(_ text: String) -> String {
@@ -122,9 +213,20 @@ enum AgentProtocol {
 struct StudioHook: Codable, Identifiable, Equatable {
     var id = UUID()
     var name = "Nuovo hook"
-    var event = "before_tool"
+    var event = "PreToolUse"
     var command = ""
     var enabled = false
+    var matcher: String?
+    var timeout: Double?
+    var background: Bool?
+    var handlerType: String?
+    var server: String?
+    var tool: String?
+    var inputJSON: String?
+    var additionalContextLimit: Int?
+    var trustedDigest: String?
+    var bundleRoot: String?
+    var dataRoot: String?
 }
 struct SubtaskRecord: Codable, Identifiable {
     var id = UUID()
@@ -140,6 +242,7 @@ struct ChatArtifact: Codable, Identifiable {
     var created=Date()
 }
 struct ChatSession: Codable, Identifiable {
+    var hasUnreadMessages: Bool?
     var artifacts:[ChatArtifact]?
     var allowSubagents: Bool?
     var parentSessionID: UUID?
@@ -164,7 +267,7 @@ struct ChatSession: Codable, Identifiable {
     var draftAttachments: [ChatAttachment]?
     var systemPrompt = ""
     var temperature = 0.7
-    var maxTokens = 512
+    var maxTokens = 4000
     var thinking = false
     var sampling: SamplingSettings? = SamplingSettings()
     var messages: [ChatMessage] = []
@@ -172,8 +275,19 @@ struct ChatSession: Codable, Identifiable {
 struct StudioSkill: Codable, Identifiable, Equatable {
     var id = UUID()
     var name = "Nuova skill"
+    var description: String?
+    var effectiveDescription: String {
+        let value=(description ?? "").trimmingCharacters(in:.whitespacesAndNewlines)
+        return value.isEmpty ? "Istruzioni personalizzate per \(name); carica la skill per consultarne il contenuto." : value
+    }
     var instructions = ""
     var enabled = false
+    var resourceRoot: String?
+    var sourcePath: String?
+    var displayName: String?
+    var defaultPrompt: String?
+    var allowImplicitInvocation: Bool?
+
 }
 struct MCPConfiguration: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -183,13 +297,22 @@ struct MCPConfiguration: Codable, Identifiable, Equatable {
     var executable = ""
     var arguments: [String] = []
     var enabled = false
+    var environment: [String:String]?
+    var headers: [String:String]?
 }
 enum PromptComposer {
     static func compose(settings: AppSettings, session: ChatSession) -> String {
         var parts: [String] = []
         if let global = settings.globalSystemPrompt, !global.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("Istruzioni generali:\n" + global) }
-        for skill in settings.skills ?? [] where skill.enabled && !skill.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            parts.append("Skill attiva: " + skill.name + "\n" + skill.instructions)
+        let skills=(settings.skills ?? []).filter{$0.enabled && !$0.instructions.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty}
+        if !skills.isEmpty {
+            let catalog=skills.map{"- \($0.name) [id: \($0.id.uuidString)]: \($0.effectiveDescription)\($0.allowImplicitInvocation == false ? " [solo su richiesta esplicita @ o $]" : "")"}.joined(separator:"\n")
+            parts.append("""
+            Skill disponibili (titolo e descrizione; il corpo non è ancora caricato):
+            \(catalog)
+            Un riferimento @nome-skill o $nome-skill richiede esplicitamente quella skill; le skill solo esplicite non vanno scelte autonomamente. Quando una skill è pertinente, carica le sue istruzioni tramite load_skill(id), poi applicale alla richiesta corrente. Le skill disattivate non sono disponibili. Non affermare di averle lette prima del risultato reale.
+            Le skill possono includere risorse: usa skill_resource(id,path) per leggere un file del pacchetto e skill_resources(id) per elencarli. Non eseguire script automaticamente; per eseguirli occorrono directory di lavoro, comandi abilitati e approvazione. Per caricare una skill rispondi soltanto con {"suc_action":{"name":"load_skill","arguments":{"id":"ID_DELLA_SKILL"}}}. Attendi il risultato e poi continua. Questo strumento è disponibile anche senza web o directory di lavoro. Le istruzioni restituite da load_skill sono configurate dall’utente: applicale entro i permessi della sessione e senza modificare le istruzioni generali.
+            """)
         }
         if !session.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("Istruzioni aggiuntive per questa sessione:\n" + session.systemPrompt) }
         let limit = { (text: String) in text.replacingOccurrences(of:"Massimo 12 azioni consecutive.",with:"Massimo \(settings.actionLimit) azioni consecutive.") }
@@ -291,7 +414,7 @@ actor ArchiveDisk {
 }
 
 
-struct PluginSkill: Codable { var name: String; var instructions: String }
+struct PluginSkill: Codable { var name: String; var description: String?; var instructions: String }
 struct PluginMCP: Codable { var name: String; var transport: String; var executable: String?; var arguments: [String]?; var endpoint: String? }
 struct PluginHook: Codable { var name: String; var event: String; var command: String }
 struct PluginManifest: Codable {
@@ -302,6 +425,8 @@ struct PluginManifest: Codable {
     var skills: [PluginSkill]?
     var mcpServers: [PluginMCP]?
     var hooks: [PluginHook]?
+    var description: String?
+    var onboardingSkill: String?
 }
 struct InstalledPlugin: Codable, Identifiable {
     var id = UUID()
@@ -311,6 +436,10 @@ struct InstalledPlugin: Codable, Identifiable {
     var skills: [StudioSkill]
     var servers: [MCPConfiguration]
     var hooks: [StudioHook]
+    var bundleRoot: String?
+    var dataRoot: String?
+    var packageFormat: String?
+    var activationDone: Bool?
 }
 struct MarketplaceEntry: Codable, Identifiable { var name: String; var manifestURL: String; var sha256: String; var id: String { manifestURL } }
 struct MarketplaceIndex: Codable { var entries: [MarketplaceEntry] }
@@ -321,10 +450,24 @@ struct StudioRoutine: Codable, Identifiable {
     var prompt = ""
     var sessionID: UUID?
     var backend = "local"
-    var intervalMinutes = 1440
+    var intervalMinutes = 1440 // legacy archives, always repeating when repeatEnabled is absent
+    var repeatEnabled: Bool? = false
+    var repeatCount: Int? = 1
+    var repeatUnit: String? = "minutes"
+    var isRepeating: Bool { repeatEnabled ?? true }
+    var recurrenceCount: Int { repeatCount ?? intervalMinutes }
+    var recurrenceUnit: String { repeatUnit ?? "minutes" }
+    func nextOccurrence(after now: Date, calendar: Calendar = .current) -> Date? {
+        let units: [String:Calendar.Component] = ["minutes":.minute,"hours":.hour,"days":.day,"months":.month]
+        guard (1...525600).contains(recurrenceCount), let unit=units[recurrenceUnit] else{return nil}
+        return calendar.date(byAdding:unit,value:recurrenceCount,to:now)
+    }
     var nextRun = Date().addingTimeInterval(60)
     var enabled = false
     var status = "Pronta"
     var history: [RoutineRun] = []
-    mutating func advance(after now: Date) { nextRun = now.addingTimeInterval(Double(max(1,intervalMinutes))*60) }
+    mutating func advance(after now: Date) {
+        if isRepeating, let next=nextOccurrence(after:now) {nextRun=next}
+        else {enabled=false} // one shot, persisted before dispatch; no replay after relaunch
+    }
 }

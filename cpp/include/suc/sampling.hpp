@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <vector>
 
 namespace suc {
 
@@ -23,12 +24,13 @@ struct SamplerConfig {
   double top_p = 1.0;         // >= 1: off
   double min_p = 0.0;         // <= 0: off
   uint64_t seed = 0;
+  bool legacy_order = false;  // preserve historical sorted categorical draws (also SUC_SAMPLING_LEGACY=1)
   bool greedy() const { return temperature <= 0.0 || top_k == 1; }
 };
 
 class Sampler {
  public:
-  explicit Sampler(const SamplerConfig& c) : cfg_(c), rng_(c.seed) {}
+  explicit Sampler(const SamplerConfig& c);
   const SamplerConfig& config() const { return cfg_; }
   // One token id from logits[0:n] (n > 0; NaN logits are not handled).
   uint32_t sample(const float* logits, std::size_t n);
@@ -36,6 +38,8 @@ class Sampler {
  private:
   SamplerConfig cfg_;
   std::mt19937_64 rng_;
+  std::vector<uint32_t> idx_;
+  std::vector<double> probabilities_;
 };
 
 }  // namespace suc

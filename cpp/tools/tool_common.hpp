@@ -12,6 +12,7 @@
 #include "suc/expert_stream.hpp"
 #include "suc/glm5.hpp"
 #include "suc/json.hpp"
+#include "suc/prefill.hpp"
 #include "suc/qwen4.hpp"
 #include "suc/expert_mixed.hpp"
 
@@ -51,6 +52,7 @@ struct RuntimeFlags {
   bool fuse_projections = true, fused_in_place = true, mlx_gemv = true;
   int sdpa_2pass = -1;
   std::size_t chunk = 64;
+  bool chunk_given = false;
   uint64_t max_view_bytes = 0;   // --max-view-bytes: cap the GPU views of the mapped file (0 = maxBufferLength; tests)
   metal::ExpertStreamOptions xo;
   metal::ExpertStack::Rows mixed_rows = metal::ExpertStack::Rows::Routed;
@@ -98,7 +100,7 @@ bool parse_runtime_flag(const std::string& a, Next&& next, RuntimeFlags& r) {
     r.exact_prefill = v == "exact";
     r.prefill_given = true;
   }
-  else if (a == "--chunk") r.chunk = std::stoul(next());
+  else if (a == "--chunk") { r.chunk = std::stoul(next()); r.chunk_given = true; if (!r.chunk) throw std::invalid_argument("--chunk must be positive"); }
   else if (a == "--max-view-bytes") r.max_view_bytes = std::stoull(next());
   else if (a == "--expert-budget") {
     std::string v = next();

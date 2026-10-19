@@ -1,0 +1,14 @@
+{
+  "version": "1.4.7.03",
+  "checks": [
+    "CLI raw-token generation: 8 tokens",
+    "Standalone server completion and usage",
+    "Standalone server SSE stream completed",
+    "Bundled app engine loads selected local model",
+    "Bundled app chat streams and completes",
+    "Bundled app server rejects missing key and completes authenticated chat",
+    "Bundled app engine cancels chat request"
+  ],
+  "passed": true,
+  "binary_commit": "ecfcd2ff03ed58b71b74e363e7f82f64b1c38b31"
+}

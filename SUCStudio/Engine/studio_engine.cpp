@@ -14,7 +14,12 @@ static std::vector<std::future<void>> jobs;
 static void spawn(std::function<void()> work) {
   std::lock_guard<std::mutex> l(jobs_mutex);
   jobs.erase(std::remove_if(jobs.begin(),jobs.end(),[](auto& f){return f.wait_for(std::chrono::seconds(0))==std::future_status::ready;}),jobs.end());
-  jobs.push_back(std::async(std::launch::async,[work]{try{work();}catch(const std::exception& e){event("error","", "{\"message\":"+jstr(e.what())+"}");}}));
+  jobs.push_back(std::async(std::launch::async,[work=std::move(work)]() mutable {
+    try{work();}catch(const std::exception& e){event("error","", "{\"message\":"+jstr(e.what())+"}");}
+    // A completed async shared state can outlive its callable's execution in jobs. Release captures
+    // now: queued work often owns the model graph, which must not survive an explicit unload.
+    work={};
+  }));
 }
 static std::shared_ptr<LoadedEngine> model() {
   std::lock_guard<std::mutex> l(model_mutex);if(!loaded)throw std::runtime_error("Load a model first");return loaded;
@@ -60,7 +65,7 @@ static void command(const Json& c) {
   if(!c.is_object())throw std::runtime_error("Expected command object");
   const auto cmd=c["command"].as_string();
   const auto id=c.find("id")?c["id"].as_string():"";
-  if(cmd=="hello"){event("ready",id,"{\"protocol\":1,\"version\":\"1.4.4\",\"phase_metrics\":true}");return;}
+  if(cmd=="hello"){event("ready",id,"{\"protocol\":1,\"version\":\"1.4.7\",\"phase_metrics\":true}");return;}
   if(cmd=="shutdown"){exiting=true;queue_cv.notify_all();return;}
   if(cmd=="set_model_log"){model_io_logging=c["enabled"].as_bool();return;}
   if(cmd=="cancel"){cancel_request(id);return;}
@@ -109,7 +114,7 @@ static void command(const Json& c) {
 }
 int main() {
   std::signal(SIGPIPE,SIG_IGN);
-  event("ready","","{\"protocol\":1,\"version\":\"1.4.4\"}");
+  event("ready","","{\"protocol\":1,\"version\":\"1.4.7\"}");
   // Bounded incremental input, also handles multiple commands per read without getline allocations.
   std::string pending;char buffer[16384];
   while(!exiting){

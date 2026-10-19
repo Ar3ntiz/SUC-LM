@@ -22,6 +22,8 @@ ar rcs "$OUT/libsuc.a" "${objs[@]}"
 "$CXX" "${FLAGS[@]}" "$SRC/tools/suc_tokenize.cpp" "$OUT/libsuc.a" -o "$OUT/suc-tokenize" -pthread & pids+=($!)
 "$CXX" "${FLAGS[@]}" "$SRC/tests/test_main.cpp" "$OUT/libsuc.a" -o "$OUT/suc-tests" -pthread & pids+=($!)
 for p in "${pids[@]}"; do wait "$p"; done
+"$CXX" "${FLAGS[@]}" "$SRC/tools/suc_sampling_bench.cpp" "$OUT/libsuc.a" -o "$OUT/suc-sampling-bench" -pthread
+"$CXX" "${FLAGS[@]}" "$SRC/tests/test_live_prefix.cpp" -o "$OUT/suc-prefix-tests"
 # Audit F10: request-helper boundary test under -fsanitize=float-cast-overflow when the compiler supports it.
 UBSAN=(-fsanitize=float-cast-overflow -fno-sanitize-recover=float-cast-overflow)
 if ! echo 'int main(){return 0;}' | "$CXX" -x c++ "${UBSAN[@]}" - -o "$OUT/obj/ubsan-probe" 2>/dev/null; then UBSAN=(); fi
@@ -68,9 +70,10 @@ if [[ "$(uname -s)" == Darwin && "${SUC_NO_METAL:-0}" != 1 ]]; then
   for p in "${pids[@]}"; do wait "$p"; done
   ar rcs "$OUT/libsuc_metal.a" "$OUT/obj/metal.o" "$OUT/obj/model.o" "$OUT/obj/switch.o" "$OUT/obj/qwen4.o" "$OUT/obj/deepseek_v4.o" "$OUT/obj/expert_mixed.o" "$OUT/obj/expert_stream.o" "$OUT/obj/glm5.o" "$OUT/obj/suc_kernels_msl.o"
   pids=()
-  for t in tools/suc1_linear tools/suc_linear_bench tools/suc_mm_bench tools/suc1_generate tools/suc1_server tools/suc1_moe tools/suc_expert_bench tests/test_metal; do
+  for t in tools/suc1_linear tools/suc_linear_bench tools/suc_mm_bench tools/suc_attention_bench tools/suc1_generate tools/suc1_server tools/suc1_moe tools/suc_expert_bench tests/test_metal tests/test_qwen_checkpoint; do
     exe="$(basename "$t" | tr _ -)"
     [[ "$exe" == test-metal ]] && exe=suc-metal-tests
+    [[ "$exe" == test-qwen-checkpoint ]] && exe=suc-qwen-checkpoint-tests
     "$CXX" "${FLAGS[@]}" "${MFLAGS[@]}" "$SRC/$t.cpp" "$OUT/libsuc_metal.a" "$OUT/libsuc.a" "${FRAMEWORKS[@]}" \
       -o "$OUT/$exe" -pthread & pids+=($!)
   done

@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "helper": "SUCStudio/.build/arm64/suc-studio-engine",
+  "model": "/private/var/folders/zy/c4nlj2jj0fb9w0tkfnrj5g5w0000gn/T/pytest-of-studio-user/pytest-76/q4cpp_tiny0/row4.suc1",
+  "checks": [
+    "model loaded and mapped",
+    "bundled server raw completion",
+    "unload released model mapping after completed API job"
+  ],
+  "retained_after_unload": false
+}

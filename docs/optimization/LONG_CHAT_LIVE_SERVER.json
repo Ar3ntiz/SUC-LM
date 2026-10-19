@@ -1,0 +1,137 @@
+{
+  "kind": "live_server_synthetic_chat_latency",
+  "model": "qwen3.8_flash_next_side8.suc1",
+  "requests": [
+    {
+      "case": "items_0",
+      "request_bytes": 453,
+      "request_sha256": "8d9eb60c74d2a6f93ac77cf496c4c374c2cd15ba7a371d2026348579105eb7fe",
+      "ttft_http_s": 1.8369992180000008,
+      "last_text_http_s": 1.866562784000001,
+      "done_http_s": 1.8935685180000004,
+      "wall_http_s": 1.8936444150000007,
+      "after_last_text_s": 0.027081630999999717,
+      "usage": {
+        "prompt_tokens": 86,
+        "completion_tokens": 3,
+        "total_tokens": 89,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "suc_metrics": {
+        "prefill_s": 1.824326,
+        "decode_s": 0.055605
+      },
+      "events": 5,
+      "text_bytes": 4,
+      "reasoning_bytes": 0,
+      "text_sha256": "25c73520e69f4bf229811e8e46ffe7d80471544b9bee15ed25044b86be4115ad"
+    },
+    {
+      "case": "items_96",
+      "request_bytes": 8399,
+      "request_sha256": "1f9dfb488ef71e0b71c6fd8930252e42292a326b7993273012d168294422b2ab",
+      "ttft_http_s": 20.309076618,
+      "last_text_http_s": 20.337770503999998,
+      "done_http_s": 20.367547025,
+      "wall_http_s": 20.367619599999998,
+      "after_last_text_s": 0.02984909599999952,
+      "usage": {
+        "prompt_tokens": 2178,
+        "completion_tokens": 3,
+        "total_tokens": 2181,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "suc_metrics": {
+        "prefill_s": 20.291016,
+        "decode_s": 0.063013
+      },
+      "events": 5,
+      "text_bytes": 2,
+      "reasoning_bytes": 0,
+      "text_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+    },
+    {
+      "case": "items_96_followup",
+      "request_bytes": 8528,
+      "request_sha256": "c23f8ea795762fd949cca492495ec12a415d42c307678330c3872a15c76c7275",
+      "ttft_http_s": 19.997828596999998,
+      "last_text_http_s": 20.343340309000002,
+      "done_http_s": 20.375385245,
+      "wall_http_s": 20.375459869,
+      "after_last_text_s": 0.03211955999999816,
+      "usage": {
+        "prompt_tokens": 2206,
+        "completion_tokens": 13,
+        "total_tokens": 2219,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "suc_metrics": {
+        "prefill_s": 19.973652,
+        "decode_s": 0.376662
+      },
+      "events": 15,
+      "text_bytes": 30,
+      "reasoning_bytes": 0,
+      "text_sha256": "8cb9bd8ae31365808d864218e22789c0bc467cf607c9539a62d2cccd236467ed"
+    },
+    {
+      "case": "items_512",
+      "request_bytes": 43289,
+      "request_sha256": "ccd7ec84670cee38ebf5dc454416a30887da03f7d2699a52116845af968e1691",
+      "ttft_http_s": 108.945970507,
+      "last_text_http_s": 108.97687020800001,
+      "done_http_s": 109.006707525,
+      "wall_http_s": 109.006782262,
+      "after_last_text_s": 0.029912053999993304,
+      "usage": {
+        "prompt_tokens": 11692,
+        "completion_tokens": 3,
+        "total_tokens": 11695,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "suc_metrics": {
+        "prefill_s": 108.914353,
+        "decode_s": 0.059295
+      },
+      "events": 5,
+      "text_bytes": 2,
+      "reasoning_bytes": 0,
+      "text_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+    },
+    {
+      "case": "items_512_followup",
+      "request_bytes": 43418,
+      "request_sha256": "f687644269852e907e4e7e219d32d4544c4fb3bf39272a55d1387bef64d05c3c",
+      "ttft_http_s": 109.911304315,
+      "last_text_http_s": 110.25583953799998,
+      "done_http_s": 110.25603545899997,
+      "wall_http_s": 110.256215586,
+      "after_last_text_s": 0.0003760480000210009,
+      "usage": {
+        "prompt_tokens": 11720,
+        "completion_tokens": 13,
+        "total_tokens": 11733,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "suc_metrics": {
+        "prefill_s": 109.79365,
+        "decode_s": 0.366776
+      },
+      "events": 15,
+      "text_bytes": 30,
+      "reasoning_bytes": 0,
+      "text_sha256": "8cb9bd8ae31365808d864218e22789c0bc467cf607c9539a62d2cccd236467ed"
+    }
+  ],
+  "scope": "Raw HTTP reader; no private conversation or API key stored; currently loaded model reused"
+}

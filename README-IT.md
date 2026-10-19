@@ -14,27 +14,27 @@ English: [README.md](README.md) · Specifica: [docs/spec-IT.md](docs/spec-IT.md)
 [docs/compression_report-IT.md](docs/compression_report-IT.md) · Runtime C++: [cpp/README-IT.md](cpp/README-IT.md) · App macOS:
 [SUCStudio/](SUCStudio/README.md) | Modelli LLM: [https://huggingface.co/Ar3ntiz](https://huggingface.co/Ar3ntiz)
 
-## Risultati (Mac Studio M1 Ultra, batch 1, stato al 14 ottobre 2026)
+## Risultati (Mac Studio M1 Ultra, batch 1, stato al 19 ottobre 2026)
 
 Ogni numero viene da un JSON di risultato (`experiments/results/`, conservati nel repository di lavoro privato e citati per nome file) elencato in
-[docs/compression_report-IT.md](docs/compression_report-IT.md) §1. Singole esecuzioni, un solo seed. Qwen3-0.6B è misurato
+[docs/compression_report-IT.md](docs/compression_report-IT.md) §1 e nelle [verifiche del runtime](docs/optimization/FINAL_QUALIFICATION_1.4.7.md). I protocolli sono indicati nelle tabelle; le celle invariate conservano le misure precedenti. Qwen3-0.6B è misurato
 su un portatile Apple M3 (16 GB). Separatore decimale: punto.
 
 ### Tabella 1 — Dimensione e qualità
 
 Il file SUC1 scelto per ogni modello. Originale = dimensione equivalente BF16 del modello a precisione piena rispetto
-al quale si misura la qualità. KL / top-1 = divergenza / accordo sul token successivo rispetto all'originale su
-16 × 512 posizioni di validazione; PPL = WikiText-2 test.
+al quale si misura la qualità. KL / top-1 = divergenza / accordo del runtime C++ rispetto alla reference BF16 originale su
+16 × 512 token di validazione (8176 posizioni valutate); PPL = misura esistente sul test WikiText-2.
 
 | Modello | Tipo | Parametri | Originale GB | SUC1 GB | bpp | Riduzione | Memoria in esecuzione GB | KL | top-1 | PPL originale → SUC |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | Qwen3-0.6B | denso | 0.6 B | 1.50 | 0.32 | 4.26 | 4.7× | 0.42 | 0.092 | 0.853 | 20.97 → 22.83 |
-| Qwen3-8B | denso | 8.2 B | 16.38 | 4.32 | 4.22 | 3.8× | 4.63 | 0.049 | 0.902 | 9.72 → 9.99 |
-| Qwen3.8-27B (side8) | denso | 26.9 B | 53.79 | 16.36 | 4.87 | 3.3× | 16.75 | 0.023 | 0.950 | 7.05 → 7.15 |
-| Qwen3-30B-A3B | MoE | 30.5 B | 61.06 | 15.93 | 4.17 | 3.8× | 17.11 | 0.064 | 0.897 | 8.70 → 9.14 |
-| Qwen3.8-Flash-Next (side8) | MoE | 176.9 B | 353.89 | 96.32 | 4.35 | 3.7× | 73.82 ¹ | 0.064 | 0.913 | 4.70 → 4.70 |
-| DeepSeek-V4-Flash (tcq) | MoE | 284.3 B | 568.75 ² | 96.82 | 2.72 | 5.9× | 102.57 | 0.235 | 0.825 | 4.78 → 5.59 |
-| GLM-5.3-Flash (tcq) | MoE | 313.3 B | 626.65 ² | 99.00 | 2.53 | 6.3× | 106.59 | 0.307 | 0.793 | 3.27 → 4.27 |
+| Qwen3-8B | denso | 8.2 B | 16.38 | 4.32 | 4.22 | 3.8× | 4.63 | 0.050 | 0.902 | 9.72 → 9.99 |
+| Qwen3.8-27B (side8) | denso | 26.9 B | 53.79 | 16.36 | 4.87 | 3.3× | 16.75 | 0.023 | 0.949 | 7.05 → 7.15 |
+| Qwen3-30B-A3B | MoE | 30.5 B | 61.06 | 15.93 | 4.17 | 3.8× | 17.11 | 0.065 | 0.894 | 8.70 → 9.14 |
+| Qwen3.8-Flash-Next (side8) | MoE | 176.9 B | 353.89 | 96.32 | 4.35 | 3.7× | 73.82 ¹ | 0.060 | 0.915 | 4.70 → 4.70 |
+| DeepSeek-V4-Flash (tcq) | MoE | 284.3 B | 568.75 ² | 96.82 | 2.72 | 5.9× | 102.57 | 0.235 | 0.826 | 4.78 → 5.59 |
+| GLM-5.3-Flash (tcq) | MoE | 313.3 B | 626.65 ² | 99.00 | 2.53 | 6.3× | 106.59 | 0.304 | 0.796 | 3.27 → 4.27 |
 
 bpp = bit del file / tutti i parametri, ogni overhead incluso (codebook, scale, residui, embedding, head, metadati).
 ¹ Le tabelle n-gram a 4 bit (26.9 GB) sono lette dal file riga per riga, non tenute in memoria GPU. ² DeepSeek e GLM
@@ -44,18 +44,18 @@ esperti da SSD è nella tabella 3.
 
 ### Tabella 2 — Velocità del runtime C++ di SUC
 
-`suc1-generate`, greedy, 256 token generati. *Breve* = prompt di 12–13 token; *2k / 32k* = i primi 2.048 / 32.768
+`suc1-generate`, greedy: prompt brevi con le misure da 256 token; 2k con la mediana di tre prove da 64 token (8B conserva la prova precedente da 256 token); 8k/32k con una prova limitata a 8 token per lunghezza. *Breve* = prompt di 12–13 token; *2k / 32k* = i primi 2.048 / 32.768
 token dello stesso testo lungo. TTFT = lettura del prompt + primo token.
 
 | Modello | Decode tok/s (prompt breve) | Prefill tok/s · TTFT, breve | Prefill tok/s · TTFT, 2k | Prefill tok/s, 8k | Prefill tok/s · TTFT, 32k | Decode tok/s a 32k |
 |---|---:|---:|---:|---:|---:|---:|
 | Qwen3-0.6B (M3) | 143.9 | — | — | — | — | — |
-| Qwen3-8B | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 231 | 106 · 309 s | 42.5 |
-| Qwen3.8-27B (side8) | 25.3 | 43 · 0.35 s | 93 · 22.1 s | 85 | 58 · 564 s | 20.4 |
-| Qwen3-30B-A3B | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 244 | 101 · 324 s | 37.5 |
-| Qwen3.8-Flash-Next (side8) | 28.3 | 55 · 0.27 s | 341 · 6.0 s | 323 | 323 · 102 s | 29.2 |
-| DeepSeek-V4-Flash (tcq) | 24.0 | 46 · 0.30 s | 171 · 12.0 s | 163 | 138 · 238 s | 13.7 |
-| GLM-5.3-Flash (tcq) | 22.2 | 35 · 0.41 s | 116 · 17.7 s | 105 | 94 · 349 s | 13.1 |
+| Qwen3-8B | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 231 | 106 · 308 s | 42.5 |
+| Qwen3.8-27B (side8) | 25.3 | 43 · 0.35 s | 93 · 22.0 s | 83 | 59 · 558 s | 20.6 |
+| Qwen3-30B-A3B | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 243 | 101 · 324 s | 37.6 |
+| Qwen3.8-Flash-Next (side8) | 28.3 | 55 · 0.27 s | 366 · 5.6 s | 343 | 219 · 150 s | 29.7 |
+| DeepSeek-V4-Flash (tcq) | 24.0 | 46 · 0.30 s | 182 · 11.3 s | 173 | 142 · 231 s | 13.7 |
+| GLM-5.3-Flash (tcq) | 22.2 | 35 · 0.41 s | 128 · 16.1 s | 113 | 97 · 339 s | 13.2 |
 
 Il prefill a blocchi non è bit-identico al prefill token per token (KL 0.0006–0.03 tra i due, report §1c). Il decode
 è bit-identico al runtime Python.
@@ -65,32 +65,32 @@ Il prefill a blocchi non è bit-identico al prefill token per token (KL 0.0006�
 Stessa macchina. KL sulle stesse posizioni e lo stesso riferimento della tabella 1. Decode e prefill breve sullo
 stesso prompt. *Prefill lungo*: SUC a 32k token sul testo lungo condiviso; ds4 / llama.cpp / LM Studio = mediana sui
 prompt della hard suite da 4k–31k token (insieme di prompt diverso: indicativo). *Hard suite*: 120 domande valutate
-(matematica, conoscenza, ragionamento, contesto lungo), stessi prompt per ogni sistema.
+(matematica, conoscenza, ragionamento, contesto lungo), stessi prompt per ogni sistema; Qwen3.8 side8: chunk 64, verifica del 19 ottobre 2026 ([fonte](docs/optimization/QWEN_CHUNK_QUALIFICATION.md)).
 
 | Modello | Sistema | File GB | KL | Decode tok/s | Prefill tok/s · TTFT, breve | Prefill tok/s · TTFT, 2k | Prefill lungo tok/s | Hard suite /120 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Qwen3-0.6B | **SUC1** (M3) | 0.32 | 0.092 | 143.9 | — | — | — | — |
 | | GGUF Q4_K_M, LM Studio | 0.48 | 0.097 | 219.8 | 594 · 0.02 s | 7,785 · 0.26 s | — | — |
 | | GGUF Q8_0, LM Studio | 0.80 | 0.002 | 197.3 | 615 · 0.02 s | 8,151 · 0.25 s | — | — |
-| Qwen3-8B | **SUC1** | 4.32 | 0.049 | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 | — |
+| Qwen3-8B | **SUC1** | 4.32 | 0.050 | 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 | — |
 | | GGUF Q4_K_M, LM Studio | 5.03 | 0.040 | 74.8 | 176 · 0.07 s | 884 · 2.3 s | — | — |
 | | GGUF Q8_0, LM Studio | 8.71 | 0.001 | 67.9 | 193 · 0.07 s | 1,007 · 2.0 s | — | — |
 | | MLX 4-bit, mlx-lm ³ | 4.61 | 0.092 | 95.8 | 588 (128 tok) | — · 2.7 s | — | — |
-| Qwen3.8-27B | **SUC1 side8** | 16.36 | 0.023 | 25.3 | 43 · 0.35 s | 93 · 22.1 s | 58 | 93 |
+| Qwen3.8-27B | **SUC1 side8** | 16.36 | 0.023 | 25.3 | 43 · 0.35 s | 93 · 22.0 s | 59 | 93 |
 | | GGUF Q8_0, llama.cpp | 29.05 | — | 20.8 ⁴ | — | — | 252 | 92 |
 | | MLX 8-bit, LM Studio | ≈ 28.6 | 0.002 | 19.4 ⁴ | — | — | 213 | 89 |
 | | MLX 4-bit, mlx-lm ³ | ≈ 15.2 | 0.045 | 26.0 | 169 (128 tok) | 214 · 9.6 s | — | — |
-| Qwen3-30B-A3B | **SUC1** | 15.93 | 0.064 | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 101 | — |
+| Qwen3-30B-A3B | **SUC1** | 15.93 | 0.065 | 82.4 | 199 · 0.08 s | 367 · 5.6 s | 101 | — |
 | | GGUF Q4_K_M, LM Studio | 18.56 | 0.039 | 93.6 | 192 · 0.07 s | 1,455 · 1.4 s | — | — |
 | | GGUF Q8_0, LM Studio | 32.48 | 0.006 | 79.9 | 146 · 0.09 s | 1,642 · 1.2 s | — | — |
 | | MLX 4-bit, mlx-lm ³ | 17.2 | 0.081 | 74.8 | 753 (128 tok) | — · 1.5 s | — | — |
-| Qwen3.8-Flash-Next | **SUC1 side8** | 96.32 | 0.064 | 28.3 | 55 · 0.27 s | 341 · 6.0 s | 323 | 97 |
+| Qwen3.8-Flash-Next | **SUC1 side8** (chunk 64) | 96.32 | 0.060 | 28.3 | 55 · 0.27 s | 366 · 5.6 s | 219 | 100 |
 | | GGUF Q4, ds4 ⁵ | 177.28 | 0.061 | 33.6 | 47 · 0.31 s | — | 558 | 99 |
-| DeepSeek-V4-Flash | **SUC1 tcq** | 96.82 | 0.235 | 24.0 | 46 · 0.30 s | 171 · 12.0 s | 138 | 103 |
+| DeepSeek-V4-Flash | **SUC1 tcq** | 96.82 | 0.235 | 24.0 | 46 · 0.30 s | 182 · 11.3 s | 142 | 103 |
 | | GGUF IQ2_XXS mix, ds4 | 97.59 | 0.296 | 24.5 | 42 · 0.33 s | — | 224 | 106 |
 | | SUC1 V3, esperti da SSD ⁶ | 155.05 | 0.036 | 13.1 | 43 · 0.36 s | 28 · 74 s | — | — |
 | | GGUF MXFP4, ds4, esperti da SSD | 155.98 | 0.011 | 10.0 | 7 · 1.97 s | — | — | — |
-| GLM-5.3-Flash | **SUC1 tcq** | 99.00 | 0.307 | 22.2 | 35 · 0.41 s | 116 · 17.7 s | 94 | 99 |
+| GLM-5.3-Flash | **SUC1 tcq** | 99.00 | 0.304 | 22.2 | 35 · 0.41 s | 128 · 16.1 s | 97 | 99 |
 | | GGUF Q2, ds4, esperti da SSD | 96.51 | 0.456 | 24.3 | 41 · 0.36 s | — | 117 | 93 |
 
 ³ Sessione storica `suc perf` (2–8 ottobre): decode a contesto 128, prefill a 128 token, TTFT a 2.048. ⁴ Mediana

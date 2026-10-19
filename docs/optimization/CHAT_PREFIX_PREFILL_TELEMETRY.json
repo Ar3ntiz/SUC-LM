@@ -1,0 +1,120 @@
+{
+  "passed": true,
+  "records": [
+    {
+      "case": "initial",
+      "ttft_s": 22.00718095782213,
+      "wall_s": 22.08931745798327,
+      "metrics": {
+        "prompt_tokens": 2136,
+        "completion_tokens": 3,
+        "prefill_s": 22.00563,
+        "decode_s": 0.082098,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4671332640
+      },
+      "prefill_event_wall_s": 22.00717645790428,
+      "prefill_tps_server": 97.06606900143281,
+      "prefill_tps_wall": 97.05924810871485
+    },
+    {
+      "case": "followup",
+      "ttft_s": 1.1656334169674665,
+      "wall_s": 1.3834632921498269,
+      "metrics": {
+        "prompt_tokens": 117,
+        "completion_tokens": 8,
+        "prefill_s": 1.165192,
+        "decode_s": 0.217834,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "b7a127402f71271e895af2fb2038400c2a0ce36c7489a7a66c3a0a7f22cd4a72",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4671627600
+      },
+      "prefill_event_wall_s": 1.16563008306548,
+      "prefill_tps_server": 100.41263585743809,
+      "prefill_tps_wall": 100.37489740510365
+    },
+    {
+      "case": "cancel",
+      "ttft_s": 1.0754496660083532,
+      "wall_s": 1.1038615829311311,
+      "metrics": {
+        "prompt_tokens": 117,
+        "completion_tokens": 1,
+        "prefill_s": 1.075084,
+        "decode_s": 0.028348,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "9b4f1699d6be02ed629f2b3fd0e6645a495750eeb47240c5aede3ed9e4c2f7bb",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4671627600
+      },
+      "prefill_event_wall_s": 1.0754466250073165,
+      "prefill_tps_server": 108.82870547789754,
+      "prefill_tps_wall": 108.7920100164934
+    },
+    {
+      "case": "after_cancel",
+      "ttft_s": 19.541975792031735,
+      "wall_s": 19.74967533396557,
+      "metrics": {
+        "prompt_tokens": 2165,
+        "completion_tokens": 8,
+        "prefill_s": 19.541606,
+        "decode_s": 0.207708,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "text_sha256": "b7a127402f71271e895af2fb2038400c2a0ce36c7489a7a66c3a0a7f22cd4a72",
+      "status": {
+        "requests": 0,
+        "connections": 0,
+        "footprint_bytes": 4671840616
+      },
+      "prefill_event_wall_s": 19.541972124949098,
+      "prefill_tps_server": 110.78925652272386,
+      "prefill_tps_wall": 110.78718085141263
+    }
+  ],
+  "loaded_status": {
+    "requests": 0,
+    "connections": 0,
+    "footprint_bytes": 4484127032
+  },
+  "server_usage": {
+    "prompt_tokens": 2165,
+    "completion_tokens": 8,
+    "total_tokens": 2173,
+    "prompt_tokens_details": {
+      "cached_tokens": 2048
+    }
+  },
+  "server_metrics": {
+    "prefill_s": 1.072738,
+    "decode_s": 0.204517
+  },
+  "independent_hf_token_counts": {
+    "initial": 2136,
+    "followup": 2165
+  },
+  "official_jinja_token_counts": {
+    "initial": 2136,
+    "followup": 2176
+  },
+  "token_count_protocol": "Rust HF tokenizer on exact shared C++ prompt rendering; official Jinja history formatting counted separately, not asserted equivalent",
+  "unload_mapping_released": true
+}

@@ -313,6 +313,10 @@ uint64_t Context::residency_skipped_bytes() const {
 const std::string& Context::device_name() const { return p_->name; }
 const std::string& Context::architecture() const { return p_->arch; }
 const Tuning& Context::tuning() const { return p_->tuning; }
+bool Context::tcq_reuse() const {
+  static const char* override = std::getenv("SUC_TCQ_REUSE");
+  return override ? override[0] == '1' : tcq_reuse_default_;
+}
 bool Context::tuning_cache_found() const { return p_->cache != nullptr; }
 double Context::compile_seconds() const { return p_->compile_s; }
 std::size_t Context::pipelines_compiled() const { return p_->pipelines.size(); }
@@ -699,15 +703,19 @@ void encode_tcq(Context& ctx, MTL::ComputeCommandEncoder* enc, const TcqLayout& 
   // batched prefill: the mma tiles multiply float32 matrices (tcq_matmul rounds the decoded weights and x to the
   // activation dtype: on the tiny glm5 tcq file per-position KL up to 0.245 against token prefill)
   const bool f32mm = path == Path::Prefill;
+  static const bool half_prefill=[] {const char* e=std::getenv("SUC_TCQ_PREFILL_HALF");return e&&e[0]=='1';}();
+  const bool halfmm=f32mm&&half_prefill;
   if (f32mm) path = Path::Auto;
   const bool mma = tcq_mma(bt, path);
-  const int sgs = mma ? 4 : 8;                       // MMA_SG / VEC_SG
-  const int rows = mma ? 8 * 4 : (bt <= 2 ? 4 : 2);  // 8 * MMA_RT / VEC_ROWS (halved above 2 rows)
+  const bool reuse = ctx.tcq_reuse();
+  const int rt=f32mm&&reuse?2:4;
+  const int sgs = mma ? 4 : 8;
+  const int rows = mma ? 8 * rt : (bt <= 2 ? 4 : 2);  // 8 * MMA_RT / VEC_ROWS (halved above 2 rows)
   const PsoKey key{7001, {int64_t(out) | int64_t(in) << 32,
                           int64_t(tl.L) | int64_t(tl.V) << 8 | int64_t(tl.KV) << 16 | int64_t(tl.code) << 24 |
                               int64_t(tl.NW) << 32,
                           int64_t(tl.T), int64_t(bt),
-                          int64_t(mma) | int64_t(mode) << 1 | int64_t(scales_f16) << 3 | int64_t(f32mm && mma) << 4,
+                          int64_t(mma) | int64_t(mode) << 1 | int64_t(scales_f16) << 3 | int64_t(f32mm && mma) << 4 | int64_t(halfmm) << 5 | int64_t(rt) << 8,
                           int64_t(xa), int64_t(ya)}};
   enc->setComputePipelineState(ctx.pipeline(key, [&]() {
     const std::string name = std::string(mode ? "suc_tcq_switch_" : "suc_tcq_") + (mma ? "mma" : "vec") +
@@ -715,7 +723,7 @@ void encode_tcq(Context& ctx, MTL::ComputeCommandEncoder* enc, const TcqLayout& 
     // TXX, TSC, L, V, KV, T, NW, IN, OUT, BT, CODE (tcq_matmul_metal template order, after the input dtypes)
     std::string targs = join({act_msl(xa), scales_f16 ? "half" : "float", I(tl.L), I(tl.V), I(tl.KV), I(tl.T),
                               I(tl.NW), I(long(in)), I(long(out)), I(long(bt)), I(tl.code)});
-    if (mma) targs += ", " + join({I(sgs), "4", I(long((bt + 7) / 8)), f32mm ? "float" : act_msl(xa), act_msl(ya)});
+    if (mma) targs += ", " + join({I(sgs), I(rt), I(long((bt + 7) / 8)), f32mm ? (halfmm ? "half" : "float") : act_msl(xa), act_msl(ya)});
     else targs += ", " + join({I(sgs), I(rows), act_msl(ya)});
     return std::pair<std::string, std::string>{name, targs};
   }));

@@ -1,6 +1,6 @@
 # Semantic Universal Compression (SUC)
 
-English version: [spec.md](spec.md)
+Versione inglese: [spec.md](spec.md)
 
 **Specifica di implementazione per un agente di programmazione LLM**  
 **Hardware di sviluppo:** Mac Studio Apple Silicon con chip Ultra e ≥ 128 GB di memoria unificata — M1 Ultra e successivi (M2 Ultra, M3 Ultra, … fino all'attuale M5 Ultra). Le misure di riferimento del progetto sono state prese su un M1 Ultra 128 GB, la configurazione supportata più vecchia; i chip Ultra più recenti (più banda e più core GPU) dovrebbero essere più veloci, ma qui non sono misurati.  
@@ -55,7 +55,7 @@ L'obiettivo di ricerca primario è il n. 4.
 
 # 0. Decisioni di progetto (emendamenti, 2026-09-30)
 
-Queste decisioni sono state concordate con il responsabile del progetto dopo la revisione della specifica originale. **Dove sono in conflitto con una sezione successiva, prevale questa sezione.** Ogni sezione successiva interessata riporta una nota `(see D#)`.
+Queste decisioni sono state concordate con il responsabile del progetto dopo la revisione della specifica originale. **Dove sono in conflitto con una sezione successiva, prevale questa sezione.** Ogni sezione successiva interessata riporta una nota `(vedi D#)`.
 
 ### D1 — Due track paralleli invece di un'unica sequenza
 
@@ -1993,37 +1993,37 @@ Includere tutti i risultati negativi.
 L'agente di programmazione deve seguire questo ordine, a meno che un esperimento documentato non dimostri un motivo per cambiarlo. Secondo D1 il lavoro procede su due track; all'interno di un track, l'ordine è rigido.
 
 ```text
-SHARED FOUNDATION
- 1. Baseline inference (FP16 + MLX 4-bit + AWQ/GPTQ where possible)
- 2. Reproducible benchmark harness
- 3. Weight structure analysis
- 4. Calibration + sensitivity proxies (D5)
+FONDAMENTA CONDIVISE
+ 1. Inferenza di riferimento (FP16 + MLX a 4 bit + AWQ/GPTQ dove possibile)
+ 2. Infrastruttura di benchmark riproducibile
+ 3. Analisi della struttura dei pesi
+ 4. Calibrazione e stime della sensibilità (D5)
 
-QUALITY TRACK (reconstructed weights, evaluated in MLX)
- Q1. Scalar codebook baseline
- Q2. Vector codebook (within D4 ceiling)
- Q3. Incoherence processing (D3)
- Q4. Multi-codebook
- Q5. Residual/outlier support
- Q6. Codebook fine-tuning (D3)
- Q7. Greedy semantic bit allocator (granularity per D6)
- Q8. SUC container + Python reference decoder
+PERCORSO QUALITÀ (pesi ricostruiti, valutati in MLX)
+ Q1. Riferimento con codebook scalare
+ Q2. Codebook vettoriale (entro il limite D4)
+ Q3. Elaborazione per ridurre la coerenza (D3)
+ Q4. Codebook multipli
+ Q5. Supporto dei residui e dei valori anomali
+ Q6. Affinamento del codebook (D3)
+ Q7. Allocatore semantico greedy dei bit (granularità secondo D6)
+ Q8. Contenitore SUC e decoder Python di riferimento
 
-KERNEL TRACK (starts after Q2)
- K1. Metal correctness kernel (mx.fast.metal_kernel)
- K2. Fused Metal kernel
- K3. Single linear layer benchmark  <-- §43 gate
- K4. Multi-codebook / residual / rotation kernels
+PERCORSO KERNEL (inizia dopo Q2)
+ K1. Kernel Metal per la verifica di correttezza (mx.fast.metal_kernel)
+ K2. Kernel Metal fuso
+ K3. Benchmark di un singolo strato lineare  <-- verifica §43
+ K4. Kernel per codebook multipli, residui e rotazioni
 
-MERGE
- 5. Full transformer integration (mixed representations)
- 6. Entropy coding (storage only)
- 7. Ablation studies
- 8. Pareto frontier
- 9. Universal/adaptive allocation experiments
-10. Large-model scaling (fuori ambito per D7 / D8; fatto comunque con la pipeline finita, vedi D8)
-11. C++ runtime (D2 — obbligatorio, rinviato; completato)
-12. Optional llama.cpp/GGUF integration (non realizzata; i GGUF sono usati solo come baseline di confronto)
+INTEGRAZIONE
+ 5. Integrazione dell’intero transformer (rappresentazioni miste)
+ 6. Codifica entropica (solo archiviazione)
+ 7. Studi di ablazione
+ 8. Frontiera di Pareto
+ 9. Esperimenti di allocazione universale/adattiva
+10. Scalabilità a modelli grandi (fuori ambito per D7 / D8; realizzata con la pipeline finita, vedi D8)
+11. Runtime C++ (D2 — obbligatorio, rinviato; completato)
+12. Integrazione opzionale con llama.cpp/GGUF (non realizzata; i GGUF sono solo riferimenti di confronto)
 ```
 
 Se una fase fallisce, diagnosticarla e correggerla prima di scalare.

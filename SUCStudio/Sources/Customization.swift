@@ -11,21 +11,23 @@ extension StudioStore {
         }
     }
     func saveSkill(_ skill: StudioSkill) {
-        guard !skill.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, skill.instructions.utf8.count <= 64 * 1024 else { error = "Nome obbligatorio; istruzioni della skill fino a 64 KiB."; return }
+        guard !skill.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, skill.instructions.utf8.count <= 64 * 1024, (skill.description ?? "").utf8.count <= 4 * 1024 else { error = "Titolo obbligatorio; descrizione fino a 4 KiB e istruzioni fino a 64 KiB."; return }
         var skills = archive.settings.skills ?? []
         if let index = skills.firstIndex(where: { $0.id == skill.id }) { skills[index] = skill } else { skills.append(skill) }
         archive.settings.skills = skills; scheduleSave()
     }
     func importSkill() {
-        let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
-        panel.message = "Scegli SKILL.md o un file di istruzioni testuale"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=true;panel.allowsMultipleSelection=false
+        panel.message="Scegli SKILL.md o una cartella skill con risorse"
+        guard panel.runModal() == .OK,let url=panel.url else{return}
         do {
-            let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-            guard size <= 64 * 1024 else { throw AttachmentReader.failure("Skill oltre 64 KiB.") }
-            let value = try AttachmentReader.read(url)
-            saveSkill(StudioSkill(name: url.lastPathComponent == "SKILL.md" ? url.deletingLastPathComponent().lastPathComponent : url.deletingPathExtension().lastPathComponent, instructions: value.text))
-        } catch { self.error = error.localizedDescription }
+            let directory=(try url.resourceValues(forKeys:[.isDirectoryKey]).isDirectory)==true
+            let root=directory ? url:url.deletingLastPathComponent()
+            if directory || url.lastPathComponent=="SKILL.md" {
+                let target=try ExtensionFiles.copy(root,kind:"Skills")
+                do {saveSkill(try SkillDocument.directory(target))} catch {try? FileManager.default.removeItem(at:target);throw error}
+            } else {saveSkill(SkillDocument.parse(try ExtensionFiles.read(url),fallbackName:url.deletingPathExtension().lastPathComponent))}
+        } catch {self.error=error.localizedDescription}
     }
     func saveMCP(_ configuration: MCPConfiguration, credentials: [String: String]) throws {
         guard !configuration.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw MCPConnection.failure("Nome server obbligatorio.") }

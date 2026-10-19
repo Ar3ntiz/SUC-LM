@@ -2,6 +2,22 @@ import Foundation
 @main struct RemoteTests {
  @MainActor static func main() async throws {
   precondition(RemoteInference.generationInactivityLimit>600 && RemoteInference.generationResourceLimit>600)
+  var cachedTelemetry=RemoteTelemetry()
+  cachedTelemetry.ingest(["suc_metrics":["prefill_s":0.5]])
+  cachedTelemetry.ingest(["usage":["prompt_tokens":1000,"prompt_tokens_details":["cached_tokens":800]]])
+  precondition(cachedTelemetry.payload()["prefill_tps"] as? Double==400)
+  var cachedMetrics=Metrics();cachedMetrics.promptTokens=1000;cachedMetrics.cachedPromptTokens=800;cachedMetrics.prefillSeconds=0.5
+  precondition(cachedMetrics.prefillRate==400)
+  cachedTelemetry.ingest(["usage":["completion_tokens":21]])
+  precondition(cachedTelemetry.payload()["prefill_tps"] as? Double==400)
+  cachedTelemetry.ingest(["usage":["prompt_tokens_details":["cached_tokens":1000]]])
+  precondition(cachedTelemetry.payload()["prefill_tps"]==nil)
+  cachedMetrics.cachedPromptTokens=1000;precondition(cachedMetrics.prefillRate==nil)
+  var llamaTelemetry=RemoteTelemetry()
+  llamaTelemetry.ingest(["usage":["prompt_tokens":1000,"prompt_tokens_details":["cached_tokens":800]],"timings":["prompt_n":200,"prompt_ms":500]])
+  precondition(llamaTelemetry.payload()["prefill_tps"] as? Double==400)
+  llamaTelemetry.ingest(["timings":["prompt_per_second":375]])
+  precondition(llamaTelemetry.payload()["prefill_tps"] as? Double==375)
   let p=Process(), pipe=Pipe();p.executableURL=URL(fileURLWithPath:"/usr/bin/python3");p.arguments=[CommandLine.arguments[1]];p.standardOutput=pipe
   try p.run();defer{p.terminate()}
   guard let port=Int(String(decoding:pipe.fileHandleForReading.availableData,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)) else {throw MCPConnection.failure("Fixture HTTP non disponibile")}
@@ -43,6 +59,23 @@ import Foundation
   let quiet=RemoteInference(quietOptions,key:"test");defer{quiet.stop()};var quietMetrics=0
   try await quiet.generate(body){if $0["event"] as? String=="metrics"{quietMetrics+=1}}
   precondition(quietMetrics==1)
+  for (model,expected) in [("eof","EOF"),("unicode","Città 🌍"),("json","JSON response")] {
+   var options=config;options.model=model
+   let reader=RemoteInference(options,key:"test");defer{reader.stop()};var received="",metrics:[String:Any]=[:]
+   try await reader.generate(body){event in
+    let payload=event["payload"] as? [String:Any] ?? [:]
+    if event["event"] as? String=="delta"{received+=payload["text"] as? String ?? ""}
+    if event["event"] as? String=="metrics"{metrics=payload}
+   }
+   precondition(received==expected)
+   if model=="json"{precondition(metrics["prefill_tps"] as? Double==400)}
+  }
+  for model in ["oversized-line","oversized-total","oversized-json"] {
+   var options=config;options.model=model
+   let oversized=RemoteInference(options,key:"test");defer{oversized.stop()}
+   do{try await oversized.generate(body){_ in};preconditionFailure("Response limit expected")}
+   catch {precondition(error.localizedDescription.contains(model=="oversized-total" ? "16 MiB":"troppo grande"))}
+  }
   let bad=RemoteInference(config,key:"");defer{bad.stop()}
   do{_ = try await bad.models();preconditionFailure("401 expected")}catch{precondition(error.localizedDescription.contains("401"))}
   config.model="slow";let slow=RemoteInference(config,key:"test")

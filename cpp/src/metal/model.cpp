@@ -1,6 +1,7 @@
 // Qwen3 dense model graph on the Metal backend (see suc/model.hpp). Kernels: cpp/metal/suc_model_kernels.metal
 // (MLX-order ports of the ops the Python runtime takes from MLX) and the SUC projection kernels of metal::Linear.
 #include "suc/model.hpp"
+#include "suc/prompt_lookup.hpp"
 #include "suc/expert_stream.hpp"
 #include "suc/switch.hpp"
 
@@ -718,8 +719,11 @@ struct Model::Impl {
         return;
       }
     }
-    enc->setComputePipelineState(ctx->pipeline(PsoKey{104, {int64_t(D), int64_t(opt.act)}}, [&]() {
-      return std::pair<std::string, std::string>{"suc_sdpa_vector", join({T(), I(long(D)), I(long(D))})};
+    static const bool query_tiles=[] {const char* e=std::getenv("SUC_PREFILL_QUERY_TILE");return e&&e[0]=='1';}();
+    const bool tiled=query_tiles&&rows>1&&D%32==0;
+    enc->setComputePipelineState(ctx->pipeline(PsoKey{104, {int64_t(D), int64_t(opt.act), int64_t(tiled)}}, [&]() {
+      return std::pair<std::string, std::string>{tiled?"suc_sdpa_queries":"suc_sdpa_vector",
+          join({T(), I(long(D)), I(long(D))})+(tiled?", 2":"")};
     }));
     set(enc, q, 0);
     set(enc, kc, 1);
@@ -734,7 +738,8 @@ struct Model::Impl {
     enc->setBytes(&head_stride, sizeof head_stride, 8);
     enc->setBytes(&seq_stride, sizeof seq_stride, 9);
     enc->setBytes(&attn_scale, sizeof attn_scale, 10);
-    enc->dispatchThreadgroups(MTL::Size(cfg.heads, rows, 1), MTL::Size(1024, 1, 1));
+    if(tiled){const uint32_t nr=uint32_t(rows);enc->setBytes(&nr,4,11);}
+    enc->dispatchThreadgroups(MTL::Size(cfg.heads, tiled?(rows+1)/2:rows, 1), MTL::Size(1024, 1, 1));
   }
 
   // argmax of logits row `row` into amax[row], or into `dst` when given (the next token slot of the token buffer)
@@ -840,6 +845,7 @@ void Model::Impl::encode_chunk(MTL::ComputeCommandEncoder*& enc, std::size_t pos
 }
 
 Model::Model(Context& ctx, const MappedFile& mf, const ModelOptions& opt) : p_(std::make_unique<Impl>()) {
+  ctx.set_tcq_reuse_default(false);
   Pool pool;
   Impl& m = *p_;
   m.ctx = &ctx;
@@ -997,6 +1003,32 @@ std::vector<uint32_t> Model::forward(const std::vector<uint32_t>& tokens, Logits
     const auto* am = static_cast<const uint32_t*>(m.amax->contents());
     out.insert(out.end(), am, am + lrows);
   }
+  return out;
+}
+
+void Model::rewind(std::size_t position) {
+  if(position>p_->pos)fail("rewind beyond the live KV prefix");
+  p_->pos=position;p_->logit_rows=0;
+}
+std::vector<uint32_t> Model::generate_lookup(uint32_t first,std::size_t steps,const std::vector<uint32_t>& prompt,
+    std::size_t window,SpeculativeStats* stats,std::optional<uint32_t> stop){
+  if(!window||window>p_->opt.chunk)fail("lookup window must fit the allocated chunk");
+  if(p_->opt.expert_stream)fail("lookup verification is not supported with SSD experts");
+  std::vector<uint32_t> history=prompt,out;history.push_back(first);
+  const auto start=std::chrono::steady_clock::now();
+  while(out.size()<steps){
+    const auto pos=position();
+    auto draft=suc::lookup_draft(history,std::min(window,steps-out.size()));
+    const auto predictions=forward(draft,Logits::All);
+    std::size_t accepted=1;
+    while(accepted<draft.size()&&draft[accepted]==predictions[accepted-1])++accepted;
+    if(stats){++stats->batches;stats->proposed+=draft.size()-1;stats->accepted+=accepted-1;}
+    std::size_t emitted=0;bool stopped=false;
+    for(std::size_t i=0;i<accepted;++i){out.push_back(predictions[i]);history.push_back(predictions[i]);++emitted;if(stop&&predictions[i]==*stop){stopped=true;break;}}
+    rewind(pos+emitted);
+    if(stopped)break;
+  }
+  if(stats)stats->seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
   return out;
 }
 

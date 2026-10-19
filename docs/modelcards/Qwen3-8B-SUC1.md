@@ -41,17 +41,17 @@ tags:
 
 ## Quality
 
-Next-token KL divergence and top-1 agreement against the original model on 16 × 512 held-out positions (lower KL is better); WikiText-2 test perplexity.
+C++ runtime next-token KL and top-1 against the original BF16 reference on 16 × 512 held-out tokens (8176 scored positions; lower KL is better); existing WikiText-2 test perplexity.
 
 | | KL | top-1 | PPL original → SUC1 |
 |---|---:|---:|---|
-| This model | 0.049 | 0.902 | 9.72 → 9.99 |
+| This model | 0.050 | 0.902 | 9.72 → 9.99 |
 
-Same protocol, other formats:
+Other formats (historical reconstructed-weight evaluation):
 
 | Format | Size GB | KL |
 |---|---:|---:|
-| SUC1 (this model) | 4.32 | 0.049 |
+| SUC1 (this model) | 4.32 | 0.050 |
 | GGUF Q4_K_M (llama.cpp, no imatrix) | 5.03 | **0.040** |
 | GGUF Q3_K_M | 4.12 | 0.126 |
 | MLX affine 4-bit | 4.61 | 0.092 |
@@ -60,11 +60,11 @@ Core suite (30 graded smoke-test questions): 29/30.
 
 ## Speed
 
-Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime. TTFT = prompt processing + first token.
+Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime: short input and 2k retain the earlier 256-token measurements; 32k uses one bounded 8-token run. TTFT = prompt processing + first token.
 
 | Decode tok/s | Prefill tok/s · TTFT, short prompt | Prefill tok/s · TTFT, 2k tokens | Prefill tok/s · TTFT, 32k tokens |
 |---:|---:|---:|---:|
-| 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 · 309 s |
+| 76.3 | 128 · 0.11 s | 304 · 6.8 s | 106 · 308 s |
 
 | Runtime / format | Decode tok/s | Prefill tok/s · TTFT, 2k |
 |---|---:|---:|

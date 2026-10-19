@@ -6,5 +6,5 @@ SOURCES=()
 for file in "$ROOT"/Sources/*.swift; do
   [[ "$file" == */SUCStudioApp.swift ]] || SOURCES+=("$file")
 done
-xcrun swiftc -swift-version 5 -module-cache-path "$OUT/swift-cache" -parse-as-library "${SOURCES[@]}" "$ROOT/tests/RenderPreview.swift" -o "$OUT/render-preview"
+xcrun swiftc -swift-version 5 -whole-module-optimization -module-cache-path "$OUT/swift-cache" -parse-as-library "${SOURCES[@]}" "$ROOT/tests/RenderPreview.swift" -o "$OUT/render-preview"
 "$OUT/render-preview" "$@"

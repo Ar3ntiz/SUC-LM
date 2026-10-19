@@ -1,0 +1,22 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
+const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8'),commands=[];
+const dom=new JSDOM(html,{url:'https://studio.invalid/',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.HTMLElement.prototype.scrollIntoView=function(){};w.Studio={command:s=>commands.push(JSON.parse(s))};w.matchMedia=()=>({matches:false});w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.document.execCommand=()=>true}});
+const w=dom.window,server={url:'https://example.org/v1',model:'demo'},session={id:'session-1',title:'Chat <test>',unread:false};
+function snapshot(messages=[],extra={}){w.nativeEvent('state',{sessions:[session],selected:session.id,messages,settings:{server,skills:[],plugins:[],mcp:[],maxTokens:4000},attachments:[],...extra})}
+snapshot([{id:'message-1',role:'assistant',text:'# Titolo\n\n**grassetto** [link](https://example.org)\n\n```html\n<script>alert(1)</script>\n```\n\n| A | B |\n|---|---|\n| 1 | 2 |'}]);
+assert(w.document.querySelector('#transcript h1'));assert(w.document.querySelector('#transcript strong'));assert(w.document.querySelector('#transcript table'));assert(w.document.querySelector('[data-save]'));assert(!w.document.querySelector('#transcript script'));assert.equal(w.document.getElementById('chatTitle').textContent,'Chat <test>');
+snapshot([{id:'reason',role:'assistant',text:'<think>Ragiono sui dati</think>Risposta finale'}]);assert.equal(w.document.querySelector('.reasoning .body').textContent,'Ragiono sui dati');assert(w.document.querySelector('#transcript').textContent.includes('Risposta finale'));
+snapshot([{id:'user',role:'user',text:'Messaggio originale'},{id:'assistant',role:'assistant',text:'Risposta'}]);w.editMessage('user');w.document.getElementById('composer').value='Modificato';w.submit();assert.equal(commands.at(-1).type,'edit');assert.equal(commands.at(-1).id,'user');assert(!commands.some(c=>c.type==='new'));
+snapshot([],{pending:{session:'session-1',title:'web_search',detail:'query'},busy:true,activeSession:'session-1'});assert(w.document.querySelector('.approval'));assert(!w.document.querySelector('dialog[open]'));
+w.nativeEvent('webStatus',{session:'session-1',verification:true,text:'Verifica CAPTCHA richiesta'});assert(!w.document.querySelector('#webBanner').classList.contains('hidden'));assert(w.document.querySelector('#webBanner').textContent.includes('Risolvi CAPTCHA'));w.nativeEvent('webStatus',{});assert(w.document.querySelector('#webBanner').classList.contains('hidden'));
+w.tab('settings');assert(w.document.querySelector('#maxTokens'));assert.equal(w.document.querySelector('#maxTokens').value,'4000');assert(w.document.querySelector('#settingsContent').textContent.includes('Sampling avanzato'));w.skillEditor();w.applySkillSample('review');assert(w.document.querySelector('#skillInstructions').value.length>30);w.document.getElementById('modal').close();
+w.tab('chat');snapshot([{id:'code',role:'assistant',text:'[non sicuro](javascript:alert(1))\n<img src=x onerror=alert(1)>'}]);assert(!w.document.querySelector('#transcript img'));assert(!Array.from(w.document.querySelectorAll('#transcript a')).some(a=>a.href.startsWith('javascript:')));
+w.renderStats({prefill:400,decode:20,cachedTokens:800,completionTokens:21,prefillEstimated:false,decodeEstimated:false});
+assert(w.document.getElementById('stats').textContent.includes('Prefill 400.0'));
+assert(w.document.getElementById('stats').textContent.includes('800 token in cache'));
+w.renderStats({prefill:null,decode:20,cachedTokens:1000,prefillEstimated:false,decodeEstimated:false});
+assert(w.document.getElementById('stats').textContent.includes('Prefill —'));
+assert(!w.document.getElementById('stats').textContent.includes('≈ stima'));
+w.renderStats({prefill:120,decode:35});assert(!w.document.getElementById('stats').textContent.includes('token in cache'));
+const source=fs.readFileSync(path.join(__dirname,'../ui/index.html'),'utf8');assert(source.includes('overflow:auto;flex:1;min-height:0'));assert(source.includes("follow=false"));assert(!/\?\./.test(html.match(/<script>([\s\S]*?)<\/script>/)[1]));
+console.log('UI: Markdown/XSS, thinking, inline approvals, edit-in-place, samples, ES2017 asset and scrolling structure PASS');dom.window.close();

@@ -1,5 +1,7 @@
 # Prompt prefill: SUC C++ runtime vs ds4
 
+Runtime 1.4.7 update: [combined SUC before/after measurements](optimization/COMBINED_RESULTS.md) and [prefill policy](optimization/INFERENCE_1.4.7.md). Comparator engines in this document were not rerun during this refactoring; retain the historical paired protocols below. New SUC kernel measurements must not be substituted into an old cross-runtime ratio with different prompts/chunks.
+
 Question: why does ds4 prefill long prompts several times faster than the SUC C++ runtime, while decode is at
 parity? What would it take to bring SUC to the same level?
 

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "portable-review",
+  "version": "1.0.0",
+  "description": "Esempio di revisione del codice con skill e hook di contesto."
+}

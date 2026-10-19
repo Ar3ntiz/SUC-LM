@@ -42,13 +42,13 @@ tags:
 
 ## Quality
 
-Next-token KL divergence and top-1 agreement against the original model on 16 × 512 held-out positions (lower KL is better); WikiText-2 test perplexity.
+C++ runtime next-token KL and top-1 against the original BF16 reference on 16 × 512 held-out tokens (8176 scored positions; lower KL is better); existing WikiText-2 test perplexity.
 
 | | KL | top-1 | PPL original → SUC1 |
 |---|---:|---:|---|
-| This model | 0.023 | 0.95 | 7.05 → 7.15 |
+| This model | 0.023 | 0.949 | 7.05 → 7.15 |
 
-Same protocol, other formats:
+Other formats (historical reconstructed-weight evaluation):
 
 | Format | Size GB | KL |
 |---|---:|---:|
@@ -69,15 +69,15 @@ Core suite (30 graded smoke-test questions): 30/30.
 
 ## Speed
 
-Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime. TTFT = prompt processing + first token.
+Mac Studio M1 Ultra (128 GB), batch 1, greedy, SUC C++ runtime: short input uses the earlier 256-token measurement; 2k uses three 64-token runs; 32k uses one bounded 8-token run. TTFT = prompt processing + first token.
 
 | Decode tok/s | Prefill tok/s · TTFT, short prompt | Prefill tok/s · TTFT, 2k tokens | Prefill tok/s · TTFT, 32k tokens |
 |---:|---:|---:|---:|
-| 25.3 | 43 · 0.35 s | 93 · 22.1 s | 58 · 564 s |
+| 25.3 | 43 · 0.35 s | 93 · 22.0 s | 59 · 558 s |
 
 | Runtime / format | Decode tok/s | Prefill tok/s · TTFT, 2k |
 |---|---:|---:|
-| SUC1 (SUC C++) | 25.3 | 93 · 22.1 s |
+| SUC1 (SUC C++) | 25.3 | 93 · 22.0 s |
 | GGUF Q8_0 (llama.cpp) ² | 20.8 | — |
 | MLX 8-bit (LM Studio) ² | 19.4 | — |
 | MLX 4-bit (mlx-lm) ³ | 26.0 | 214 · 9.6 s |
@@ -91,15 +91,15 @@ Batched prompt prefill is not bit-identical to token-by-token prefill (small, me
 Requires an Apple Silicon Mac and the SUC C++ runtime (build: `cpp/build.sh ~/suc-local/cpp-build` in the SUC repository).
 
 ```bash
-hf download Ar3ntiz/Qwen3.8-27B-SUC1-side8 --local-dir ~/Models/Qwen3.8-27B-SUC1-side8
-~/suc-local/cpp-build/suc1-generate ~/Models/Qwen3.8-27B-SUC1-side8/model.suc1 \
-    --tokenizer ~/Models/Qwen3.8-27B-SUC1-side8/tokenizer.json --chat --prompt "Hello!" --steps 256
+hf download Ar3ntiz/qwen3_27B_side8 --local-dir ~/Models/Qwen3.8-27B-SUC1-side8
+~/suc-local/cpp-build/suc1-generate ~/Models/Qwen3.8-27B-SUC1-side8/Qwen3.8_27B_side8.suc1 \
+    --tokenizer ~/Models/Qwen3.8-27B-SUC1-side8/Qwen3.8_27B_side8-tokenizer.json --chat --prompt "Hello!" --steps 256
 ```
 
 OpenAI-compatible server (`/v1/chat/completions`, `/v1/completions`, streaming):
 
 ```bash
-~/suc-local/cpp-build/suc1-server ~/Models/Qwen3.8-27B-SUC1-side8/model.suc1 --tokenizer ~/Models/Qwen3.8-27B-SUC1-side8/tokenizer.json \
+~/suc-local/cpp-build/suc1-server ~/Models/Qwen3.8-27B-SUC1-side8/Qwen3.8_27B_side8.suc1 --tokenizer ~/Models/Qwen3.8-27B-SUC1-side8/Qwen3.8_27B_side8-tokenizer.json \
     --port 8080 --max-context 32768
 ```
 

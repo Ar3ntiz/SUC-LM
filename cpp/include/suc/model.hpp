@@ -135,6 +135,13 @@ class Model {
                                  GenerateStats* stats = nullptr, std::optional<uint32_t> stop = std::nullopt,
                                  const std::function<bool(uint32_t)>& on_token = nullptr);
 
+  // Experimental greedy verification of prompt-lookup drafts. Full-attention
+  // qwen3 graphs only; batched verification can change floating-point rounding.
+  struct SpeculativeStats { std::size_t batches=0, proposed=0, accepted=0; double seconds=0; };
+  void rewind(std::size_t position);
+  std::vector<uint32_t> generate_lookup(uint32_t first,std::size_t steps,const std::vector<uint32_t>& prompt,
+      std::size_t window,SpeculativeStats* stats=nullptr,std::optional<uint32_t> stop=std::nullopt);
+
   // Results of the last command buffer (host copies, converted to float32 from the activation dtype).
   std::vector<float> logits() const;                 // (rows with logits, vocab)
   std::vector<float> hidden_states() const;          // (n, layers + 1, hidden): h0 = embedding, h_l after layer l

@@ -99,6 +99,10 @@ class Context {
   std::string device_key() const { return architecture() + "|" + device_name(); }
   const Tuning& tuning() const;
   bool tuning_cache_found() const;
+  // Qualified on DeepSeek/GLM; other model families retain their old default.
+  // SUC_TCQ_REUSE=0/1 overrides this for reproducible A/B runs.
+  void set_tcq_reuse_default(bool enabled) { tcq_reuse_default_ = enabled; }
+  bool tcq_reuse() const;
 
   // Resolved choices (= vq_matmul.resolve_codebook_in / mma_min_batch, rotation.block_config).
   std::string codebook_in(int m) const;                // "device" | "threadgroup"
@@ -153,6 +157,7 @@ class Context {
   uint64_t residency_skipped_bytes() const;   // bytes left out (cap reached)
 
  private:
+  bool tcq_reuse_default_ = false;
   struct Impl;
   std::unique_ptr<Impl> p_;
 };

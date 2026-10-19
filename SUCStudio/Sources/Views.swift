@@ -12,7 +12,7 @@ struct StudioRoot: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 18) {
                 Button { store.archive.settings.sectionSidebarCollapsed = !(store.archive.settings.sectionSidebarCollapsed ?? true); store.scheduleSave() } label: {
-                    HStack { Image(systemName: "sidebar.left"); if !(store.archive.settings.sectionSidebarCollapsed ?? true) { Text("SUC Studio").font(StudioTypography.ui(.headline)) } }
+                    HStack { Image(systemName: "sidebar.left"); if !(store.archive.settings.sectionSidebarCollapsed ?? true) { Text(StudioPlatform.name).font(StudioTypography.ui(.headline)) } }
                 }.buttonStyle(.plain).help("Espandi/comprimi sezioni").accessibilityLabel("Espandi o comprimi la barra delle sezioni")
                 ForEach(["chat", "server", "settings"], id: \.self) { item in
                     Button { store.tab = item } label: {
@@ -41,7 +41,7 @@ struct StudioRoot: View {
         .tint(studioAccent)
         .preferredColorScheme(store.archive.settings.appearance == "dark" ? .dark : store.archive.settings.appearance == "light" ? .light : nil)
         .safeAreaInset(edge:.top,spacing:0) { GlobalActivityView().environmentObject(store) }
-        .alert("SUC Studio", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
+        .alert(StudioPlatform.name, isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK") { store.error = nil }
         } message: { Text(store.error ?? "") }
     }
@@ -103,11 +103,14 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 5) {
                     ForEach(filteredSessions) { session in
-                        Button { store.archive.selected = session.id; store.scheduleSave() } label: {
+                        Button { store.selectSession(session.id) } label: {
                             HStack(alignment: .top, spacing: 9) {
                                 Image(systemName: session.pinned ? "pin.fill" : "bubble.left").foregroundStyle(.secondary).padding(.top, 3)
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text(session.title).font(StudioTypography.ui(size: 13, weight: .medium)).lineLimit(2)
+                                    HStack(spacing:6) {
+                                        Text(session.title).font(StudioTypography.ui(size:13,weight:.medium)).lineLimit(2)
+                                        if session.hasUnreadMessages==true {Circle().fill(Color.yellow).frame(width:7,height:7).accessibilityLabel("Messaggi non letti").help("Nuovi messaggi o approvazioni nella chat")}
+                                    }
                                     Text(session.updated, style: .date).font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
                                 }
                                 Spacer(minLength: 0)
@@ -174,9 +177,9 @@ struct ChatView: View {
             .onChange(of:store.selected?.messages.count) { _,_ in requestBottom(reader) }
             .onChange(of:store.approvals.map(\.id)) { _,_ in requestBottom(reader) }
             .onChange(of:store.archive.selected.flatMap{store.terminals[$0]?.output}) { _,_ in requestBottom(reader) }
-            .onChange(of:store.archive.selected) { _,_ in scrollPolicy.resume();requestBottom(reader) }
+            .onChange(of:store.archive.selected) { _,id in if let id {store.markSessionRead(id)};scrollPolicy.resume();requestBottom(reader) }
             .onChange(of:follow) { _,value in if value {requestBottom(reader)} }
-            .onAppear { requestBottom(reader) }
+            .onAppear { if let id=store.archive.selected {store.markSessionRead(id)};requestBottom(reader) }
             .onDisappear {bottomTask?.cancel()}
             .overlay(alignment:.bottomTrailing) { if !follow {
                 Button {scrollPolicy.resume();requestBottom(reader)} label:{Label("Vai alla fine",systemImage:"arrow.down")}.buttonStyle(.bordered).padding()
@@ -224,6 +227,9 @@ struct ChatView: View {
                 ComposeEditor(text: Binding(get: { store.selected?.draft ?? "" }, set: { value in store.mutateSelected { $0.draft = value } }), onSend: { store.sendMessage(); scrollPolicy.resume() }, onFiles: { store.attachFiles($0) },onCode:{offset in if let id=store.archive.selected{codeInsertion=CodeInsertion(sessionID:id,offset:offset)}}).frame(height:min(composerHeight,max(82,availableHeight*0.55)))
                 HStack {
                     Button { store.pickAttachments() } label: { Image(systemName: "paperclip") }.buttonStyle(.plain).help("Allega immagini, testo, Word, OpenDocument o PDF").disabled(store.selectedAttachmentsLoading)
+                    Menu {ForEach((store.archive.settings.skills ?? []).filter{$0.enabled}){skill in
+                        Button(skill.displayName ?? skill.name){store.mutateSelected{$0.draft += ($0.draft.isEmpty ? "":" ")+"@"+skill.name+" "+(skill.defaultPrompt ?? "")}}
+                    }} label:{Image(systemName:"sparkles")}.menuStyle(.borderlessButton).fixedSize().help("Richiama una skill attiva")
                     Button { if let id = store.archive.selected { toolSession = ToolSession(id: id) } } label: { Image(systemName: "wrench.and.screwdriver") }.buttonStyle(.plain).help("Strumenti MCP")
                     Text("Invio per inviare · ⇧ Invio a capo").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary)
                     Spacer()
@@ -251,7 +257,7 @@ struct ChatView: View {
             TextEditor(text: Binding(get: { store.selected?.systemPrompt ?? "" }, set: { v in store.mutateSelected { $0.systemPrompt = v } })).frame(height: 100).overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
             HStack { Text("Temperatura"); Spacer(); Text(String(format: "%.2f", store.selected?.temperature ?? 0.7)).monospacedDigit() }
             Slider(value: Binding(get: { store.selected?.temperature ?? 0.7 }, set: { v in store.mutateSelected { $0.temperature = v } }), in: 0...2)
-            Stepper("Output max: \(store.selected?.maxTokens ?? 512)", value: Binding(get: { store.selected?.maxTokens ?? 512 }, set: { v in store.mutateSelected { $0.maxTokens = v } }), in: 1...32768, step: 128)
+            Stepper("Output max: \(store.selected?.maxTokens ?? 4000)", value: Binding(get: { store.selected?.maxTokens ?? 4000 }, set: { v in store.mutateSelected { $0.maxTokens = v } }), in: 1...32768, step: 128)
             Toggle("Thinking (se supportato)", isOn: Binding(get: { store.selected?.thinking ?? false }, set: { v in store.mutateSelected { $0.thinking = v } }))
             DisclosureGroup("Sampling avanzato") {
                 VStack(alignment:.leading,spacing:9) {
@@ -278,6 +284,12 @@ struct MessageCard: View {
     var edit: () -> Void
     var regenerate: () -> Void
     var body: some View {
+        Group {
+            if message.isUIReport {ActivityMessageBox(message:message)}
+            else {regularMessage}
+        }
+    }
+    private var regularMessage: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
                 Label(message.isUIReport ? "Attività" : message.role == "user" ? "Tu" : "SUC", systemImage: message.isUIReport ? "list.bullet.clipboard" : message.role == "user" ? "person.crop.circle" : "sparkles").font(StudioTypography.ui(size: 12, weight: .semibold)).foregroundStyle(.secondary)
