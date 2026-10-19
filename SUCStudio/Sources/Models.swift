@@ -3,7 +3,7 @@ import Foundation
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
     static let name = "SUC Studio"
-    static let version = "1.4.7.03"
+    static let version = "1.4.7.04"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -34,6 +34,9 @@ struct Metrics: Codable, Equatable {
         let work=evaluatedPromptTokens ?? max(0,promptTokens-min(promptTokens,max(0,cachedPromptTokens ?? 0)))
         return reportedPrefillRate ?? (prefillSeconds > 0 && work > 0 ? Double(work) / prefillSeconds : nil)
     }
+    var decodeIsEstimate:Bool { decodeSource?.hasPrefix("client_estimate") == true }
+    var decodeCaption:String { decodeIsEstimate ? "Ricezione ≈" : "Decode" }
+    var decodeMeasurementHelp:String { decodeIsEstimate ? "Stima della ricezione dal testo; non misura i token prodotti dal motore. Il risultato finale può usare i tempi reali del server." : "Media del decode dai token e dai tempi del server, escluso il primo token prodotto dal prefill." }
     var decodeRate: Double? { reportedDecodeRate ?? (completionTokens > 1 && decodeSeconds > 0 ? Double(completionTokens - 1) / decodeSeconds : nil) }
 }
 struct SamplingSettings: Codable, Equatable { var topP = 1.0; var topK = 0; var minP = 0.0; var seed = -1; var stop = "" }

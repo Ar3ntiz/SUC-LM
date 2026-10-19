@@ -1,3 +1,4 @@
+#include "suc/prefill_progress.hpp"
 // deepseek_v4 model graph on the Metal backend (see suc/deepseek_v4.hpp). Kernels: cpp/metal/suc_ds4_kernels.metal (the
 // deepseek_v4 ops, MXFP4 experts), cpp/metal/suc_model_kernels.metal (embedding gather, MLX-order gemv, RMSNorm,
 // argmax, casts) and the SUC projection / expert-stack kernels of metal::Linear / metal::SwitchLinear.
@@ -2507,6 +2508,7 @@ uint32_t Ds4Model::forward(const std::vector<uint32_t>& tokens, bool with_logits
       else fail("forward_rows: chunks of decode steps have no per-row logits");
     }
     m.pos += n;
+    prefill_progress_advance(n);
   }
   m.last_token = tokens.back();
   m.have_logits = with_logits;

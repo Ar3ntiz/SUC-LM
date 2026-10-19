@@ -26,7 +26,7 @@ struct ServerView: View {
                         if store.serverRunning { HStack { Text(store.apiAddress).font(StudioTypography.ui(.body, design: .monospaced)).textSelection(.enabled); Button { copyText(store.apiAddress) } label: { Image(systemName: "doc.on.doc") } }; if store.archive.settings.lan { Text("Da un altro dispositivo sostituisci 0.0.0.0 con l’indirizzo IPv4 di questo Mac.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) } }
                     }.padding(12)
                 }
-                HStack(spacing: 18) { StatTile(title: "Richieste API", value: "\(store.apiRequests.count)"); StatTile(title: "Completate", value: "\(store.completed)"); StatTile(title: "Prefill", value: rate(store.latestMetrics?.prefillRate)); StatTile(title: "Decode", value: rate(store.latestMetrics?.decodeRate)) }
+                HStack(spacing: 18) { StatTile(title: "Richieste API", value: "\(store.apiRequests.count)"); StatTile(title: "Completate", value: "\(store.completed)"); StatTile(title: "Prefill", value: rate(store.latestMetrics?.prefillRate)); StatTile(title: store.latestMetrics?.decodeCaption ?? "Decode", value: rate(store.latestMetrics?.decodeRate)) }
                 Text(store.latestIsCurrent ? "Misure della richiesta corrente, disponibili a fine fase." : "Velocità dell’ultima richiesta; decode = media dei passi successivi al primo token.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 GroupBox("API key") { HStack { Text("Salvata nel Keychain. Mai inclusa negli export.").foregroundStyle(.secondary); Spacer(); Button("Copia chiave") { store.copyKey() }; Button("Ruota chiave") { store.rotateKey() }.disabled(store.serverRunning) }.padding(12) }
                 GroupBox("Client compatibili OpenAI") {
@@ -132,8 +132,8 @@ struct MenuBarView: View {
             if store.hasWork { HStack { ProgressView().controlSize(.small); Text(store.activePhase).font(StudioTypography.ui(.caption)) } }
             Divider()
             LabeledContent("Prefill", value: rate(store.latestMetrics?.prefillRate))
-            LabeledContent("Decode", value: rate(store.latestMetrics?.decodeRate))
-            Text(store.latestIsCurrent ? "Misure disponibili a fine fase" : "Ultima richiesta").font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
+            LabeledContent(store.latestMetrics?.decodeCaption ?? "Decode", value: rate(store.latestMetrics?.decodeRate))
+            Text(store.latestIsCurrent ? "Metriche richiesta in corso" : "Ultima richiesta").font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
             if let memory = store.engineFootprint { LabeledContent("Memoria motore", value: String(format: "%.2f GB", memory)) }
             if !store.expertStats.isEmpty { Text(store.expertStats).font(StudioTypography.ui(.caption2)) }
             Divider()

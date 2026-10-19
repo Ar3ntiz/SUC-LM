@@ -154,7 +154,7 @@ struct ChatView: View {
                     ForEach((store.selected?.messages ?? []).filter { $0.visibleInChat(agent:store.selected?.agentEnabled == true,web:store.selected?.webToolsEnabled == true) }) { message in
                         MessageCard(message: message, edit: { edit(message) }, regenerate: { regenerate(message) })
                     }
-                    if let last=store.selected?.messages.last,!last.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true),["queued","prefill","remote_wait","generating"].contains(last.state) { GenerationActivity(state:last.state) }
+                    if let last=store.selected?.messages.last,!last.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true),["queued","prefill","remote_wait","generating"].contains(last.state) { GenerationActivity(state:last.state, messageID:last.id) }
                     ForEach(store.approvals.filter{$0.sessionID==store.archive.selected}) { approval in ActionApprovalView(approval:approval) }
                     if let id=store.archive.selected,let terminal=store.terminals[id] {
                         TerminalSlot(terminal:terminal).id(terminal.id)
@@ -299,7 +299,7 @@ struct MessageCard: View {
             ForEach(message.attachments ?? []) { file in
                 Button { preview = file } label: { AttachmentLabel(file:file) }.buttonStyle(.bordered)
             }
-            if message.role == "assistant",["queued","prefill","remote_wait","generating"].contains(message.state) { GenerationActivity(state:message.state) }
+            if message.role == "assistant",["queued","prefill","remote_wait","generating"].contains(message.state) { GenerationActivity(state:message.state, messageID:message.id) }
             if !message.text.isEmpty || !(message.reasoning ?? "").isEmpty { ResponseBody(text:message.text,reasoning:message.role=="assistant" ? message.reasoning:nil,implicit:message.role=="assistant" && message.implicitThinking==true,assistant:message.role=="assistant",generating:message.state != "complete") }
 
             HStack(spacing: 14) {
@@ -308,7 +308,7 @@ struct MessageCard: View {
                 else if message.role == "user" { Button(action: edit) { Image(systemName: "pencil") }.help("Modifica nella stessa sessione") }
                 else { Button(action: regenerate) { Image(systemName: "arrow.clockwise") }.help("Rigenera nella stessa sessione") }
                 Spacer()
-                if let m = message.metrics, message.state == "complete" { Text("Prefill \(rate(m.prefillRate)) · Decode \(m.decodeSource?.hasPrefix("client_estimate") == true ? "≈ " : "")\(rate(m.decodeRate))").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary) }
+                if let m = message.metrics, message.state == "complete" { Text("Prefill \(rate(m.prefillRate)) · \(m.decodeCaption) \(rate(m.decodeRate))").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary) }
             }.buttonStyle(.plain).foregroundStyle(.secondary).font(StudioTypography.ui(.caption))
         }.padding(message.role == "user" ? 16 : 0).background(message.role == "user" ? Color.secondary.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 14)).sheet(item: $preview) { AttachmentPreview(file: $0) }
     }
@@ -320,11 +320,11 @@ struct MetricsStrip: View {
     var body: some View {
         HStack(spacing: 16) {
             Text("Prefill \(rate(metrics?.prefillRate))")
-            Text("Decode \(metrics?.decodeSource?.hasPrefix("client_estimate") == true ? "≈ " : "")\(rate(metrics?.decodeRate))")
+            Text("\(metrics?.decodeCaption ?? "Decode") \(rate(metrics?.decodeRate))").help(metrics?.decodeMeasurementHelp ?? "Misura non disponibile")
             if !workspace.isEmpty {Text("work directory: \(workspace)").lineLimit(1).truncationMode(.middle).help(workspace)}
             if let metrics { Text("\(metrics.completionTokens) token"); if let ttft = metrics.firstTextSeconds { Text(String(format: "Primo testo %.2f s", ttft)) } }
             Spacer(minLength: 0)
-            Text(metrics?.remote == true ? (metrics?.decodeSource?.hasPrefix("client_estimate") == true ? "stima client" : "misure server · — non disponibile") : (current ? "misure a fine fase" : "ultima risposta"))
+            Text(metrics?.remote == true ? (metrics?.decodeSource?.hasPrefix("client_estimate") == true ? "stima ricezione · non velocità motore" : "misure server · — non disponibile") : (current ? "misure del motore" : "ultima risposta"))
         }.font(StudioTypography.ui(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.75).accessibilityElement(children: .combine)
     }
 }

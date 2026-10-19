@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "version": "1.4.7.04",
+  "scope": "Synthetic actual helper and SSE checks; not a throughput or hard/KL benchmark",
+  "baseline_text_identical": true,
+  "results": {
+    "baseline": {
+      "text_sha256": "f0eab9f70f12e1309f29774e4b8d933b5d5bd51b610177946ac578de229ed72b"
+    },
+    "candidate": {
+      "text_sha256": "f0eab9f70f12e1309f29774e4b8d933b5d5bd51b610177946ac578de229ed72b",
+      "loading_phases": [
+        "Verifica del file modello",
+        "Verifica del tokenizer",
+        "Preparazione Metal",
+        "Mappatura dei pesi e allocazione memoria",
+        "Preparazione del grafo del modello",
+        "Preparazione del motore",
+        "Compilazione e riscaldamento Metal"
+      ],
+      "ipc_progress_events": 6,
+      "ipc_live_metric_events": 3,
+      "sse_progress_events": 6,
+      "sse_live_metric_events": 3,
+      "followup_cached_tokens": 0,
+      "cancel_replay_cache_zero": true,
+      "cancel_replay_text_identical": true
+    }
+  }
+}

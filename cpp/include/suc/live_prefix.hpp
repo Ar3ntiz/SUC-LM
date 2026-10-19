@@ -1,6 +1,7 @@
 // Exact live-prefix reuse, with one optional bounded in-place recurrent prefix checkpoint.
 #pragma once
 #include <algorithm>
+#include "suc/prefill_progress.hpp"
 #include <cstdlib>
 #include <cstdint>
 #include <functional>
@@ -32,6 +33,7 @@ template<class Base> class LivePrefixEngine final : public Base {
       else if (enabled_ && checkpoints_ && extends(checkpoint_tokens_) && inner_->restore_checkpoint()) {
         fed_=checkpoint_tokens_; cached_=fed_.size();
       } else reset();
+      prefill_progress_begin(prompt.size(),cached_);
       const auto stride=enabled_ && checkpoints_ ? inner_->checkpoint_stride() : 0;
       // Leave the generation marker and a tokenization margin outside the saved prefix. Align to the
       // model's existing chunk boundaries so splitting a cold prefill does not change projection tiling.

@@ -15,3 +15,7 @@ machine-specific result JSONs are excluded from this public source snapshot.
 ## Studio 1.4.7.03 chat checkpoints
 
 Qualified Qwen hybrid prefix checkpoints retain bounded recurrent state without duplicating KV rows or changing the existing SUC template. The first request and earlier-prefix changes still require full prefill. See [checkpoint evidence](CHAT_PREFIX_CHECKPOINTS.md) and [release/setup](RELEASE_1.4.7.03.md).
+
+## Studio 1.4.7.04 progress and live telemetry
+
+Actual helper/SSE progress, model-loading phases, cancellation/replay and server-token live metrics passed. Universal build and extracted installer were verified; GUI acceptance remains manual. See [release/setup](RELEASE_1.4.7.04.md).

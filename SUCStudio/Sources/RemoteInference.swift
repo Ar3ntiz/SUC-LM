@@ -110,6 +110,9 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
                 if let reason = choice["finish_reason"] as? String, !reason.isEmpty { finished = true }
                 if !emitted || Date().timeIntervalSince(lastFlush) >= 1.0/30 { flush() }
             }
+            if let progress=value["prompt_progress"] as? [String:Any] {
+                event(["event":"prefill_progress","payload":progress])
+            }
             telemetry.ingest(value)
             if configuration.liveTelemetry != false && (value["usage"] != nil || value["suc_metrics"] != nil || value["timings"] != nil || value["stats"] != nil || value["prompt_progress"] != nil || Date().timeIntervalSince(lastMetrics)>0.2) {
                 flush();event(["event":"metrics","payload":telemetry.payload()]);lastMetrics=Date()

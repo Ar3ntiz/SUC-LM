@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "version": "1.4.7.04",
+  "build": 31,
+  "engine_input_sha256": "d63ba831743f6f13b4f49e98f58b7fbdba7d8ed4bead0a3112e467792effedf6",
+  "engine_source_commit": "e6d7ec5cd5c36f36581c939651b586a67980766f",
+  "helper_sha256": "2173fdfc7ac40123cba658685616c930e393a578a37fbeeda0cf9a822912bcf3",
+  "installer_sha256": "fa28bc5e16ad11d92b5f266fc9317ab03818c94dcc79ca353b3c52b15ebe91a7",
+  "app_minimum_macos": "15.0",
+  "universal_app_and_helpers": true,
+  "engine_arm64": true,
+  "extracted_signature_verified": true,
+  "bundled_guides_match_source": true,
+  "parent_engine_inputs_match": true,
+  "tested_engine_payload_identical": true,
+  "installed": false,
+  "manual_gui_acceptance_pending": true
+}

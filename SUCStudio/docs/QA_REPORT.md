@@ -112,3 +112,11 @@ Il tokenizer Rust HF conferma i conteggi del rendering effettivo C++; tempi inte
 Bundle Universal compilato e firma ad hoc/architetture verificati. Il collaudo fisico della nuova versione rimane manuale. Piano, JSON e limiti in `docs/optimization/CHAT_PREFIX_CHECKPOINTS.md`; log suite in TEST_RESULTS_1.4.7.03_INTEL.txt e TEST_RESULTS_1.4.7.03_ARM.txt. Nessuna modifica di memory policy, modelli o kernel e nessuna installazione automatica.
 
 Pacchetti 1.4.7.03 verificati senza installazione: payload estratto, firma ad hoc, architetture Universal, motore identico a quello collaudato, guide aggiornate e hash CLI/server coerenti con il manifest del motore padre. Evidenza: `docs/optimization/PACKAGE_1.4.7.03.json`.
+
+## 1.4.7.04 — build 31
+
+Suite Universal su M1 superata, compresi modalità remota, regressioni dei tool e SSE. Test mirati del client reale superati su Intel e M1: avanzamento, token riusati/nuovi, rate live dai conteggi server e precedenza sulle stime. Callback C++ verificato per conteggi, throttle, isolamento thread e ripristino dopo errore.
+
+Helper finale: fasi load, progressione IPC/SSE e metriche decode live verificate sul Qwen3-8B locale selezionato; testo greedy identico alla 1.4.7.03. Verificati fallback cache zero, annullamento durante prefill e successivo replay identico. Nessun test hard/KL completo o nuovo benchmark di throughput attribuito a questa modifica; memory policy e kernel invariati. Prova reale: `docs/optimization/PROGRESS_HELPER_1.4.7.04.json`. Collaudo visuale dell'interfaccia dopo installazione resta manuale.
+
+Installer 1.4.7.04 estratto e verificato senza installazione: versione/build, firma, architetture, guide e motore identico al collaudo. Manifest degli input C++ coerente con i sorgenti. Evidenza: `docs/optimization/PACKAGE_1.4.7.04.json`.

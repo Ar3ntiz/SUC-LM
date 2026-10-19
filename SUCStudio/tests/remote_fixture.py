@@ -24,6 +24,17 @@ class Handler(BaseHTTPRequestHandler):
    try:self.wfile.write(data);self.wfile.flush()
    except (BrokenPipeError,ConnectionResetError):pass
    return
+  if value['model']=='progress-live':
+   events=[{'choices':[],'prompt_progress':{'processed':2048,'total':2165,'cache':2048}},
+           {'choices':[],'prompt_progress':{'processed':2165,'total':2165,'cache':2048}},
+           {'choices':[{'delta':{'content':'A'}}]},
+           {'choices':[],'suc_metrics':{'prompt_tokens':2165,'cached_tokens':2048,'prefill_tokens':117,'prefill_s':1.0,'completion_tokens':41,'decode_s':2.0}},
+           {'choices':[{'delta':{'content':'B'},'finish_reason':'stop'}]},
+           {'choices':[],'usage':{'prompt_tokens':2165,'completion_tokens':81,'prompt_tokens_details':{'cached_tokens':2048}},'suc_metrics':{'prefill_s':1.0,'decode_s':4.0}}]
+   self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
+   for event in events:
+    self.wfile.write(('data: '+json.dumps(event)+'\n\n').encode());self.wfile.flush();time.sleep(.1)
+   self.wfile.write(b'data: [DONE]\n\n');self.wfile.flush();return
   if value['model']=='vision':
    content=value['messages'][0]['content']
    assert content[0]['type']=='text' and content[1]['type']=='image_url'

@@ -1,3 +1,4 @@
+#include "suc/prefill_progress.hpp"
 // qwen4_exp model graph on the Metal backend (see suc/qwen4.hpp). Kernels: cpp/metal/suc_qwen4_kernels.metal (the
 // qwen4_exp ops), cpp/metal/suc_model_kernels.metal (embedding gather, MLX-order gemv, argmax, sdpa_vector, SwiGLU,
 // strided copy) and the SUC projection / expert-stack kernels of metal::Linear / metal::SwitchLinear.
@@ -2253,6 +2254,7 @@ uint32_t Qwen4Model::forward(const std::vector<uint32_t>& tokens, bool with_logi
       else fail("forward_rows: chunks of decode steps have no per-row logits");
     }
     m.pos += n;
+    prefill_progress_advance(n);
   }
   if (m.prof && !m.prof_acc.empty()) {
     double tot = 0.0;

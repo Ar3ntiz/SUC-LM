@@ -8,8 +8,8 @@ import tempfile
 root = Path(__file__).resolve().parents[1]
 info = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
 assert info['CFBundleDisplayName'] == info['CFBundleName'] == info['CFBundleExecutable'] == 'SUC Studio'
-assert info['CFBundleShortVersionString'] == '1.4.7.03'
-assert info['CFBundleVersion'] == '30'
+assert info['CFBundleShortVersionString'] == '1.4.7.04'
+assert info['CFBundleVersion'] == '31'
 identity = 'local.sucstudio.universal.app'
 assert info['CFBundleIdentifier'] == identity
 with tempfile.TemporaryDirectory() as temporary:

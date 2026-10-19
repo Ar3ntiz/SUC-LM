@@ -77,3 +77,11 @@ Installer SHA256: `f8f86aa96be27b6fad0d2624e1c4cb01209b8ae39e934260687458f86d687
 - [x] C6 — Pacchetto Universal e archivio CLI/server, verifica dei payload, manifest/checksum e sincronizzazione dei sorgenti.
 
 Piano ed evidenze: `../docs/optimization/CHAT_PREFIX_CHECKPOINTS.md`. Qualifica del motore e verifica dei pacchetti completate. La 1.4.7.02 rimane disponibile; nessuna installazione automatica.
+
+## 1.4.7.04 — avanzamento e metriche live
+
+- [x] P1 — Avanzamento prefill dai chunk GPU completati, contatori cache e frame SSE/IPC.
+- [x] P2 — Barre prefill e caricamento; avviso nelle chat da almeno 2k token con cronologia precedente e cache non riutilizzata.
+- [x] P3 — Decode live SUC su token/tempi reali; stime client chiamate ricezione.
+- [x] P4 — Test regressione Swift/C++, collaudo helper e SSE, build Universal e verifica installer.
+- [x] P5 — Documentazione, pacchetto e allineamento locale/Mac Studio/public.

@@ -22,15 +22,19 @@ struct RemoteTelemetry {
         if let suc=value["suc_metrics"] as? [String:Any] {
             if let seconds=Self.positive(suc["prefill_s"]){prefillSeconds=seconds;evaluatedPrompt=nil}
             decodeSeconds=Self.positive(suc["decode_s"]) ?? decodeSeconds
+            if let n=Self.count(suc["prompt_tokens"]){prompt=n}
+            if let n=Self.count(suc["completion_tokens"]){completion=n}
+            if let n=Self.count(suc["cached_tokens"]){cached=n}
+            if let n=Self.count(suc["prefill_tokens"]){evaluatedPrompt=n}
         }
         if let stats=value["stats"] as? [String:Any] {
             decodeRate=Self.positive(stats["tokens_per_second"]) ?? decodeRate
             prefillRate=Self.positive(stats["prefill_tokens_per_second"]) ?? prefillRate
         }
-        if let progress=value["prompt_progress"] as? [String:Any],let processed=Self.count(progress["processed"]),let ms=Self.positive(progress["time_ms"]) {
-            let cached=Self.count(progress["cache"]) ?? 0
-            if processed>cached {prefillRate=Double(processed-cached)/(ms/1000)}
+        if let progress=value["prompt_progress"] as? [String:Any] {
             if let total=Self.count(progress["total"]){prompt=total}
+            if let n=Self.count(progress["cache"]){cached=n}
+            if let processed=Self.count(progress["processed"]),let ms=Self.positive(progress["time_ms"]),processed>cached {prefillRate=Double(processed-cached)/(ms/1000)}
         }
         if configuration?.telemetryProfile == "custom" {
             prefillRate=Self.positive(Self.field(configuration?.customPrefillRatePath,in:value)) ?? prefillRate

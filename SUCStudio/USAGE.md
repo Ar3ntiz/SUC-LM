@@ -1,4 +1,4 @@
-# SUC Studio 1.4.7.03
+# SUC Studio 1.4.7.04
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.7.03-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.7.04-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -92,7 +92,7 @@ Install the Apple Command Line Tools (`xcode-select --install`) with the macOS 1
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.7.03-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
+Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.7.04-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
 
 ## Installing and getting started
 
@@ -416,8 +416,14 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.03-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.04-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Qwen conversation cache in 1.4.7.03
 
 The server keeps one bounded checkpoint of recurrent/convolution/n-gram state shortly before the end of the prompt. Matching subsequent turns restore that prefix and evaluate only the suffix, preserving the existing SUC Qwen rendering. CPU state copies are capped at 128 MiB; KV rows are retained in place. The first request, changes before the saved prefix and unavailable checkpoints still require full prefill. `SUC_PREFIX_CHECKPOINTS=0` retains the earlier strict live-prefix policy; `SUC_PREFIX_CACHE=0` disables both policies.
+
+### Avanzamento e velocità nella 1.4.7.04
+
+Durante il prefill la barra mostra token nuovi elaborati e prefisso riusato, quando il motore invia questi dati. Nelle chat lunghe con cronologia, zero token riusati produce l’avviso di rilettura completa: il comportamento è normale dopo un reset o un prefisso incompatibile. Senza telemetria la barra rimane indeterminata. Durante il caricamento del modello la barra globale mostra la fase effettiva, senza simulare percentuali.
+
+SUC invia i conteggi reali durante il decode; la media live e quella finale usano la stessa formula. Negli altri server, «Ricezione ≈» indica una stima dai caratteri ricevuti e dalla rete, non la velocità del motore. Il dato finale può quindi differire. Le metriche reali del server hanno sempre precedenza.

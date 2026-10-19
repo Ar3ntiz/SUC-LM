@@ -1,3 +1,4 @@
+#include "suc/prefill_progress.hpp"
 // glm5_next model graph on the Metal backend (see suc/glm5.hpp). Kernels: cpp/metal/suc_glm5_kernels.metal (the
 // glm5_next ops), cpp/metal/suc_ds4_kernels.metal (mixer input reduce, stream collapse, k-pool pooling, clamped SwiGLU,
 // softmax), cpp/metal/suc_qwen4_kernels.metal (top-k pool selection), cpp/metal/suc_model_kernels.metal (embedding
@@ -2298,6 +2299,7 @@ uint32_t Glm5Model::forward(const std::vector<uint32_t>& tokens, bool with_logit
       else fail("forward_rows: chunks of decode steps have no per-row logits");
     }
     m.pos += n;
+    prefill_progress_advance(n);
   }
   m.have_logits = with_logits;
   if (with_logits) result = *static_cast<const uint32_t*>(m.amax->contents());

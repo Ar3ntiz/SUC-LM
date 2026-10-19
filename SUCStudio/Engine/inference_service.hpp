@@ -78,9 +78,10 @@ class DenseEngine final : public Engine {   // qwen3 / qwen3_moe (suc/model.hpp)
         auto r = m_.forward(std::vector<uint32_t>(p.begin() + i, p.begin() + i + n),
                             last ? Model::Logits::Last : Model::Logits::None);
         if (last) next = r.back();
+        suc::prefill_progress_advance(n);
       }
     } else {
-      for (std::size_t i = 0; i < p.size(); ++i) { if(studio_cancelled()) throw std::runtime_error("Request cancelled"); next = m_.step(p[i], i + 1 == p.size()); }
+      for (std::size_t i = 0; i < p.size(); ++i) { if(studio_cancelled()) throw std::runtime_error("Request cancelled"); next = m_.step(p[i], i + 1 == p.size()); suc::prefill_progress_advance(1); }
     }
     return next;
   }
@@ -392,12 +393,23 @@ static std::string decode_text(const Tokenizer& tok, const std::vector<uint32_t>
 
 // Greedy / sampled generation; emit(delta) gets the text as it becomes final (held back: an incomplete UTF-8 tail,
 // decoded as U+FFFD, and a possible start of a stop string). emit returning false aborts.
-static GenResult generate(Server& S, const GenParams& g, const std::function<bool(const std::string&)>& emit) {
+static GenResult generate(Server& S, const GenParams& g, const std::function<bool(const std::string&)>& emit,
+                          const std::function<void(const std::string&)>& progress_emit = {},
+                          const std::function<void(const std::string&)>& metrics_emit = {}) {
   GenResult res;
   const auto t0 = std::chrono::steady_clock::now();
   struct CacheGuard { Engine* e; bool success=false; ~CacheGuard(){if(!success)e->invalidate_prefix();} } guard{S.engine};
   if(S.expert_stream) S.expert_stream->reset_stats();
-  uint32_t next = S.engine->prepare(g.prompt);
+  uint32_t next;
+  {
+    suc::PrefillProgressScope progress([&](std::size_t processed,std::size_t total,std::size_t cached){
+      const auto payload="{\"processed\":"+std::to_string(processed)+",\"total\":"+std::to_string(total)+",\"cache\":"+std::to_string(cached)+"}";
+      event("prefill_progress",studio_request_id(),payload);
+      if(progress_emit) progress_emit(payload);
+      if(studio_cancelled()) throw std::runtime_error("Request cancelled");
+    });
+    next = S.engine->prepare(g.prompt);
+  }
   res.cached_tokens = S.engine->cached_tokens();
   if (studio_cancelled()) throw std::runtime_error("Request cancelled");
   Sampler sampler(g.sc);
@@ -416,6 +428,7 @@ static GenResult generate(Server& S, const GenParams& g, const std::function<boo
   std::string text, emitted;
   static const std::string kRepl = "\xEF\xBF\xBD";
   // takes one generated token; false ends the generation (end token, stop string, client gone, limit reached)
+  auto last_live_metrics = t1;
   auto consume = [&](uint32_t t) {
     if (studio_cancelled()) { res.aborted = true; return false; }
     ++res.completion_tokens;
@@ -447,6 +460,18 @@ static GenResult generate(Server& S, const GenParams& g, const std::function<boo
       }
       emitted += d;
       sent = safe;
+    }
+    const auto now=std::chrono::steady_clock::now();
+    if(res.completion_tokens>1 && now-last_live_metrics>=std::chrono::milliseconds(250)) {
+      last_live_metrics=now;
+      const auto elapsed=std::chrono::duration<double>(now-t1).count();
+      const auto payload="{\"prompt_tokens\":"+std::to_string(g.prompt.size())+
+        ",\"cached_tokens\":"+std::to_string(res.cached_tokens)+
+        ",\"prefill_tokens\":"+std::to_string(g.prompt.size()-res.cached_tokens)+
+        ",\"completion_tokens\":"+std::to_string(res.completion_tokens)+
+        ",\"prefill_s\":"+std::to_string(res.prefill_s)+",\"decode_s\":"+std::to_string(elapsed)+"}";
+      event("metrics",studio_request_id(),payload);
+      if(metrics_emit) metrics_emit(payload);
     }
     return ids.size() < limit;
   };
@@ -664,6 +689,10 @@ static bool handle_completion(Server& S, int fd, const HttpRequest& rq, bool cha
         res = generate(S, g, [&](const std::string& d) {
           if(model_io_logging&&!d.empty())event("model_output",id,"{\"text\":"+jstr(d)+",\"origin\":\"api\"}");
           return es.event(head + "\"choices\": [" + choice(d, nullptr, false) + "]}");
+        }, [&](const std::string& progress){
+          if(!es.event(head + "\"choices\": [], \"prompt_progress\":" + progress + "}")) throw std::runtime_error("Client disconnected");
+        }, [&](const std::string& metrics){
+          if(!es.event(head + "\"choices\": [], \"suc_metrics\":" + metrics + "}")) throw std::runtime_error("Client disconnected");
         });
       } catch (const std::exception& e) {
         error = e.what();
@@ -761,16 +790,19 @@ struct LoadedEngine {
     const auto t0 = std::chrono::steady_clock::now();
     OpenOptions oo;
     oo.verify_checksum = rf.verify;
+    event("load_progress",request_id,"{\"phase\":"+jstr("Verifica del file modello")+"}");
     file = std::make_unique<Suc1File>(Suc1File::open(path, oo));
     auto& f = *file;
     S.arch = f.directory()["architecture"];
     const std::string tp = rf.tokenizer_path.empty() ? resolve_tokenizer_path(f.tokenizer_id()) : rf.tokenizer_path;
+    event("load_progress",request_id,"{\"phase\":"+jstr("Verifica del tokenizer")+"}");
     verify_tokenizer(f.tokenizer_id(), tp);
     tokenizer = std::make_unique<Tokenizer>(Tokenizer::from_file(tp));
     auto& tok = *tokenizer;
     S.tok = &tok;
     Tuning tu;
     tu.tuning_cache = rf.tuning_cache;
+    event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione Metal")+"}");
     context = std::make_unique<Context>(tu);
     auto& ctx = *context;
     const bool is_q4 = Qwen4Config::is_qwen4(S.arch), is_glm = Glm5Config::is_glm5(S.arch),
@@ -831,6 +863,7 @@ struct LoadedEngine {
       exclude.insert(exclude.end(), r.begin(), r.end());
       xs = std::make_unique<ExpertStream>(ctx, f, xo);
     }
+    event("load_progress",request_id,"{\"phase\":"+jstr("Mappatura dei pesi e allocazione memoria")+"}");
     mapping = std::make_unique<MappedFile>(ctx, f, exclude, rf.max_view_bytes);
     auto& mf = *mapping;
     auto act_of = [&](const std::string& torch_dtype) {
@@ -840,6 +873,7 @@ struct LoadedEngine {
 
 
 
+    event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione del grafo del modello")+"}");
     if (is_q4) {
       const Qwen4Config qc = Qwen4Config::from_architecture(S.arch);
       Qwen4Options qo;
@@ -922,8 +956,10 @@ struct LoadedEngine {
     if(plan.reserve>=plan.limit || weights>plan.limit-plan.reserve)
       throw std::runtime_error("Memoria pesi effettiva oltre il limite prudenziale; caricamento annullato prima del warm-up");
     S.expert_stream = xs.get();
+    event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione del motore")+"}");
     engine = std::make_unique<suc::LivePrefixEngine<Engine>>(std::move(engine));
     S.engine = engine.get();
+    event("load_progress",request_id,"{\"phase\":"+jstr("Compilazione e riscaldamento Metal")+"}");
     S.engine->step(0);   // warm-up: compile the decode pipelines, then reset
     S.engine->reset();
     if (xs) xs->reset_stats();

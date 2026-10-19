@@ -33,6 +33,23 @@ import Foundation
    if event["event"] as? String=="metrics"{usage=payload["completion_tokens"] as? Int ?? 0;precondition(payload["decode_s"]==nil)}
   }
   precondition(text=="Hello world" && usage==2)
+  var progressConfig=config;progressConfig.model="progress-live";progressConfig.estimateLiveDecode=true
+  let progressClient=RemoteInference(progressConfig,key:"test");defer{progressClient.stop()}
+  var progressCount=0,liveCount=0,progressText="",lastProgressMetrics:[String:Any]=[:]
+  try await progressClient.generate(body){event in
+   let payload=event["payload"] as? [String:Any] ?? [:]
+   if event["event"] as? String=="prefill_progress"{progressCount+=1;precondition(payload["cache"] as? Int==2048)}
+   if event["event"] as? String=="delta"{progressText+=payload["text"] as? String ?? ""}
+   if event["event"] as? String=="metrics" {
+    lastProgressMetrics=payload
+    if payload["completion_tokens"] as? Int==41 {
+     liveCount+=1;precondition(payload["decode_tps"] as? Double==20);precondition(payload["decode_source"] as? String=="server")
+    }
+   }
+  }
+  precondition(progressCount==2 && liveCount>0 && progressText=="AB")
+  precondition(lastProgressMetrics["decode_tps"] as? Double==20 && lastProgressMetrics["prefill_tps"] as? Double==117)
+  print("Actual remote SSE progress and server-token live/final rate parity: PASS")
   var visionConfig=config;visionConfig.model="vision"
   let vision=RemoteInference(visionConfig,key:"test");defer{vision.stop()}
   let imageMessage=ChatMessage(role:"user",text:"Describe",attachments:[ChatAttachment(name:"test.jpg",text:"",originalBytes:3,imageData:Data([1,2,3]),imageMIME:"image/jpeg")])

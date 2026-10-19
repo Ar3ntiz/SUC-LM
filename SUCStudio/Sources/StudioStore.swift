@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
     @Published var archive: Archive
     @Published var tab = "chat"
     @Published var modelState = "unloaded"
+    @Published var loadPhase = "Preparazione del caricamento"
+    @Published var prefillProgress: [UUID: PrefillStatus] = [:]
     @Published var loadedModel = ""
     @Published var serverRunning = false
     @Published var serverBusy = false
@@ -198,7 +200,7 @@ import UniformTypeIdentifiers
         guard FileManager.default.isReadableFile(atPath: archive.settings.modelPath), FileManager.default.isReadableFile(atPath: archive.settings.tokenizerPath) else { error = "Modello o tokenizer non accessibile. Seleziona nuovamente il file."; return }
         if modelReady { loadAfterStart = true; engine.send(["command": "unload"]); return }
         scheduleSave()
-        do { try engine.start();engine.send(["command":"set_model_log","enabled":archive.settings.ioLogEnabled]); memoryPlan = ""; expertStats = ""; modelState = "loading"; loadID = UUID().uuidString;operationJournal.update(id:loadID,title:"Caricamento · "+URL(fileURLWithPath:archive.settings.modelPath).lastPathComponent,state:"In corso")
+        do { try engine.start();engine.send(["command":"set_model_log","enabled":archive.settings.ioLogEnabled]); memoryPlan = ""; expertStats = ""; modelState = "loading"; loadPhase = "Preparazione del caricamento"; loadID = UUID().uuidString;operationJournal.update(id:loadID,title:"Caricamento · "+URL(fileURLWithPath:archive.settings.modelPath).lastPathComponent,state:"In corso")
             var args = ["--prefill", archive.settings.prefill]
             if archive.settings.effectiveMemoryMode == "manual" { args += ["--expert-budget", archive.settings.expertBudget] }
             engine.send(["command": "load", "id": loadID, "path": archive.settings.modelPath, "tokenizer": archive.settings.tokenizerPath, "context": archive.settings.context, "memory_mode": archive.settings.effectiveMemoryMode, "runtime_args": args])
@@ -396,6 +398,16 @@ import UniformTypeIdentifiers
             let mode = p["mode"] as? String == "expert_ssd" ? "Streaming SSD expert" : "Residente"
             memoryPlan = "\(mode) · limite prudenziale \(gib("limit_bytes"))\nPesi residenti stimati \(gib("resident_bytes")) · riserva stimata \(gib("reserve_bytes")) · cache expert \(gib("expert_budget_bytes"))"
             appendLog(memoryPlan)
+        case "load_progress":
+            if id == loadID, modelState == "loading" { loadPhase = p["phase"] as? String ?? loadPhase }; return
+        case "prefill_progress":
+            guard let t=requests[id], let value=PrefillStatus(p),
+                  let state=archive.sessions.first(where:{$0.id==t.session})?.messages.first(where:{$0.id==t.message})?.state,
+                  ["queued","prefill","remote_wait"].contains(state) else { return }
+            if let previous=prefillProgress[t.message],previous.total==value.total,previous.processed>value.processed { return }
+            prefillProgress[t.message]=value
+            mutateMessage(t.session,t.message) { $0.state="prefill" }
+            activePhase="Prefill"; return
         case "loaded": loadedContext = p["context"] as? Int ?? 4096; modelState = "ready"; loadedModel = p["model"] as? String ?? ""; appendLog("Modello pronto: \(loadedModel)")
         case "unloaded": memoryPlan = ""; expertStats = ""; modelState = "unloaded"; loadedModel = ""; if loadAfterStart { loadAfterStart = false; loadModel() }
         case "server": serverRunning = p["running"] as? Bool ?? false; serverBusy = false; if serverRunning { apiAddress = "http://\(p["host"] as? String ?? "127.0.0.1"):\(p["port"] as? Int ?? 8080)/v1" }; appendLog(serverRunning ? "Server avviato: \(apiAddress)" : "Server arrestato")
@@ -430,7 +442,7 @@ import UniformTypeIdentifiers
             m.cachedPromptTokens=RemoteTelemetry.count(p["cached_tokens"]);m.evaluatedPromptTokens=RemoteTelemetry.count(p["prefill_tokens"])
             m.reportedPrefillRate=RemoteTelemetry.positive(p["prefill_tps"]);m.reportedDecodeRate=RemoteTelemetry.positive(p["decode_tps"])
             m.prefillSource=p["prefill_source"] as? String;m.decodeSource=p["decode_source"] as? String;m.remote=p["remote"] as? Bool
-            latestMetrics = m; activePhase = name == "prefill" ? "Decode" : "Metriche ricevute"
+            latestMetrics = m; activePhase = name == "prefill" || m.completionTokens>0 ? "Decode" : "Prefill"
             if name == "prefill",let target=requests[id] { mutateMessage(target.session,target.message){if $0.state != "cancelling" {$0.state="generating"}} }
             if let t = requests[id] { mutateMessage(t.session, t.message) { message in var value = m; value.firstTextSeconds = message.metrics?.firstTextSeconds; message.metrics = value } }
         case "finished", "cancelled":
@@ -448,6 +460,10 @@ import UniformTypeIdentifiers
         scheduleSave()
     }
     private func finishActivity(_ id: String) {
+        if let t=requests[id] { prefillProgress.removeValue(forKey:t.message) }
+        // Completed requests may already have been removed from the request map.
+        let live=Set(requests.values.map { $0.message })
+        prefillProgress = prefillProgress.filter { live.contains($0.key) }
         guard id == activeRequestID else { return }
         activeRequestID = ""; latestIsCurrent = false; activePhase = "Pronto"
     }

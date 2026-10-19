@@ -5,7 +5,7 @@ struct GlobalActivityView:View {
     var body:some View {
         VStack(spacing:0) {
             if store.modelState=="loading" {
-                HStack(spacing:10) { ProgressView().controlSize(.small);VStack(alignment:.leading,spacing:2) {Text("Caricamento del modello…").fontWeight(.medium);Text(URL(fileURLWithPath:store.archive.settings.modelPath).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1) };Spacer();Text("C++ / Metal").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }.padding(12).background(studioAccent.opacity(0.08)).accessibilityElement(children:.combine)
+                HStack(spacing:10) { VStack(alignment:.leading,spacing:2) {Text("Caricamento del modello…").fontWeight(.medium);Text(store.loadPhase).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);ProgressView().progressViewStyle(.linear).frame(maxWidth:400);Text(URL(fileURLWithPath:store.archive.settings.modelPath).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1) };Spacer();Text("C++ / Metal").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }.padding(12).background(studioAccent.opacity(0.08)).accessibilityElement(children:.combine)
             }
             if let item=store.approvals.first(where:{$0.sessionID != store.archive.selected || store.tab != "chat"}) {
                 HStack { Label("Approvazione richiesta · "+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button("Apri chat") {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
@@ -15,7 +15,16 @@ struct GlobalActivityView:View {
 }
 struct GenerationActivity:View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject var store:StudioStore
     let state:String
+    var messageID:UUID? = nil
+    var progress:PrefillStatus? { messageID.flatMap { store.prefillProgress[$0] } }
+    var rereading:Bool {
+        guard let progress,progress.total>=2048,progress.cached==0,let id=messageID,
+              let session=store.archive.sessions.first(where:{$0.messages.contains(where:{$0.id==id})}),
+              let index=session.messages.firstIndex(where:{$0.id==id}) else{return false}
+        return session.messages[..<index].contains { $0.role=="assistant" && (!$0.text.isEmpty || !($0.reasoning ?? "").isEmpty) }
+    }
     var decoding:Bool{state=="generating"}
     var label:String{decoding ? "Generazione della risposta":state=="queued" ? "In attesa del modello":state=="remote_wait" ? "Attesa remota · prefill non segnalato":"Lettura del contesto · prefill"}
     var body:some View {
@@ -31,7 +40,19 @@ struct GenerationActivity:View {
                     }
                 }.accessibilityHidden(true)
             }
-            Text(label).font(StudioTypography.ui(.callout)).foregroundStyle(.secondary)
-        }.accessibilityElement(children:.ignore).accessibilityLabel(label).padding(.vertical,4)
+            VStack(alignment:.leading,spacing:6) {
+                Text(label).font(StudioTypography.ui(.callout)).foregroundStyle(.secondary)
+                if state=="prefill" || state=="remote_wait" {
+                    if let progress {
+                        ProgressView(value:progress.fraction).progressViewStyle(.linear)
+                        Text(progress.detail).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).monospacedDigit()
+                        if rereading { Label("Cache non riutilizzata: rilettura completa della sessione.",systemImage:"arrow.clockwise").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }
+                    } else {
+                        ProgressView().progressViewStyle(.linear)
+                        Text("Avanzamento non ancora disponibile dal motore.").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary)
+                    }
+                }
+            }.frame(maxWidth:420,alignment:.leading)
+        }.accessibilityElement(children:.combine).padding(.vertical,4)
     }
 }
