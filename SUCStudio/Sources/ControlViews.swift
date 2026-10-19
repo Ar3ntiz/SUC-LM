@@ -107,7 +107,7 @@ struct SettingsView: View {
                 Button("Cancella dati del browser web") { Task { await store.clearWebData() } }.disabled(!store.agentRuns.isEmpty)
                 Text("web_search e visit_page usano un browser integrato nascosto (visibile dal pulsante globo nella barra della chat) con un profilo dedicato e persistente, separato da Safari. Il pulsante chiude il browser e cancella cookie, consenso e cache.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
-            Section("SUC Studio 1.4.6") {
+            Section("\(StudioPlatform.name) \(StudioPlatform.version)") {
                 Text("Universal arm64 + x86_64 · macOS 15+ · motore locale su Apple Silicon, client remoto su Intel\nDistribuzione locale, senza Developer ID o notarizzazione.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 Button("Guida setup e utilizzo") { store.openHelp() }
             }

@@ -13,8 +13,11 @@
   "bundled_docs_match_source": true,
   "cli_archive_hashes_verified": true,
   "sha256": {
-    "SUC-Studio-1.4.7.03-universal.pkg": "70e81ef926caa390e5adfd142cd2af7ed496b8078c2965bc9bfca083b091be61",
+    "SUC-Studio-1.4.7.03-universal.pkg": "584140b12c60b32c4f44e80b3dbabf8862b46e07340993c0ad784f7b93850dca",
     "SUC-CLI-Server-1.4.7.03-arm64.tar.gz": "683d4f9ae41ab909383c25cac335135001ffa39e66cba42a7138addea50084d5"
   },
-  "installed": false
+  "installed": false,
+  "settings_version_uses_central_identity": true,
+  "settings_ui_source_commit": "da7ef28d908caad99089f2d4dbeb02778d6ad4f3",
+  "engine_unchanged_for_settings_fix": true
 }
