@@ -43,6 +43,9 @@ import AppKit
             store.terminals[store.selected!.id]=terminal
             store.mutateSelected{$0.workspacePath="/Users/username/Progetto";$0.artifacts=[ChatArtifact(name:"report.pdf",byteCount:24576)]}
         }
+        if CommandLine.arguments.contains("artifacts") {
+            store.mutateSelected{$0.artifacts=[ChatArtifact(name:"report-analisi-progetto.html",byteCount:24576),ChatArtifact(name:"configurazione-aggiornata.json",byteCount:842)]}
+        }
         if CommandLine.arguments.contains("thinking") {store.mutateSelected{$0.messages=[ChatMessage(role:"user",text:"Confronta queste due soluzioni."),ChatMessage(reasoning:"Valuto i vincoli e confronto i risultati.\n\nLa seconda soluzione richiede meno memoria e conserva il comportamento atteso.",role:"assistant",text:"## La soluzione consigliata\n\nUsa la **seconda soluzione**: richiede meno memoria e mantiene le stesse funzionalità.")]}}
         if CommandLine.arguments.contains("longhtml") {store.mutateSelected{$0.messages=[ChatMessage(role:"user",text:"<!doctype html><html>"+String(repeating:"<div><a href=\"https://example.com/test\">test</a></div>\n",count:5000)+"</html>"),ChatMessage(role:"assistant",text:"Ho ricevuto il documento completo. Puoi aprire il testo integrale dall’anteprima.")]}}
         let width = CommandLine.arguments.count > 2 ? Double(CommandLine.arguments[2]) ?? 1180 : 1180
@@ -57,7 +60,8 @@ import AppKit
         NSApplication.shared.setActivationPolicy(.prohibited)
         let content = CommandLine.arguments.contains("operationlog") ? AnyView(OperationLogView(initiallyExpanded:true).padding(24).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)):CommandLine.arguments.contains("hooks") ? AnyView(HooksSettingsView()):AnyView(StudioRoot())
         let selectedContent: AnyView
-        if CommandLine.arguments.contains("hookeditor") {selectedContent=AnyView(HookEditor(hook:StudioHook(name:"Contesto iniziale",event:"SessionStart",command:HookSamples.all[0].command)))}
+        if CommandLine.arguments.contains("artifacts") || CommandLine.arguments.contains("artifacts-empty") {selectedContent=AnyView(ArtifactSidebar(isPresented:.constant(true)))}
+        else if CommandLine.arguments.contains("hookeditor") {selectedContent=AnyView(HookEditor(hook:StudioHook(name:"Contesto iniziale",event:"SessionStart",command:HookSamples.all[0].command)))}
         else if CommandLine.arguments.contains("skill-editor") {selectedContent=AnyView(SkillEditor(skill:StudioSkill(name:"review-code",description:"Usa quando viene richiesta una revisione del codice.",instructions:"Consulta i file pertinenti. Riporta bug concreti con file e righe; distingui fatti e ipotesi.")))}
         else if CommandLine.arguments.contains("plugin-builder") {selectedContent=AnyView(PluginBuilderView(draft:PluginBuilderDraft(includeSkill:true,includeHook:true,includeMCP:true)))}
         else {selectedContent=content}

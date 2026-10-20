@@ -7,6 +7,8 @@ class Handler(BaseHTTPRequestHandler):
   self.send_response(401);self.end_headers();return False
  def do_GET(self):
   if not self.authorized():return
+  if self.path == "/fallback/v1/health":
+   self.send_response(404);self.end_headers();return
   data=json.dumps({'status':'ok'} if self.path.endswith('/health') else {'data':[{'id':'fixture'},{'id':'slow'}]}).encode();self.send_response(200);self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
  def do_POST(self):
   if not self.authorized():return

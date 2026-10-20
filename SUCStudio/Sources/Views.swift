@@ -49,6 +49,8 @@ struct StudioRoot: View {
 struct ChatView: View {
     @EnvironmentObject var store: StudioStore
     @State private var sidebar = true
+    var artifactsVisible:Bool {store.artifactsVisible}
+    @State private var availableWidth:CGFloat=1100
     @State private var availableHeight:CGFloat=560
     @State private var composerHeight:CGFloat=82
     @State private var dragStartHeight:CGFloat?
@@ -56,17 +58,20 @@ struct ChatView: View {
     @State private var settings = false
     @State private var scrollPolicy=ChatScrollPolicy()
     @State private var bottomTask:Task<Void,Never>?
+    @State private var transcriptStart=0
+    @State private var transcriptSession:UUID?
     var follow:Bool{scrollPolicy.following}
     @State private var dropTarget = false
     @State private var toolSession: ToolSession?
     @State private var preview: ChatAttachment?
     @FocusState private var searchFocused: Bool
     var body: some View {
-        HStack(spacing: 0) {
-            if sidebar { sessionList.frame(width: 240); Divider() }
+        HSplitView {
+            HStack(spacing:0) {
+            if sidebar && (!artifactsVisible || availableWidth>=1000) { sessionList.frame(width: 240); Divider() }
             VStack(spacing: 0) {
                 HStack {
-                    Button { sidebar.toggle() } label: { Image(systemName: "sidebar.left") }.help("Mostra/nascondi sessioni")
+                    Button { if artifactsVisible && availableWidth<1000 {store.artifactsVisible=false;sidebar=true} else {sidebar.toggle()} } label: { Image(systemName: "sidebar.left") }.help("Mostra/nascondi sessioni")
                     VStack(alignment: .leading, spacing: 3) {
                         Text(store.selected?.title ?? "Chat").font(StudioTypography.ui(.headline)).lineLimit(1)
                         Text(store.chatModel.isEmpty ? "Scegli un modello in Settings o Server" : (store.usesRemote ? "Remoto · " : "") + store.chatModel).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).lineLimit(1)
@@ -74,6 +79,12 @@ struct ChatView: View {
                     Spacer()
                     if store.hasWork { Text(store.archive.selected.flatMap{store.terminals[$0]}?.running == true ? "Terminale attivo":store.activePhase).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary); ProgressView().controlSize(.small) }
                     if let activity = store.webActivity, activity.sessionID == store.archive.selected { WebActivityButton(activity: activity) { store.showWebBrowser() } }
+                    Button { store.artifactsVisible.toggle() } label: {
+                        HStack(spacing:4) {
+                            Image(systemName:"shippingbox")
+                            if let count=store.selected?.artifacts?.count,count>0 {Text("\(count)").font(StudioTypography.ui(.caption2)).monospacedDigit()}
+                        }.foregroundStyle(artifactsVisible ? studioAccent:Color.primary)
+                    }.help("Mostra/nascondi artefatti della sessione").accessibilityLabel("Artefatti della sessione").accessibilityIdentifier("toggle-artifacts")
                     Button { settings.toggle() } label: { Image(systemName: "slider.horizontal.3") }.help("Impostazioni della sessione").popover(isPresented: $settings) { ScrollView { sessionSettings.padding(20) }.frame(width: 410, height: 620) }
                     Menu { Button("Esporta Markdown") { store.exportSession(json: false) }; Button("Esporta JSON") { store.exportSession(json: true) }; Button("Importa sessione…") { store.importSession() } } label: { Image(systemName: "ellipsis.circle") }.menuStyle(.borderlessButton).frame(width: 28)
                 }.buttonStyle(.plain).padding(18)
@@ -85,8 +96,13 @@ struct ChatView: View {
                 store.attachFiles(urls); return !urls.isEmpty
             } isTargeted: { dropTarget = $0 }
             .overlay { if dropTarget { RoundedRectangle(cornerRadius: 16).fill(studioAccent.opacity(0.12)).overlay(RoundedRectangle(cornerRadius: 16).stroke(studioAccent, style: StrokeStyle(lineWidth: 2, dash: [8]))).overlay(Label("Rilascia i file per allegarli alla chat", systemImage: "doc.badge.plus").padding().background(.regularMaterial, in: Capsule())).padding(8).allowsHitTesting(false) } }
+            }.frame(minWidth:sidebar && availableWidth>=1000 ? 660:360)
+            if artifactsVisible {
+                ArtifactSidebar(isPresented:$store.artifactsVisible)
+                    .frame(minWidth:260,idealWidth:340,maxWidth:480)
+            }
         }.sheet(item: $preview) { AttachmentPreview(file: $0) }.sheet(item: $toolSession) { MCPToolSheet(sessionID: $0.id).environmentObject(store) }
-        .onGeometryChange(for:CGFloat.self){$0.size.height} action:{availableHeight=$0}
+        .onGeometryChange(for:CGSize.self){$0.size} action:{availableHeight=$0.height;availableWidth=$0.width}
         .sheet(item:$codeInsertion){target in CodeInsertSheet {code in
             store.mutateSession(target.sessionID){session in
                 let original=session.draft as NSString;let offset=min(original.length,max(0,target.offset))
@@ -140,10 +156,21 @@ struct ChatView: View {
         let alert = NSAlert(); alert.messageText = "Nome della sessione"; let field = NSTextField(string: session.title); field.frame = NSRect(x: 0, y: 0, width: 300, height: 24); alert.accessoryView = field; alert.addButton(withTitle: "Salva"); alert.addButton(withTitle: "Annulla")
         if alert.runModal() == .alertFirstButtonReturn { change(session) { $0.title = String(field.stringValue.prefix(200)) } }
     }
+    var latestConversationMessage:ChatMessage? {store.selected?.messages.last(where:{!$0.isUIReport})}
+    var visibleTranscriptMessages:[ChatMessage] {(store.selected?.messages ?? []).filter{$0.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true)}}
+    var transcriptFirst:Int {transcriptSession==store.archive.selected ? min(transcriptStart,visibleTranscriptMessages.count):TranscriptWindow.initial(visibleTranscriptMessages.count)}
     var transcript: some View {
         ScrollViewReader { reader in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 24) {
+                    if transcriptFirst>0 {
+                        Button("Carica messaggi precedenti (\(transcriptFirst))") {
+                            scrollPolicy.userScrolled();bottomTask?.cancel()
+                            transcriptSession=store.archive.selected;transcriptStart=TranscriptWindow.earlier(transcriptFirst)
+                            let anchor=visibleTranscriptMessages.dropFirst(transcriptStart).first?.id
+                            Task{@MainActor in await Task.yield();if let anchor{reader.scrollTo(anchor,anchor:.top)}}
+                        }.buttonStyle(.bordered)
+                    }
                     if store.selected?.messages.isEmpty != false {
                         VStack(spacing: 16) {
                             Image(systemName: "sparkles").font(StudioTypography.ui(size: 38)).foregroundStyle(studioAccent)
@@ -151,15 +178,14 @@ struct ChatView: View {
                             Text("Conversazioni locali, con il tuo modello.\nInizia un messaggio o scegli il modello nei Settings.").multilineTextAlignment(.center).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity).padding(.top, 80).padding(.bottom, 50)
                     }
-                    ForEach((store.selected?.messages ?? []).filter { $0.visibleInChat(agent:store.selected?.agentEnabled == true,web:store.selected?.webToolsEnabled == true) }) { message in
+                    ForEach(Array(visibleTranscriptMessages.dropFirst(transcriptFirst))) { message in
                         MessageCard(message: message, edit: { edit(message) }, regenerate: { regenerate(message) })
                     }
-                    if let last=store.selected?.messages.last,!last.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true),["queued","prefill","remote_wait","generating"].contains(last.state) { GenerationActivity(state:last.state, messageID:last.id) }
+                    if let last=latestConversationMessage,!last.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true),["queued","prefill","remote_wait","generating"].contains(last.state) { GenerationActivity(state:last.state, messageID:last.id) }
                     ForEach(store.approvals.filter{$0.sessionID==store.archive.selected}) { approval in ActionApprovalView(approval:approval) }
                     if let id=store.archive.selected,let terminal=store.terminals[id] {
                         TerminalSlot(terminal:terminal).id(terminal.id)
                     }
-                    if let artifacts=store.selected?.artifacts,!artifacts.isEmpty {ArtifactCards(artifacts:artifacts)}
                     Color.clear.frame(height: 1).id("bottom")
                 }.frame(maxWidth: 800).padding(24).frame(maxWidth: .infinity)
             }
@@ -173,13 +199,16 @@ struct ChatView: View {
             .onScrollGeometryChange(for:ChatScrollExtent.self) { geometry in
                 ChatScrollExtent(contentHeight:geometry.contentSize.height,viewportHeight:geometry.containerSize.height,viewportWidth:geometry.containerSize.width)
             } action: { _, _ in requestBottom(reader) }
-            .onChange(of:store.selected?.messages.last?.text) { _,_ in requestBottom(reader) }
-            .onChange(of:store.selected?.messages.count) { _,_ in requestBottom(reader) }
+            .onChange(of:latestConversationMessage?.text) { _,_ in requestBottom(reader) }
+            .onChange(of:store.selected?.messages.count) { _,_ in
+                if transcriptSession==store.archive.selected {transcriptStart=TranscriptWindow.updated(start:transcriptStart,count:visibleTranscriptMessages.count,following:follow)}
+                requestBottom(reader)
+            }
             .onChange(of:store.approvals.map(\.id)) { _,_ in requestBottom(reader) }
             .onChange(of:store.archive.selected.flatMap{store.terminals[$0]?.output}) { _,_ in requestBottom(reader) }
-            .onChange(of:store.archive.selected) { _,id in if let id {store.markSessionRead(id)};scrollPolicy.resume();requestBottom(reader) }
+            .onChange(of:store.archive.selected) { _,id in if let id {store.markSessionRead(id)};transcriptSession=id;transcriptStart=TranscriptWindow.initial(visibleTranscriptMessages.count);scrollPolicy.resume();requestBottom(reader) }
             .onChange(of:follow) { _,value in if value {requestBottom(reader)} }
-            .onAppear { if let id=store.archive.selected {store.markSessionRead(id)};requestBottom(reader) }
+            .onAppear {if transcriptSession != store.archive.selected {transcriptSession=store.archive.selected;transcriptStart=TranscriptWindow.initial(visibleTranscriptMessages.count)};if let id=store.archive.selected {store.markSessionRead(id)};requestBottom(reader) }
             .onDisappear {bottomTask?.cancel()}
             .overlay(alignment:.bottomTrailing) { if !follow {
                 Button {scrollPolicy.resume();requestBottom(reader)} label:{Label("Vai alla fine",systemImage:"arrow.down")}.buttonStyle(.bordered).padding()
@@ -224,24 +253,36 @@ struct ChatView: View {
                         if dragStartHeight==nil{dragStartHeight=composerHeight}
                         composerHeight=min(max(82,availableHeight*0.55),max(82,(dragStartHeight ?? 82)-value.translation.height))
                     }.onEnded{_ in dragStartHeight=nil})
+                CompactionBanner(store:store)
+                ChatQueuePanel(store:store)
                 ComposeEditor(text: Binding(get: { store.selected?.draft ?? "" }, set: { value in store.mutateSelected { $0.draft = value } }), onSend: { store.sendMessage(); scrollPolicy.resume() }, onFiles: { store.attachFiles($0) },onCode:{offset in if let id=store.archive.selected{codeInsertion=CodeInsertion(sessionID:id,offset:offset)}}).frame(height:min(composerHeight,max(82,availableHeight*0.55)))
                 HStack {
                     Button { store.pickAttachments() } label: { Image(systemName: "paperclip") }.buttonStyle(.plain).help("Allega immagini, testo, Word, OpenDocument o PDF").disabled(store.selectedAttachmentsLoading)
                     Menu {ForEach((store.archive.settings.skills ?? []).filter{$0.enabled}){skill in
                         Button(skill.displayName ?? skill.name){store.mutateSelected{$0.draft += ($0.draft.isEmpty ? "":" ")+"@"+skill.name+" "+(skill.defaultPrompt ?? "")}}
-                    }} label:{Image(systemName:"sparkles")}.menuStyle(.borderlessButton).fixedSize().help("Richiama una skill attiva")
+                    }
+                        Divider()
+                        ForEach((store.archive.settings.plugins ?? []).filter{$0.enabled}){plugin in
+                            Button("Plugin · "+plugin.manifest.name){store.mutateSelected{$0.draft="@plugin:"+plugin.manifest.identifier+" "+$0.draft}}
+                        }
+                    } label:{Image(systemName:"sparkles")}.menuStyle(.borderlessButton).fixedSize().help("Richiama una skill attiva")
                     Button { if let id = store.archive.selected { toolSession = ToolSession(id: id) } } label: { Image(systemName: "wrench.and.screwdriver") }.buttonStyle(.plain).help("Strumenti MCP")
+                    Menu {
+                        ForEach(["/help","/compact","/context","/status","/plugins","/skills","/queue"],id:\.self){command in
+                            Button(command){store.mutateSelected{$0.draft=command+($0.draft.isEmpty ? "":" "+$0.draft)}}
+                        }
+                    } label:{Text("/").fontWeight(.semibold)}.menuStyle(.borderlessButton).fixedSize().help("Comandi della chat")
+                    ContextIndicator(store:store)
                     Text("Invio per inviare · ⇧ Invio a capo").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary)
                     Spacer()
-                    if store.requests.values.contains(where: { $0.session == store.archive.selected }) {
+                    if store.selectedTurnBusy {
                         Button { store.cancelSelected() } label: { Label("Interrompi", systemImage: "stop.fill") }.buttonStyle(.bordered)
-                    } else {
-                        Button { store.sendMessage(); scrollPolicy.resume() } label: { Image(systemName: "arrow.up").fontWeight(.semibold).frame(width: 24, height: 24) }.buttonStyle(.borderedProminent).clipShape(Circle()).disabled(!store.canSendSelected).help("Invia messaggio")
                     }
+                    Button { store.sendMessage(); scrollPolicy.resume() } label: { Image(systemName: store.selectedTurnBusy ? "text.badge.plus" : "arrow.up").fontWeight(.semibold).frame(width: 24, height: 24) }.buttonStyle(.borderedProminent).clipShape(Circle()).disabled(!store.canSendSelected).help(store.selectedTurnBusy ? "Metti il messaggio in coda" : "Invia messaggio")
                 }
             }.padding(12).background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).stroke(.quaternary))
             if !(store.selected?.draftAttachments ?? []).isEmpty { Text("Il testo degli allegati occupa il contesto del modello. Nessun taglio automatico.").font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary) }
-            MetricsStrip(metrics: store.selected?.messages.last?.metrics, current: store.requests.values.contains { $0.session == store.archive.selected },workspace:store.selected?.workspacePath ?? "")
+            MetricsStrip(metrics: latestConversationMessage?.metrics, current: store.requests.values.contains { $0.session == store.archive.selected },workspace:store.selected?.workspacePath ?? "")
         }.frame(maxWidth: 830).padding(.horizontal, 20).padding(.bottom, 14).frame(maxWidth: .infinity)
     }
     func samplingBinding<T>(_ key: WritableKeyPath<SamplingSettings, T>) -> Binding<T> {
@@ -300,10 +341,11 @@ struct MessageCard: View {
                 Button { preview = file } label: { AttachmentLabel(file:file) }.buttonStyle(.bordered)
             }
             if message.role == "assistant",["queued","prefill","remote_wait","generating"].contains(message.state) { GenerationActivity(state:message.state, messageID:message.id) }
-            if !message.text.isEmpty || !(message.reasoning ?? "").isEmpty { ResponseBody(text:message.text,reasoning:message.role=="assistant" ? message.reasoning:nil,implicit:message.role=="assistant" && message.implicitThinking==true,assistant:message.role=="assistant",generating:message.state != "complete") }
+            if !message.text.isEmpty || !(message.reasoning ?? "").isEmpty { ResponseBody(text:message.text,reasoning:message.role=="assistant" ? message.reasoning:nil,implicit:message.role=="assistant" && message.implicitThinking==true,assistant:message.role=="assistant",generating:message.state != "complete",prepared:message.role=="assistant" ? message.chatParts:nil) }
+            if let action=message.commandAction {CommandDisclosure(action:action)}
 
             HStack(spacing: 14) {
-                Button { copyText(message.text) } label: { Image(systemName: "doc.on.doc") }.help("Copia")
+                Button { copyText(message.role=="assistant" ? message.chatParts.answer:message.text) } label: { Image(systemName: "doc.on.doc") }.help("Copia")
                 if message.isUIReport { EmptyView() }
                 else if message.role == "user" { Button(action: edit) { Image(systemName: "pencil") }.help("Modifica nella stessa sessione") }
                 else { Button(action: regenerate) { Image(systemName: "arrow.clockwise") }.help("Rigenera nella stessa sessione") }

@@ -1,0 +1,46 @@
+{
+  "version": "1.4.8",
+  "build": "33",
+  "chat_queue": {
+    "fifo_during_streaming": true,
+    "waits_for_complete_tool_chain": true,
+    "queued_inputs_excluded_from_earlier_context": true,
+    "attachments_frozen_unsent_draft_preserved": true,
+    "background_session_and_unread": true,
+    "error_and_cancel_pause_resume": true,
+    "persisted_queue_paused_on_relaunch": true,
+    "safe_return_to_draft": true,
+    "intel_test_passed": true,
+    "m1_native_test_passed": true
+  },
+  "remote_client_regressions_passed": true,
+  "immediate_cancel_race_fixed": true,
+  "installer_identity_and_migration_guards_passed": true,
+  "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+  "gpu_benchmarks_or_model_quality_repeated": false,
+  "chat_mcp_skills_scheduled_web_approval_regressions_passed": true,
+  "package_sha256": "c16f88610660e8eb64cf73ca3eff05670d44b464b46a2f17cb0122556609fac2",
+  "architectures": {
+    "app": [
+      "x86_64",
+      "arm64"
+    ],
+    "command": [
+      "x86_64",
+      "arm64"
+    ],
+    "terminal": [
+      "x86_64",
+      "arm64"
+    ],
+    "engine": [
+      "arm64"
+    ]
+  },
+  "extracted_signature_valid": true,
+  "package_version_build_verified": true,
+  "packaged_guides_and_release_notes_verified": true,
+  "generic_and_versioned_checksums_verified": true,
+  "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+  "helper_binary_unchanged_from_1_4_7_05": true
+}

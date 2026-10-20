@@ -1,8 +1,16 @@
 # Changelog SUC Studio
 
+## 1.4.8.02 — build 34
+
+Indicatore circolare del contesto, /compact e auto-compact al 99%, con storico originale conservato e limite remoto rilevabile o impostabile. Comandi della chat, richiamo esplicito dei plugin e caricamento autonomo dal modello. Corrette sparizioni e salti nelle chat lunghe: anteprima stabile oltre 8000 caratteri e cronologia caricata progressivamente. Coda, permessi e memory policy preservati.
+
+## 1.4.8 — build 33
+
+Messaggi inviabili durante prefill, decode e azioni, con coda persistente per sessione. Invio sequenziale dopo il turno completo, allegati e bozze preservati. Pannello con pausa/ripresa, rimozione e ritorno in bozza. Stop/errori sospendono la coda; al riavvio serve ripresa esplicita. Motore e memory policy invariati.
+
 ## 1.4.7.05 — build 32 · candidate
 
-Caricamento con indicatore di attività e fase effettiva, senza percentuali basate sulla memoria: GiB residenti e allocazione Metal restano separati. Profilo prefill Automatico 1024/64 con checkpoint allineati e fallback per exact, chunk espliciti e streaming expert. Batch prudente resta predefinito. Android 0.1.4 corregge la selezione del modello remoto dopo Verifica.
+Loader per fase. Corretta la × degli artefatti. MCP su richiesta, schemi fino a 3 MiB, risultati fino a 4 MiB e skill esplicite mantenute durante le azioni. Health check compatibile col router. Passaggi intermedi visibili e comandi espandibili. Prefill Automatico 1024/64 opzionale; Batch prudente predefinito. Android 0.1.4 aggiorna il modello dopo Verifica. Versione e build invariate.
 
 ## 1.4.7.04 — build 31
 

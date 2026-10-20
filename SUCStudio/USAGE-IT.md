@@ -1,4 +1,4 @@
-# SUC Studio 1.4.7.04
+# SUC Studio 1.4.8.02
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.7.05-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.8.02-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -90,7 +90,7 @@ Installare i Command Line Tools Apple (`xcode-select --install`), con SDK macOS 
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.7.05-universal.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
+Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.8.02-universal.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
 
 ## Installare e iniziare
 
@@ -390,7 +390,7 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.05-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.8.02-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Avanzamento e velocità nella 1.4.7.04
 
@@ -403,3 +403,48 @@ SUC invia i conteggi reali durante il decode; la media live e quella finale usan
 Durante il caricamento la barra globale mostra un indicatore di attività e la fase comunicata dal motore, fino alla conferma di modello pronto. I GiB delle pagine del file residenti e l'allocazione Metal sono dati separati: possono aumentare o diminuire e non rappresentano una percentuale di completamento. Il dettaglio indica la residenza iniziale. Il monitor non forza letture, page-in o variazioni della politica di memoria.
 
 Nei Settings, Prefill → **Automatico (1024 / 64)** abilita la rilettura in blocchi da 1024 e la coda in blocchi al massimo da 64. Richiede ricaricare il modello. Cache e checkpoint vengono riusati prima di rileggere il contesto; il decode resta a un token per passo. Con exact/token, chunk esplicito o streaming degli expert, rimane il percorso previsto da quei profili. **Batch prudente** rimane predefinito: il confronto sul modello grande è pendente e non viene promessa equivalenza numerica fra profili. CLI server: `--history-prefill auto` abilita la stessa schedulazione, `off` conserva il profilo precedente.
+
+
+### Passaggi intermedi e comandi nella chat
+
+Le premesse e i ragionamenti del modello tra due azioni rimangono visibili, anche riaprendo le sessioni precedenti. Sono nascosti soltanto il protocollo JSON e i risultati tecnici interni degli strumenti. I comandi shell e interattivi hanno un dettaglio «Comando» chiuso di default: espandilo per leggere il comando, poi richiudilo. Per le nuove azioni viene conservato il comando effettivo dopo eventuali modifiche degli hook. Password e altri input riservati restano gestiti dalla scheda terminale.
+
+
+### Schemi MCP estesi
+
+I cataloghi MCP accettano schemi completi fino a 3 MiB per strumento, conservati come JSON compatto senza troncamenti. Rimane il limite di 256 strumenti per server. I risultati testuali MCP possono raggiungere 4 MiB senza troncamenti; il trasporto JSON dispone di 32 MiB per escaping e metadati. Se uno schema supera il limite, il messaggio indica lo strumento e la dimensione. Connessione REA verificata tramite initialize e tools/list; la connessione non esegue strumenti.
+
+
+### Pannello artefatti
+
+Gli artefatti non compaiono più in fondo alla chat. L’icona a forma di pacco nella barra della chat, con il numero dei file disponibili, apre e chiude il pannello laterale. Il pulsante × nel pannello lo nasconde completamente. Il pannello segue la sessione selezionata, è ridimensionabile e mantiene i pulsanti Salva e Finder. Rimane chiuso finché non lo apri, anche quando viene prodotto un nuovo file.
+
+
+### MCP su richiesta e continuità delle skill
+
+Il prompt iniziale contiene i server MCP connessi e il numero di strumenti, senza copiarne tutti gli schemi. Il modello cerca gli strumenti con mcp_list (query e paginazione), consulta mcp_schema e poi usa mcp_call con le normali approvazioni. Gli schemi grandi si consultano tramite path JSON Pointer e paginazione: lo schema completo resta conservato nel pannello MCP. Le skill richiamate con @nome o $nome rimangono attive durante tutte le azioni dello stesso turno. La lettura del catalogo non esegue strumenti remoti.
+
+Il health check prova anche /health se il percorso sotto /v1 non è disponibile. Un server raggiungibile non dimostra che stia elaborando: lo stato indica l’attesa della risposta, senza simulare avanzamento. Il pulsante × degli artefatti è un controllo AppKit con binding diretto alla chat e area di clic di 28 pt. Il pannello laterale usa una vista divisa ridimensionabile; nelle finestre strette l’elenco delle sessioni viene nascosto temporaneamente per lasciare spazio alla conversazione.
+
+
+### Risultati MCP fino a 4 MiB
+
+Il limite vale sul testo UTF-8 complessivo restituito dallo strumento, inclusi eventuali contenuti strutturati. Risultati superiori vengono rifiutati con un errore esplicito; nessun taglio automatico. Chat locale, client remoto e server integrato accettano richieste JSON fino a 32 MiB. Restano i limiti di contesto del modello e gli eventuali limiti del server remoto: 4 MiB di testo possono contenere molti più token di quelli disponibili. Il limite degli allegati e dei comandi shell resta invariato.
+
+
+## Messaggi in coda — 1.4.8
+
+Puoi scrivere e premere Invio anche durante la generazione: il messaggio e i suoi allegati vengono messi in coda nella sessione corrente. Partono in ordine quando finisce l’intero turno, comprese le azioni degli strumenti. Il pannello sopra il compositore permette di mettere in pausa, riprendere, rimuovere o riportare un messaggio in bozza. Per modificarlo devi avere una bozza vuota; il nuovo invio lo rimette in fondo alla coda. Interrompi ferma la richiesta attuale e mette in pausa la coda. Anche un errore di generazione la sospende. I messaggi sono salvati localmente e dopo un riavvio aspettano Riprendi. Puoi cambiare sessione mentre la coda continua; la bozza che stai scrivendo non viene inviata automaticamente.
+
+
+## Contesto, comandi e plugin — 1.4.8.02
+
+L’anello accanto al compositore mostra la percentuale di contesto utilizzata; ≈ indica una stima. Cliccalo per vedere token, limite e auto-compact. Il server locale usa il limite caricato; per un server remoto premi Verifica / modelli e salva la configurazione, oppure usa `/context 32768` per la sessione. `/context 0` torna al rilevamento automatico. Senza limite noto compare ? e l’autocompact non parte. Le immagini hanno un costo variabile, stimato finché non arriva il conteggio server.
+
+`/compact` sintetizza la conversazione col modello corrente; puoi aggiungere priorità dopo il comando. Il transcript e gli allegati originali rimangono salvati, mentre le richieste successive usano la memoria sintetica. La sintesi può omettere dettagli: consulta l’originale quando serve. La compattazione automatica al 99% interviene fra le richieste, considerando anche una riserva per l’output. Non interrompe il decode. Per disabilitarla usa `/auto off`; `/auto on` la ripristina. I messaggi in coda attendono la fine della sintesi. Se viene interrotta o fallisce, il vecchio contesto resta intatto e la coda si mette in pausa.
+
+Il menu / e `/help` mostrano i comandi: `/status`, `/new`, `/clear`, `/stop`, `/queue`, `/pause`, `/resume`, `/skills`, `/skill nome richiesta`, `/plugins`, `/plugin identificatore richiesta`, `/model`, `/workspace`, `/export`, `/retry`, oltre a quelli del contesto. `/clear` conserva lo storico e riparte dalle istruzioni di sistema. Per testo letterale che inizia con / scrivi //. Un comando va inviato senza allegati.
+
+Per richiamare un plugin attivo puoi usare anche `@plugin:identificatore richiesta` o il menu delle skill. Il modello può selezionarlo tramite il catalogo e `load_plugin`; skill solo esplicite, MCP e hook conservano le rispettive impostazioni e approvazioni. Il richiamo non attiva plugin disabilitati.
+
+Le chat lunghe caricano inizialmente gli ultimi 80 messaggi; Carica messaggi precedenti mostra il resto. Durante lo scroll manuale i messaggi visibili restano montati. Oltre 8000 caratteri l’anteprima non collassa più a 12 righe: Apri testo completo mantiene accessibile tutto il contenuto.

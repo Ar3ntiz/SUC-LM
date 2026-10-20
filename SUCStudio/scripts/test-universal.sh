@@ -23,3 +23,9 @@ xcrun swiftc -swift-version 5 -whole-module-optimization -sdk "$SDK" -parse-as-l
 
 "$ROOT/scripts/test-customization14602.sh"
 "$ROOT/scripts/test-mcp-http14602.sh"
+
+"$ROOT/scripts/test-mcp-schemas.sh"
+
+"$ROOT/scripts/test-chat-queue.sh"
+
+"$ROOT/scripts/test-context.sh"

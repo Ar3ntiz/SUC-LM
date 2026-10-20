@@ -10,6 +10,7 @@ struct MarkdownBody: View {
     @State private var renderingTask:Task<Void,Never>?
     var body: some View {
         VStack(alignment:.leading,spacing:12) {
+            if prepared.blocks.isEmpty,!text.isEmpty {Text(MessagePresentation.preview(text)).textSelection(.enabled)}
             ForEach(Array(prepared.blocks.enumerated()),id:\.offset) { _,block in
                 switch block.kind {
                 case .paragraph: inline(block.text)

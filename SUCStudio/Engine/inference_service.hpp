@@ -224,7 +224,7 @@ static bool send_response(int fd, int status, const std::string& body, bool keep
 
 // Reads one request (buf keeps bytes of the next pipelined request). false: connection closed / malformed.
 static bool read_request(int fd, std::string& buf, HttpRequest& r) {
-  constexpr std::size_t kMaxHeader = 64 * 1024, kMaxBody = 2u * 1024 * 1024;
+  constexpr std::size_t kMaxHeader = 64 * 1024, kMaxBody = 32u * 1024 * 1024;
   char tmp[16384];
   std::size_t hdr_end;
   while ((hdr_end = buf.find("\r\n\r\n")) == std::string::npos) {

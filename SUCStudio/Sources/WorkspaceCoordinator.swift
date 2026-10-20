@@ -63,9 +63,10 @@ extension StudioStore {
             }
             return
         }
-        let mcp=action.name=="mcp_call"
-        let web=WebTools.names.contains(action.name),skill=["load_skill","skill_resource","skill_resources"].contains(action.name)
-        mutateMessage(sessionID,messageID){$0.kind="tool_call"}
+        let discovery=MCPCatalog.actions.contains(action.name)
+        let mcp=action.name=="mcp_call" || discovery
+        let web=WebTools.names.contains(action.name),skill=["load_skill","skill_resource","skill_resources","load_plugin"].contains(action.name)
+        mutateMessage(sessionID,messageID){$0.kind="tool_call";$0.executedAction=action}
         guard session.fullAgent || (web && session.webToolsEnabled) || skill || mcp else {
             actionNotice(sessionID,"Strumento non abilitato per questa sessione: "+action.name)
             finishAgentReport(sessionID,reason:"Strumento non disponibile.")
@@ -88,14 +89,17 @@ extension StudioStore {
                 hookContexts[sessionID,default:[]]+=before.context
                 if let deny=before.deny {throw ExtensionFiles.failure(deny)}
                 if let updated=before.updatedInput {action.arguments=updated;record.details=action.summary}
+                mutateMessage(sessionID,messageID){$0.executedAction=action}
                 if web { try WebTools.validate(action,allowWeb:session.webToolsEnabled) }
                 var allowed=true
-                if !skill {allowed=await approve(action,session:session,root:root)}
+                if !skill && !discovery {allowed=await approve(action,session:session,root:root)}
                 guard allowed, !Task.isCancelled else {record.state="denied";record.result="Azione rifiutata o annullata.";recordAction(sessionID,record);finishAgentReport(sessionID,reason:"Azione rifiutata o interrotta.");completeSubagent(sessionID,result:.failure(MCPConnection.failure(record.result)));return}
                 operationJournal.update(id:record.id.uuidString,state:"In corso")
                 try Task.checkCancellation()
                 let result: String
-                if skill { result=try action.name=="load_skill" ? SkillDocument.load(action,skills:archive.settings.skills ?? []) : SkillDocument.resource(action,skills:archive.settings.skills ?? []) }
+                if action.name=="load_plugin" {guard let loaded=PluginCatalog.load(action.arguments["id"] ?? "",plugins:archive.settings.plugins ?? [],skills:archive.settings.skills ?? []) else{throw MCPConnection.failure("Plugin non attivo o sconosciuto.")};result=loaded}
+                else if skill { result=try action.name=="load_skill" ? SkillDocument.load(action,skills:archive.settings.skills ?? []) : SkillDocument.resource(action,skills:archive.settings.skills ?? []) }
+                else if discovery {result=try MCPCatalog.read(action,tools:mcpTools)}
                 else if mcp {
                     guard let config=archive.settings.mcpServers?.first(where:{$0.enabled && $0.name==action.arguments["server"]}),let client=mcpConnections[config.id],let tool=mcpTools.first(where:{$0.serverID==config.id && $0.name==action.arguments["tool"]}) else{throw ExtensionFiles.failure("Strumento MCP non attivo.")}
                     guard let input=try JSONSerialization.jsonObject(with:Data((action.arguments["input"] ?? "{}").utf8)) as? [String:Any] else{throw ExtensionFiles.failure("Input MCP deve essere un oggetto JSON.")}

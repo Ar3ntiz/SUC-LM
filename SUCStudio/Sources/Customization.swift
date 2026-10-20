@@ -73,7 +73,7 @@ extension StudioStore {
         guard !attachmentLoads.contains(sessionID) else { throw MCPConnection.failure("Attendi l’importazione degli allegati.") }
         guard let client = mcpConnections[tool.serverID], mcpTools.contains(where: { $0.id == tool.id }), archive.settings.mcpServers?.contains(where: { $0.id == tool.serverID && $0.enabled }) == true else { throw MCPConnection.failure("MCP non attivo. Riconnettilo nei Settings.") }
         guard argumentsJSON.utf8.count <= 64 * 1024, let arguments = try JSONSerialization.jsonObject(with: Data(argumentsJSON.utf8)) as? [String: Any] else { throw MCPConnection.failure("Gli argomenti devono essere un oggetto JSON (massimo 64 KiB).") }
-        mcpRuns.insert(sessionID); defer { mcpRuns.remove(sessionID) }
+        mcpRuns.insert(sessionID); defer { mcpRuns.remove(sessionID); scheduleChatQueue(sessionID) }
         let logID=UUID().uuidString;operationJournal.update(id:logID,title:"MCP · "+tool.serverName+" / "+tool.name,state:"In corso",sessionID:sessionID)
         var logSuccess=false
         defer{operationJournal.update(id:logID,state:logSuccess ? "Completata":"Errore")}

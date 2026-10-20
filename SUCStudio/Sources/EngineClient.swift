@@ -4,14 +4,20 @@ import Security
 final class LineReader {
     private var data = Data()
     private let lock = NSLock()
+    private let maxBytes: Int
+    init(maxBytes: Int = 4 * 1024 * 1024) { self.maxBytes = maxBytes }
     func consume(_ bytes: Data, receive: (Data) -> Void) {
         lock.lock(); defer { lock.unlock() }
+        // The retained prefix has already been scanned and contains no newline.
+        // Scan only incoming bytes, avoiding quadratic work on large MCP results.
+        var searchStart = data.endIndex
         data.append(bytes)
-        while let end = data.firstIndex(of: 10) {
+        while let end = data[searchStart...].firstIndex(of: 10) {
             let line = Data(data[..<end]); data.removeSubrange(...end)
-            if line.count <= 4 * 1024 * 1024 { receive(line) }
+            if line.count <= maxBytes { receive(line) }
+            searchStart = data.startIndex
         }
-        if data.count > 4 * 1024 * 1024 { data.removeAll() }
+        if data.count > maxBytes { data.removeAll() }
     }
 }
 @MainActor final class EngineClient {
@@ -66,7 +72,7 @@ final class LineReader {
         }
     }
     func send(_ value: [String: Any]) {
-        guard let input, var data = try? JSONSerialization.data(withJSONObject: value), data.count <= 4 * 1024 * 1024 else { return }
+        guard let input, var data = try? JSONSerialization.data(withJSONObject: value), data.count <= 64 * 1024 * 1024 else { return }
         data.append(10)
         writer.async { try? input.write(contentsOf: data) }
     }

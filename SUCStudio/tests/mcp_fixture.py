@@ -8,9 +8,17 @@ def reply(value):
     if method == 'initialize':
         result = {'protocolVersion': '2025-11-25', 'capabilities': {'tools': {}}, 'serverInfo': {'name': 'fixture', 'version': '1'}}
     elif method == 'tools/list':
+        if '--large-schema' in sys.argv or '--oversized-schema' in sys.argv:
+            size = 2 * 1024 * 1024 if '--large-schema' in sys.argv else 3 * 1024 * 1024 + 1024
+            return {'jsonrpc': '2.0', 'id': value['id'], 'result': {'tools': [{'name': 'large_schema', 'inputSchema': {'type': 'object', 'properties': {'payload': {'type': 'string', 'description': 'x' * size}}}}]}}
         if params.get('cursor') == 'page2': result = {'tools': [{'name': 'fail', 'description': 'Failure', 'inputSchema': {'type': 'object'}}]}
         else: result = {'tools': [{'name': 'echo', 'description': 'Echo', 'inputSchema': {'type': 'object', 'properties': {'text': {'type': 'string'}}}}], 'nextCursor': 'page2'}
     elif method == 'tools/call':
+        args = params.get('arguments', {})
+        if 'result_bytes' in args:
+            unit = args.get('unit', 'x')
+            text = unit * (int(args['result_bytes']) // len(unit.encode('utf-8')))
+            return {'jsonrpc': '2.0', 'id': value['id'], 'result': {'content': [{'type': 'text', 'text': text}]}}
         if params.get('name') == 'fail': result = {'isError': True, 'content': [{'type': 'text', 'text': 'expected failure'}]}
         else:
             if params.get('arguments', {}).get('delay'): time.sleep(min(5, float(params.get('arguments', {}).get('delay_seconds', .2))))

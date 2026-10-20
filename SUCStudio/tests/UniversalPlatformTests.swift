@@ -13,7 +13,7 @@ import Foundation
         precondition(StudioPlatform.name == "SUC Studio")
         precondition(StudioPlatform.dataDirectory == "SUC Studio Universal Preview")
         precondition(KeyStore.service != "local.sucstudio.apikey")
-        precondition(StudioPlatform.version == "1.4.7.05")
+        precondition(StudioPlatform.version == "1.4.8.02")
         precondition(PrefillStatus(["processed":2048,"total":2165,"cache":2048])!.fraction==0)
         precondition(PrefillStatus(["processed":2165,"total":2165,"cache":2048])!.fraction==1)
         precondition(PrefillStatus(["processed":0,"total":0])==nil)

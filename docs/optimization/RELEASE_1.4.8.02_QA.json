@@ -1,0 +1,73 @@
+{
+  "version": "1.4.8.02",
+  "build": "34",
+  "context": {
+    "manual_compaction_http_sse": true,
+    "automatic_preflight_compaction": true,
+    "automatic_99_percent_post_generation": true,
+    "original_history_and_attachments_preserved": true,
+    "queued_continuation": true,
+    "actual_usage_anchoring_and_estimate_labels": true,
+    "remote_model_window_detection": true,
+    "unicode_chunks_reconstruct_original_input": true,
+    "cancellation_error_rollback": true,
+    "context_commands_excluded_from_model_history": true,
+    "vision_cost_estimate_in_budget": true,
+    "native_m1_test_passed": true,
+    "local_protocol_summary_and_cancellation_passed": true,
+    "session_start_preserved_during_preflight_compaction": true
+  },
+  "plugins": {
+    "explicit_chat_invocation": true,
+    "model_load_plugin_round_trip": true,
+    "disabled_plugins_not_activated": true,
+    "explicit_only_skills_not_loaded_implicitly": true
+  },
+  "long_chat": {
+    "stable_window_index_while_reading": true,
+    "bounded_initial_window_messages": 80,
+    "manual_page_size": 40,
+    "non_lazy_transcript_rows": true,
+    "ui_8000_character_height_regression": {
+      "characters": 8092,
+      "height_after_8000": 1560,
+      "height_before_8000": 1514,
+      "passed": true
+    }
+  },
+  "chat_skill_mcp_4mib_scheduled_web_approval_regressions": true,
+  "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+  "real_model_summary_quality_benchmark": false,
+  "gpu_engine_performance_or_kl_repeated": false,
+  "package_sha256": "271334c0548068e97cd20a3661195422c719fb898f52998c14ccb53169ba8305",
+  "architectures": {
+    "app": [
+      "x86_64",
+      "arm64"
+    ],
+    "command": [
+      "x86_64",
+      "arm64"
+    ],
+    "terminal": [
+      "x86_64",
+      "arm64"
+    ],
+    "engine": [
+      "arm64"
+    ]
+  },
+  "extracted_signature_valid": true,
+  "package_version_build_verified": true,
+  "guides_and_release_notes_verified": true,
+  "checksums_verified": true,
+  "helper_binary_unchanged": false,
+  "helper_sha256": "f388d669071a35805c2907a026a2c86a75345ea1a0385ef8716dab843633c0ef",
+  "plugin_policy_test_passed": true,
+  "build_environment_note": "La toolchain locale è diventata indisponibile durante il link finale; ricompilazione conclusiva spostata sul Mac Studio con SDK 26.5.",
+  "final_package_pending_m1_rebuild": false,
+  "final_build_host": "Mac Studio M1 Ultra",
+  "build_sdk": "MacOSX26.5.sdk",
+  "packaged_helper_protocol_smoke_passed": true,
+  "parent_cpp_unchanged": true
+}

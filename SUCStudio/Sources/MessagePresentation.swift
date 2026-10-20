@@ -7,7 +7,8 @@ struct ThinkingParts:Equatable {
     static func split(_ text:String,separate:String?=nil,implicit:Bool=false)->Self {
         if let separate,!separate.isEmpty {return Self(reasoning:separate,answer:text,active:text.isEmpty)}
         let trimmed=text.trimmingCharacters(in:.whitespacesAndNewlines)
-        let open="<think>",close="</think>"
+        let tag=trimmed.hasPrefix("<analysis>") || "<analysis>".hasPrefix(trimmed) ? "analysis":"think"
+        let open="<"+tag+">",close="</"+tag+">"
         if !trimmed.isEmpty,open.hasPrefix(trimmed),trimmed != open {return Self(reasoning:"",answer:"",active:true)}
         let explicit=trimmed.hasPrefix(open)
         if explicit || implicit {
@@ -52,4 +53,14 @@ struct PreparedMarkdown {
         }
         return Self(blocks:blocks,formatted:formatted)
     }
+}
+
+
+/// A fixed start index keeps older visible rows stable while new tokens/messages arrive.
+enum TranscriptWindow {
+    static func initial(_ count:Int)->Int {max(0,count-80)}
+    static func updated(start:Int,count:Int,following:Bool)->Int {
+        following && count-start>160 ? initial(count):min(start,count)
+    }
+    static func earlier(_ start:Int)->Int {max(0,start-40)}
 }

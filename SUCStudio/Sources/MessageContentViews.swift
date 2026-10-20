@@ -7,8 +7,9 @@ struct ResponseBody:View {
     var implicit=false
     var assistant=true
     var generating=false
+    var prepared:ThinkingParts?=nil
     var body:some View {
-        let parts=assistant ? ThinkingParts.split(text,separate:reasoning,implicit:implicit):ThinkingParts(reasoning:"",answer:text,active:false)
+        let parts=prepared ?? (assistant ? ThinkingParts.split(text,separate:reasoning,implicit:implicit):ThinkingParts(reasoning:"",answer:text,active:false))
         VStack(alignment:.leading,spacing:14){
             if !parts.reasoning.isEmpty || parts.active {
                 VStack(alignment:.leading,spacing:8){
@@ -27,14 +28,13 @@ struct BoundedMessageBody:View {
     var pointOffset:Double=0
     @State private var full=false
     var body:some View {
-        Group{
+        VStack(alignment:.leading,spacing:8){
+            // Keep the same Markdown view and preview height across the long-text threshold.
+            MarkdownBody(text:text,pointOffset:pointOffset)
             if MessagePresentation.isLong(text){
-                VStack(alignment:.leading,spacing:8){
-                    Text(String(text.prefix(2000))).font(StudioTypography.chat(pointOffset:pointOffset)).lineLimit(12).textSelection(.enabled)
-                    Button("Apri testo completo · \(ByteCountFormatter.string(fromByteCount:Int64(text.utf8.count),countStyle:.file))"){full=true}.buttonStyle(.link)
-                    Text("Anteprima limitata per mantenere la chat reattiva. Il testo integrale resta disponibile.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                }
-            } else {MarkdownBody(text:text,pointOffset:pointOffset)}
+                Button("Apri testo completo · \(ByteCountFormatter.string(fromByteCount:Int64(text.utf8.count),countStyle:.file))"){full=true}.buttonStyle(.link)
+                Text("Anteprima fino a 8000 caratteri; il testo integrale resta disponibile.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            }
         }.sheet(isPresented:$full){FullMessageView(text:text)}
     }
 }
@@ -85,7 +85,7 @@ struct ActivityMessageBox: View {
     var body: some View {
         HStack(alignment:.top,spacing:7) {
             Image(systemName:message.kind=="action_notice" ? "exclamationmark.circle":"checklist")
-            Text(message.compactActivityText).textSelection(.enabled)
+            Text(message.kind=="command_help" ? message.text:message.compactActivityText).textSelection(.enabled)
         }
         .font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
         .padding(.horizontal,10).padding(.vertical,7)
@@ -93,5 +93,27 @@ struct ActivityMessageBox: View {
         .background(Color.secondary.opacity(0.07),in:RoundedRectangle(cornerRadius:8))
         .contextMenu {Button("Copia"){copyText(message.compactActivityText)}}
         .accessibilityLabel(message.kind=="action_notice" ? "Avviso attività":"Riepilogo attività")
+    }
+}
+
+/// Keep execution details in the transcript without exposing wire JSON or terminal input.
+struct CommandDisclosure:View {
+    let action:WorkspaceAction
+    @State private var expanded=false
+    var body:some View {
+        DisclosureGroup(isExpanded:$expanded) {
+            VStack(alignment:.leading,spacing:8) {
+                Text(action.arguments["command"] ?? "Comando non disponibile")
+                    .font(StudioTypography.chat(pointOffset:-1).monospaced())
+                    .textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading)
+                if action.name=="run_interactive" {
+                    Text("L’eventuale input riservato viene richiesto nella scheda terminale.")
+                        .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                }
+            }.padding(.top,6)
+        } label: {
+            Label(action.name=="run_interactive" ? "Comando interattivo":"Comando",systemImage:"terminal")
+                .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+        }.padding(10).background(Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
     }
 }

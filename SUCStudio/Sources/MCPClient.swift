@@ -34,6 +34,10 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
 }
 @MainActor final class MCPConnection {
+    static let maxSchemaBytes = 3 * 1024 * 1024
+    static let maxResultBytes = 4 * 1024 * 1024
+    // JSON escaping may expand one result byte to six wire bytes.
+    nonisolated static let maxResponseBytes = 32 * 1024 * 1024
     nonisolated static func failure(_ text: String) -> NSError { NSError(domain: "SUCStudio.MCP", code: 1, userInfo: [NSLocalizedDescriptionKey: text]) }
     let configuration: MCPConfiguration
     private let credentials: [String: String]
@@ -51,7 +55,7 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     func start() async throws -> [MCPTool] {
         if configuration.transport == "stdio" {
             guard configuration.executable.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: configuration.executable) else { throw Self.failure("Scegli il percorso assoluto di un eseguibile MCP locale.") }
-            let p = Process(), input = Pipe(), output = Pipe(), errors = Pipe(), lines = LineReader()
+            let p = Process(), input = Pipe(), output = Pipe(), errors = Pipe(), lines = LineReader(maxBytes: Self.maxResponseBytes)
             p.executableURL = URL(fileURLWithPath: configuration.executable); p.arguments = configuration.arguments
             p.environment = ProcessInfo.processInfo.environment.merging(configuration.environment ?? [:],uniquingKeysWith:{$1}).merging(credentials, uniquingKeysWith: { _, new in new })
             p.standardInput = input; p.standardOutput = output; p.standardError = errors
@@ -85,8 +89,9 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
             guard let values = result["tools"] as? [[String: Any]] else { throw Self.failure("tools/list non valido.") }
             for item in values {
                 guard let name = item["name"] as? String, let schema = item["inputSchema"] as? [String: Any], !tools.contains(where: { $0.name == name }) else { throw Self.failure("Definizione strumento MCP non valida o duplicata.") }
-                let data = try JSONSerialization.data(withJSONObject: schema, options: [.prettyPrinted, .sortedKeys])
-                guard data.count <= 128 * 1024, name.utf8.count <= 256 else { throw Self.failure("Schema MCP troppo grande.") }
+                let data = try JSONSerialization.data(withJSONObject: schema, options: [.sortedKeys])
+                guard name.utf8.count <= 256 else { throw Self.failure("Nome strumento MCP oltre 256 byte.") }
+                guard data.count <= Self.maxSchemaBytes else { throw Self.failure("Schema MCP di «\(name)» oltre il limite di 3 MiB (\(data.count) byte).") }
                 tools.append(MCPTool(serverID: configuration.id, serverName: configuration.name, name: name, description: String((item["description"] as? String ?? "").prefix(8000)), schema: String(decoding: data, as: UTF8.self)))
             }
             guard tools.count <= 256 else { throw Self.failure("Massimo 256 strumenti per server.") }
@@ -110,10 +115,10 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         guard !text.isEmpty else { throw Self.failure("Lo strumento non ha restituito testo utilizzabile dal modello.") }
         if unsupported > 0 { text.append("[\(unsupported) contenuti non testuali non inclusi.]") }
         let value = text.joined(separator: "\n\n")
-        guard value.utf8.count <= AttachmentReader.maxTextBytes else { throw Self.failure("Risultato MCP oltre 256 KiB. Restringi la richiesta; nessun taglio automatico.") }
+        guard value.utf8.count <= Self.maxResultBytes else { throw Self.failure("Risultato MCP oltre 4 MiB. Restringi la richiesta; nessun taglio automatico.") }
         return value
     }
-    private func checked(_ value: [String: Any]) throws -> [String: Any] {
+    nonisolated private func checked(_ value: [String: Any]) throws -> [String: Any] {
         if let error = value["error"] as? [String: Any] { throw Self.failure("MCP: " + (error["message"] as? String ?? "Errore JSON-RPC")) }
         guard let result = value["result"] as? [String: Any] else { throw Self.failure("Risposta JSON-RPC non valida.") }; return result
     }
@@ -180,10 +185,14 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
             guard value.utf8.allSatisfy({ (0x21...0x7e).contains($0) }), value.utf8.count <= 1024 else { throw Self.failure("Sessione MCP non valida.") }; sessionID = value
         }
         guard let expectedID else { return [:] }
-        if response.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") == true {
+        return try await readHTTPResponse(bytes, isSSE: response.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") == true, expectedID: expectedID)
+    }
+    // AsyncBytes iteration must not hop back to MainActor for every received byte.
+    nonisolated private func readHTTPResponse(_ bytes: URLSession.AsyncBytes, isSSE: Bool, expectedID: String) async throws -> [String: Any] {
+        if isSSE {
             var buffer = Data(), eventLines: [String] = []; var count = 0
             for try await byte in bytes {
-                count += 1; guard count <= 4 * 1024 * 1024 else { throw Self.failure("Risposta MCP troppo grande.") }
+                count += 1; guard count <= Self.maxResponseBytes else { throw Self.failure("Risposta MCP troppo grande.") }
                 if byte == 10 {
                     let line = String(decoding: buffer, as: UTF8.self).trimmingCharacters(in: .newlines); buffer.removeAll(keepingCapacity: true)
                     if line.isEmpty {
@@ -201,7 +210,7 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
             throw Self.failure("Stream MCP interrotto prima della risposta; nessun tentativo automatico.")
         }
         var data = Data()
-        for try await byte in bytes { data.append(byte); guard data.count <= 4 * 1024 * 1024 else { throw Self.failure("Risposta MCP troppo grande.") } }
+        for try await byte in bytes { data.append(byte); guard data.count <= Self.maxResponseBytes else { throw Self.failure("Risposta MCP troppo grande.") } }
         guard let value = try JSONSerialization.jsonObject(with: data) as? [String: Any], value["id"] as? String == expectedID else { throw Self.failure("ID risposta MCP non corrispondente.") }
         return try checked(value)
     }

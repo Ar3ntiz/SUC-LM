@@ -23,3 +23,13 @@ Actual helper/SSE progress, model-loading phases, cancellation/replay and server
 ## Studio 1.4.7.05 candidate and Android 0.1.4
 
 Loading activity follows engine phases; resident-memory readings are separate, without completion percentages. Adaptive history prefill 1024/64 is opt-in; conservative Batch remains the default. Qwen 8k prefill measured 67.673 to 28.834 seconds in one pass per profile. Six fixed hard cases scored 5/6 for both profiles; full hard-suite and reference-KL qualification of the adaptive profile remain pending. Android Verify refreshes stale model IDs. MTP is shelved. See [release and limits](RELEASE_1.4.7.05.md).
+
+## Studio 1.4.8 and 1.4.8.02
+
+Persistent per-session message queues, context indicators, manual/automatic
+compaction, chat commands and explicit plugin invocation are implemented.
+Long transcripts retain stable previews and bounded history pagination.
+Universal packaging and Intel/M1 context regressions passed. No new GPU/KL
+measurements or real-model summary-quality qualification are implied.
+See [1.4.8](RELEASE_1.4.8.md), [1.4.8.02](RELEASE_1.4.8.02.md) and
+[verification evidence](RELEASE_1.4.8.02_QA.json).

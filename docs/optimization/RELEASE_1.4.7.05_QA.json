@@ -1,8 +1,8 @@
 {
   "package_version": "1.4.7.05",
   "build": "32",
-  "package_sha256": "c222d74559555fb9cf91651348330cd60a2a415c0599e3a0460be0b42e0c95da",
-  "tested_helper_sha256": "76e1d55cdcda3ec9390606f54d0f912fe9f6ff90998ceaaac6f3a269db8439fc",
+  "package_sha256": "8d584dfe4d40c4f110c9278ec83dcf41747f03daddbf10f3dd09d032c18569b8",
+  "tested_helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
   "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
   "architectures": {
     "app": [
@@ -42,5 +42,100 @@
     "load_memory_tests_passed": true,
     "release_identity_tests_passed": true,
     "gui_runtime_load_retested": false
+  },
+  "transcript_fix": {
+    "version_unchanged": true,
+    "build_unchanged": true,
+    "original_messages_preserved": true,
+    "existing_archive_read_only_verified": true,
+    "inspected_tool_calls": 32,
+    "visible_intermediate_steps": 32,
+    "command_dropdowns": 28,
+    "streaming_and_codable_regressions_passed": true,
+    "scheduled_web_round_trip_passed": true,
+    "manual_approval_regression_passed": true,
+    "engine_binary_unchanged": true,
+    "gui_acceptance_manual": true,
+    "agent_report_tests_passed": true,
+    "agent_report_tests_platform": "arm64",
+    "legacy_agent_report_test_requires_local_backend": true
+  },
+  "mcp_schema_fix": {
+    "max_schema_bytes": 3145728,
+    "compact_json": true,
+    "schema_truncation": false,
+    "stdio_http_2_mib_acceptance_passed": true,
+    "stdio_http_above_3_mib_rejection_passed": true,
+    "http_auth_session_sse_redirect_tests_passed": true,
+    "actual_rea_tools": 207,
+    "actual_rea_largest_compact_schema_bytes": 165747,
+    "actual_rea_tools_called": false,
+    "reader_release_2_mib_microbenchmark_seconds": 1.5163
+  },
+  "artifact_sidebar": {
+    "transcript_cards_removed": true,
+    "native_resizable_inspector": false,
+    "initially_closed": true,
+    "toolbar_button_and_close_button": true,
+    "selected_session_data": true,
+    "populated_340_pt_preview_verified": true,
+    "empty_260_pt_preview_verified": true,
+    "interactive_gui_acceptance_manual": true,
+    "resizable_split_sidebar": true,
+    "shared_store_visibility": true,
+    "appkit_close_button_28_pt": true,
+    "close_button_ui_test": {
+      "passed": true,
+      "close_button_pressed": true,
+      "panel_removed": true,
+      "main_window_preserved": true,
+      "artifacts_preserved": true
+    }
+  },
+  "mcp_lazy_discovery": {
+    "initial_system_prompt_schema_injection_removed": true,
+    "paginated_tool_search": true,
+    "schema_json_pointer_fragments": true,
+    "full_schema_still_stored": true,
+    "catalog_prompt_under_4096_bytes_test_passed": true,
+    "explicit_skill_kept_until_turn_complete": true,
+    "full_skill_discovery_schema_approved_fixture_call_final_answer_passed": true,
+    "integration_system_prompt_under_8192_bytes": true,
+    "discovery_does_not_call_remote_tools": true,
+    "real_rea_catalog_connection_passed": true,
+    "stdio_http_schema_limits_still_passed": true
+  },
+  "remote_wait_diagnostic": {
+    "read_only_inspected_system_prompt_bytes": 797584,
+    "connected_mcp_tools": 207,
+    "actions_started_at_inspection": 0,
+    "user_prompt_replayed": false,
+    "root_health_live_status": 200,
+    "root_health_fallback_fixture_passed": true,
+    "original_request_performance_not_retested": true
+  },
+  "mcp_result_limit": {
+    "max_result_utf8_bytes": 4194304,
+    "max_mcp_response_wire_bytes": 33554432,
+    "max_chat_request_json_bytes": 33554432,
+    "helper_pipe_max_bytes": 67108864,
+    "truncation": false,
+    "attachment_limit_unchanged": true,
+    "user_message_limit_unchanged": true,
+    "chat_fixture_4_mib_full_round_trip_passed": true,
+    "incremental_line_scan": true,
+    "previous_model_smoke_helper_sha256": "76e1d55cdcda3ec9390606f54d0f912fe9f6ff90998ceaaac6f3a269db8439fc",
+    "model_smoke_repeated_for_limit_fix": false,
+    "m1_protocol_smoke_request_bytes": [
+      4194387,
+      25165907
+    ],
+    "packaged_helper_protocol_smoke_passed": true,
+    "package_identity_architectures_signature_checksums_verified": true,
+    "stdio_http_exact_4_mib_ascii_unicode_escaped_passed": true,
+    "stdio_http_4_mib_plus_one_rejected": true,
+    "http_json_sse_auth_sessions_redirects_passed": true,
+    "http_parser_off_main_actor": true,
+    "split_and_multiple_line_reader_regression_passed": true
   }
 }

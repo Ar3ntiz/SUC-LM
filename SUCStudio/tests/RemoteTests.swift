@@ -25,6 +25,8 @@ import Foundation
   let client=RemoteInference(config,key:"test");defer{client.stop()}
   let models=try await client.models();precondition(models==["fixture","slow"])
   let health=await client.healthStatus();precondition(health["status"] as? String=="ok")
+  let fallbackClient=RemoteInference(RemoteConfiguration(endpoint:"http://127.0.0.1:\(port)/fallback/v1",model:"fixture"),key:"test")
+  let fallbackHealth=await fallbackClient.healthStatus();precondition(fallbackHealth["status"] as? String=="ok");fallbackClient.stop()
   var text="",usage=0
   let body:[String:Any]=["messages":[["role":"user","content":"Test"]],"top_k":1,"min_p":0.1,"seed":-1]
   try await client.generate(body){event in

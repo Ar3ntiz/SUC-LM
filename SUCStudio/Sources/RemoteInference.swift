@@ -32,9 +32,11 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
     static let generationInactivityLimit:TimeInterval=24*60*60
     static let generationResourceLimit:TimeInterval=7*24*60*60
     static let healthIntervalNanoseconds:UInt64=15_000_000_000
+    private(set) var modelContextWindows: [String:Int] = [:]
     let configuration: RemoteConfiguration
     private let key: String
     private let http: URLSession
+    private var stopped = false
     init(_ configuration: RemoteConfiguration, key: String) {
         self.configuration = configuration; self.key = key
         let settings = URLSessionConfiguration.ephemeral
@@ -43,13 +45,20 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         settings.timeoutIntervalForRequest = Self.generationInactivityLimit; settings.timeoutIntervalForResource = Self.generationResourceLimit
         http = URLSession(configuration: settings, delegate: MCPHTTPDelegate(), delegateQueue: nil)
     }
-    func stop() { http.invalidateAndCancel() }
+    // Do not invalidate while a cancelled generation may still be entering bytes(for:).
+    // Foundation otherwise raises an Objective-C exception instead of a Swift error.
+    func stop() {
+        guard !stopped else{return};stopped=true
+        http.getAllTasks {tasks in tasks.forEach{$0.cancel()}}
+    }
+    deinit {http.invalidateAndCancel()}
     static func endpoint(_ base: String, path: String) throws -> URL {
         guard var url = URL(string: base.trimmingCharacters(in: .whitespacesAndNewlines)), ["http", "https"].contains(url.scheme ?? ""), url.host != nil, url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { throw MCPConnection.failure("URL del server non valido. Indica la base API, per esempio http://192.0.2.2:8080/v1.") }
         if url.path.isEmpty || url.path == "/" { url.appendPathComponent("v1") }
         return url.appendingPathComponent(path)
     }
     private func request(_ path: String) throws -> URLRequest {
+        try Task.checkCancellation();guard !stopped else{throw CancellationError()}
         var request = URLRequest(url: try Self.endpoint(configuration.endpoint, path: path))
         if !key.isEmpty { guard !key.contains("\r"), !key.contains("\n") else { throw MCPConnection.failure("API key non valida.") }; request.setValue("Bearer " + key, forHTTPHeaderField: "Authorization") }
         return request
@@ -61,13 +70,24 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         var data = Data()
         for try await byte in bytes { data.append(byte); guard data.count <= 1024 * 1024 else { throw MCPConnection.failure("Elenco modelli troppo grande.") } }
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any], let values = object["data"] as? [[String:Any]] else { throw MCPConnection.failure("Risposta /models non valida.") }
+        modelContextWindows=[:]
+        for item in values {
+            guard let id=item["id"] as? String else{continue}
+            for key in ["max_model_len","context_length","context_window","max_context_length"] {
+                if let n=RemoteTelemetry.count(item[key]),(128...10_000_000).contains(n) {modelContextWindows[id]=n;break}
+            }
+        }
         return Array(Set(values.compactMap { $0["id"] as? String })).sorted()
     }
     func healthStatus() async -> [String:Any] {
         do {
             var probe=try request("health");probe.timeoutInterval=8
             let (_,response)=try await http.data(for:probe)
-            let code=(response as? HTTPURLResponse)?.statusCode ?? 0
+            var code=(response as? HTTPURLResponse)?.statusCode ?? 0
+            if code==404 || code==405,let url=probe.url,var root=URLComponents(url:url,resolvingAgainstBaseURL:false),root.path != "/health" {
+                root.path="/health"
+                if let fallback=root.url {probe.url=fallback;let (_,response)=try await http.data(for:probe);code=(response as? HTTPURLResponse)?.statusCode ?? 0}
+            }
             if (200...299).contains(code){return ["status":"ok","http_status":code]}
             if code==404 || code==405{return ["status":"unsupported","http_status":code]}
             return ["status":"error","http_status":code]
@@ -75,6 +95,7 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         catch {return ["status":"unreachable","detail":String(error.localizedDescription.prefix(240))]}
     }
     func generate(_ input: [String: Any], event: @escaping ([String: Any]) -> Void) async throws {
+        try Task.checkCancellation();guard !stopped else{throw CancellationError()}
         var body = input
         body["model"] = configuration.model; body["stream"] = true; body["stream_options"] = ["include_usage":true]
         if configuration.telemetryProfile=="llama",configuration.liveTelemetry != false {body["timings_per_token"]=true;body["return_progress"]=true}
@@ -84,7 +105,7 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         var request = try request("chat/completions"); request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField:"Content-Type"); request.setValue("text/event-stream", forHTTPHeaderField:"Accept")
         request.httpBody = try JSONSerialization.data(withJSONObject:body)
-        guard request.httpBody!.count <= 20 * 1024 * 1024 else { throw MCPConnection.failure("Richiesta remota troppo grande.") }
+        guard request.httpBody!.count <= 32 * 1024 * 1024 else { throw MCPConnection.failure("Richiesta remota troppo grande.") }
         let healthTask=Task { [weak self] in
             while !Task.isCancelled {
                 do {try await Task.sleep(nanoseconds:Self.healthIntervalNanoseconds)} catch {return}

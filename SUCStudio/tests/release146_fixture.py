@@ -28,7 +28,38 @@ class Handler(BaseHTTPRequestHandler):
         latest = messages[-1]['content']
         system = messages[0]['content'] if messages[0]['role'] == 'system' else ''
         assert value['max_tokens'] == 4000
-        if value['model'] == 'skill':
+        if value['model'].startswith('queue'):
+            prompt = latest.split('\n\nDocumenti allegati')[0]
+            if value['model'] == 'queue-error' and prompt == 'queue-first':
+                self.send_error(503, 'fixture failure'); return
+            if prompt == 'queue-first':
+                assert not any('queue-second' in str(m['content']) for m in messages)
+            if value['model'] == 'queue-tool' and prompt == 'queue-first':
+                text = json.dumps({'suc_action': {'name': 'load_skill', 'arguments': {'name': 'QueueSkill'}}})
+            elif latest.startswith('Risultato reale dello strumento load_skill'):
+                assert 'QUEUE_SKILL_BODY' in latest
+                assert not any('queue-second' in str(m['content']) for m in messages)
+                text = 'ACK:queue-first'
+            else:
+                text = 'ACK:' + prompt
+                if prompt == 'queue-second' and value['model'] == 'queue-tool':
+                    assert any(m['role'] == 'assistant' and m['content'] == 'ACK:queue-first' for m in messages)
+            time.sleep(.25)
+        elif value['model'] == 'explicit-mcp':
+            assert 'CORPO_SKILL_RISERVATO' in system
+            assert len(system.encode()) < 8192
+            assert 'HUGE_SCHEMA_MARKER' not in system
+            if latest.startswith('Risultato reale dello strumento mcp_call'):
+                assert latest.endswith('x' * (4 * 1024 * 1024))
+                assert len(latest.encode()) > 4 * 1024 * 1024
+                text = 'Skill e MCP verificati.'
+            elif latest.startswith('Risultato reale dello strumento mcp_schema'):
+                text = json.dumps({'suc_action': {'name': 'mcp_call', 'arguments': {'server': 'fixture', 'tool': 'echo', 'input': json.dumps({'result_bytes': 4 * 1024 * 1024})}}})
+            elif latest.startswith('Risultato reale dello strumento mcp_list'):
+                text = json.dumps({'suc_action': {'name': 'mcp_schema', 'arguments': {'server': 'fixture', 'tool': 'echo'}}})
+            else:
+                text = json.dumps({'suc_action': {'name': 'mcp_list', 'arguments': {'server': 'fixture', 'query': 'echo'}}})
+        elif value['model'] == 'skill':
             assert 'Descrizione per verificare documenti' in system
             assert 'CORPO_SKILL_RISERVATO' not in system
             if latest.startswith('Risultato reale dello strumento load_skill'):
@@ -56,7 +87,7 @@ class Handler(BaseHTTPRequestHandler):
             event = {'choices': [{'delta': {'content': text[index:index+7]}}]}
             self.wfile.write(('data: ' + json.dumps(event) + '\n\n').encode())
             self.wfile.flush()
-            time.sleep(0.005)
+            time.sleep(0.08 if value["model"].startswith("queue") else 0.005)
         self.wfile.write(b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
         self.wfile.flush()
 

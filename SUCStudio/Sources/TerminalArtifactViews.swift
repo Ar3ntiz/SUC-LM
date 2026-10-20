@@ -39,21 +39,72 @@ struct TerminalPanel:View {
     }
     func send(){if terminal.send(input,secret:secret){input="";follow=true}}
 }
+struct ArtifactSidebar:View {
+    @EnvironmentObject var store:StudioStore
+    @Binding var isPresented:Bool
+    var body:some View {
+        VStack(spacing:0) {
+            HStack {
+                Label("Artefatti",systemImage:"shippingbox").font(StudioTypography.ui(.headline))
+                Text("\(store.selected?.artifacts?.count ?? 0)").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Spacer()
+                ArtifactCloseButton(isPresented:$isPresented).frame(width:28,height:28)
+
+            }.padding(16)
+            Divider()
+            if let artifacts=store.selected?.artifacts,!artifacts.isEmpty {
+                ScrollView {ArtifactCards(artifacts:artifacts).padding(16)}
+            } else {
+                VStack(spacing:12) {
+                    Image(systemName:"shippingbox").font(.system(size:28)).foregroundStyle(.secondary)
+                    Text("Nessun artefatto in questa sessione").font(StudioTypography.ui(.callout))
+                    Text("I file pubblicati dal modello saranno disponibili qui.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }.padding(24).frame(maxWidth:.infinity,maxHeight:.infinity)
+            }
+        }.frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
+            .accessibilityIdentifier("chat-artifacts-panel")
+    }
+}
 struct ArtifactCards:View {
     @EnvironmentObject var store:StudioStore
     let artifacts:[ChatArtifact]
     var body:some View {
-        VStack(alignment:.leading,spacing:8){
-            Label("Artifact · \(artifacts.count)",systemImage:"doc.richtext").font(StudioTypography.ui(.headline))
-            ForEach(artifacts){artifact in
-                HStack{
-                    Image(systemName:"doc")
-                    VStack(alignment:.leading){Text(artifact.name).lineLimit(1);Text(ByteCountFormatter.string(fromByteCount:Int64(artifact.byteCount),countStyle:.file)).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)}
-                    Spacer()
-                    Button("Mostra nel Finder"){store.openArtifact(artifact)}
-                    Button("Salva…"){store.saveArtifact(artifact)}
-                }.padding(10).background(.quaternary,in:RoundedRectangle(cornerRadius:8))
+        LazyVStack(alignment:.leading,spacing:12) {
+            ForEach(artifacts) {artifact in
+                VStack(alignment:.leading,spacing:10) {
+                    HStack(alignment:.top,spacing:10) {
+                        Image(systemName:"doc").foregroundStyle(.secondary)
+                        VStack(alignment:.leading,spacing:4) {
+                            Text(artifact.name).font(StudioTypography.ui(.callout)).lineLimit(3).textSelection(.enabled)
+                            Text(ByteCountFormatter.string(fromByteCount:Int64(artifact.byteCount),countStyle:.file)).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                        }
+                    }
+                    HStack {
+                        Button {store.openArtifact(artifact)} label:{Label("Finder",systemImage:"folder")}.help("Mostra nel Finder")
+                        Spacer()
+                        Button {store.saveArtifact(artifact)} label:{Label("Salva…",systemImage:"square.and.arrow.down")}
+                    }.font(StudioTypography.ui(.caption))
+                }.padding(12).frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:10))
             }
         }
+    }
+}
+
+/// An AppKit button gives the sidebar a concrete, full-size click target.
+struct ArtifactCloseButton:NSViewRepresentable {
+    @Binding var isPresented:Bool
+    func makeCoordinator()->Coordinator {Coordinator($isPresented)}
+    func makeNSView(context:Context)->NSButton {
+        let button=NSButton(image:NSImage(systemSymbolName:"xmark",accessibilityDescription:"Chiudi artefatti")!,target:context.coordinator,action:#selector(Coordinator.close))
+        button.isBordered=false;button.imagePosition = .imageOnly;button.focusRingType = .none
+        button.toolTip="Chiudi artefatti";button.identifier=NSUserInterfaceItemIdentifier("close-artifacts")
+        button.setAccessibilityIdentifier("close-artifacts");button.setAccessibilityLabel("Chiudi artefatti")
+        return button
+    }
+    func updateNSView(_ button:NSButton,context:Context) {context.coordinator.presentation=$isPresented;button.isEnabled=context.environment.isEnabled}
+    final class Coordinator:NSObject {
+        var presentation:Binding<Bool>
+        init(_ presentation:Binding<Bool>){self.presentation=presentation}
+        @objc func close(){presentation.wrappedValue=false}
     }
 }

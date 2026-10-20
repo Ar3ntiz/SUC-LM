@@ -123,12 +123,12 @@ int main() {
     size_t end;
     while((end=pending.find('\n'))!=std::string::npos){
       auto line=pending.substr(0,end);pending.erase(0,end+1);
-      if(line.size()>4*1024*1024){exiting=true;break;}
+      if(line.size()>64*1024*1024){exiting=true;break;}
       std::string id;
       try{if(!bounded_json(line))throw std::runtime_error("Invalid JSON nesting");auto c=Json::parse(line);if(c.find("id"))id=c["id"].as_string();command(c);}catch(const std::exception& e){event("error",id,"{\"message\":"+jstr(e.what())+"}");}
       if(exiting)break;
     }
-    if(pending.size()>4*1024*1024)break;
+    if(pending.size()>64*1024*1024)break;
   }
   exiting=true;queue_cv.notify_all();stop_server();
   // EOF must not leave a model-owning orphan, even during opaque prefill or model loading.

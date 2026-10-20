@@ -1,4 +1,4 @@
-# SUC Studio 1.4.7.04
+# SUC Studio 1.4.8.02
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.7.05-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.8.02-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -92,7 +92,7 @@ Install the Apple Command Line Tools (`xcode-select --install`) with the macOS 1
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.7.05-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
+Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.8.02-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
 
 ## Installing and getting started
 
@@ -416,7 +416,7 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.05-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.8.02-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Qwen conversation cache in 1.4.7.03
 
@@ -433,3 +433,48 @@ SUC invia i conteggi reali durante il decode; la media live e quella finale usan
 The global loading indicator shows activity and the current engine phase until the engine confirms readiness. Resident model-file GiB and Metal allocation are separate memory readings: they may rise or fall and do not represent completion percentages. The tooltip reports initial residency. Monitoring does not force page-in or change the memory policy.
 
 Settings → Prefill → **Automatico (1024 / 64)** enables 1024-token blocks followed by chunks of at most 64; reload the model after changing the setting. Prefix reuse and aligned checkpoints are retained; decoding remains single-token. Exact/token modes, explicit chunks and expert streaming retain their existing profiles. Conservative Batch remains the default while real-model qualification is pending; cross-profile numerical equivalence is not claimed. Standalone server: `--history-prefill auto|off`.
+
+
+### Passaggi intermedi e comandi nella chat
+
+Le premesse e i ragionamenti del modello tra due azioni rimangono visibili, anche riaprendo le sessioni precedenti. Sono nascosti soltanto il protocollo JSON e i risultati tecnici interni degli strumenti. I comandi shell e interattivi hanno un dettaglio «Comando» chiuso di default: espandilo per leggere il comando, poi richiudilo. Per le nuove azioni viene conservato il comando effettivo dopo eventuali modifiche degli hook. Password e altri input riservati restano gestiti dalla scheda terminale.
+
+
+### Schemi MCP estesi
+
+MCP catalogs accept complete compact JSON schemas up to 3 MiB per tool without truncation, and up to 256 tools per server. MCP text results allow 4 MiB, with 32 MiB of JSON transport headroom for escaping and metadata. Oversized-schema errors identify the tool and its schema size. REA connectivity was verified with initialize and tools/list, without executing tools.
+
+
+### Pannello artefatti
+
+Gli artefatti non compaiono più in fondo alla chat. L’icona a forma di pacco nella barra della chat, con il numero dei file disponibili, apre e chiude il pannello laterale. Il pulsante × nel pannello lo nasconde completamente. Il pannello segue la sessione selezionata, è ridimensionabile e mantiene i pulsanti Salva e Finder. Rimane chiuso finché non lo apri, anche quando viene prodotto un nuovo file.
+
+
+### MCP su richiesta e continuità delle skill
+
+Il prompt iniziale contiene i server MCP connessi e il numero di strumenti, senza copiarne tutti gli schemi. Il modello cerca gli strumenti con mcp_list (query e paginazione), consulta mcp_schema e poi usa mcp_call con le normali approvazioni. Gli schemi grandi si consultano tramite path JSON Pointer e paginazione: lo schema completo resta conservato nel pannello MCP. Le skill richiamate con @nome o $nome rimangono attive durante tutte le azioni dello stesso turno. La lettura del catalogo non esegue strumenti remoti.
+
+Il health check prova anche /health se il percorso sotto /v1 non è disponibile. Un server raggiungibile non dimostra che stia elaborando: lo stato indica l’attesa della risposta, senza simulare avanzamento. Il pulsante × degli artefatti è un controllo AppKit con binding diretto alla chat e area di clic di 28 pt. Il pannello laterale usa una vista divisa ridimensionabile; nelle finestre strette l’elenco delle sessioni viene nascosto temporaneamente per lasciare spazio alla conversazione.
+
+
+### MCP results up to 4 MiB
+
+The limit applies to the combined UTF-8 text returned by the tool, including structured content. Larger results fail explicitly and are never silently truncated. Local chat, the remote client and the embedded server accept JSON requests up to 32 MiB. Model context and remote server limits still apply; 4 MiB of text can exceed the available token budget. Attachment and shell output limits are unchanged.
+
+
+## Queued messages — 1.4.8
+
+Write and press Return while generation is running to queue a message with its attachments in the current session. Messages run in order after the complete turn, including tools and hooks. The panel above the composer offers pause, resume, removal and return to draft. Editing requires an empty draft; resending places it at the end of the queue. Stop and generation errors pause the queue. Queued inputs are saved locally and require Resume after relaunch. Switching sessions does not stop the queue or send your unsent draft.
+
+
+## Context, chat commands and plugins — 1.4.8.02
+
+The ring beside the composer shows context usage. ≈ marks estimates; click it for token counts, capacity and auto-compact settings. Local capacity follows the loaded engine. For remote servers, verify the model and save its reported capacity or set `/context 32768` per session. `/context 0` restores detection. Unknown capacity shows ? and disables automatic compaction. Image costs remain approximate until the server reports usage.
+
+`/compact [priorities]` summarizes the active conversation with the current model, preserving the original transcript and attachments. Summaries may omit details; originals remain accessible. Automatic compaction runs between generations at 99%, with output headroom potentially triggering it earlier. It never interrupts decode. `/auto off|on` controls it. Queued messages wait; cancellation or failure preserves the old context and pauses the queue.
+
+Use `/help` or the / menu for `/status`, `/new`, `/clear`, `/stop`, `/queue`, `/pause`, `/resume`, `/skills`, `/skill name request`, `/plugins`, `/plugin identifier request`, `/model`, `/workspace`, `/export`, `/retry` and the context commands. `/clear` keeps history but resets the active context. // escapes an initial slash. Commands cannot include attachments.
+
+Invoke enabled plugins with `/plugin identifier request`, `@plugin:identifier request` or the skill menu. The model can discover them and request `load_plugin`. Explicit-only skills, MCP connections, hook review and tool approvals remain enforced. Disabled plugins are never enabled implicitly.
+
+Long chats initially render the latest 80 messages, with earlier history available on demand. Manual scrolling keeps the visible window stable. Crossing 8000 characters no longer collapses a message to 12 lines; complete text remains accessible.

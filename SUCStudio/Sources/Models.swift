@@ -3,7 +3,7 @@ import Foundation
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
     static let name = "SUC Studio"
-    static let version = "1.4.7.05"
+    static let version = "1.4.8.02"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -56,6 +56,7 @@ struct ChatAttachment: Codable, Identifiable, Equatable, Sendable {
 }
 
 struct ChatMessage: Codable, Identifiable, Equatable {
+    var executedAction:WorkspaceAction?
     var reasoning:String?
     var implicitThinking:Bool?
     var id = UUID()
@@ -140,6 +141,15 @@ struct WorkspaceAction: Codable, Equatable {
             if result.count>1 {return result}
         }
         return result
+    }
+    /// UI-only projection: retain commentary while withholding a terminal wire envelope.
+    /// Never modify the stored text or the tool protocol sent back to the model.
+    static func commentaryBeforeEnvelope(_ text:String, partial:Bool) -> String {
+        let value=answerText(text)
+        if let suffix=protocolSuffixes(value,partial:partial).first,value.hasSuffix(suffix) {
+            return String(value.dropLast(suffix.count)).trimmingCharacters(in:.whitespacesAndNewlines)
+        }
+        return ""
     }
     /// Reasoning is not part of the wire action; only the final answer can request a tool.
     static func answerText(_ text: String) -> String {
@@ -245,6 +255,13 @@ struct ChatArtifact: Codable, Identifiable {
     var created=Date()
 }
 struct ChatSession: Codable, Identifiable {
+    var contextWindow: Int?
+    var autoCompact: Bool?
+    var contextSummary: String?
+    var contextThroughID: UUID?
+    var compactRequested: String?
+    var queuedMessages: [ChatMessage]?
+    var queuePaused: Bool?
     var hasUnreadMessages: Bool?
     var artifacts:[ChatArtifact]?
     var allowSubagents: Bool?
@@ -321,10 +338,16 @@ enum PromptComposer {
         let limit = { (text: String) in text.replacingOccurrences(of:"Massimo 12 azioni consecutive.",with:"Massimo \(settings.actionLimit) azioni consecutive.") }
         if !session.fullAgent && session.webToolsEnabled { parts.append(limit(AgentProtocol.webOnlyInstructions)) }
         if session.fullAgent { parts.append(limit(AgentProtocol.instructions(web:session.webToolsEnabled))); if session.allowSubagents == true && session.parentSessionID == nil { parts.append("Puoi delegare un sotto-obiettivo a un subagent con suc_action name delegate_task e arguments task (stringa). Massimo 4 subtask per turno, uno alla volta. Ogni subagent usa un contesto separato e le stesse autorizzazioni; attendi il risultato reale.") } }
+        let plugins=(settings.plugins ?? []).filter{$0.enabled}
+        if !plugins.isEmpty {
+            let catalog=plugins.map{"- \($0.manifest.identifier): \($0.manifest.name) · \(String(($0.manifest.description ?? "").prefix(400)))"}.joined(separator:"\n")
+            parts.append("Plugin attivi disponibili:\n"+catalog+"\nPer applicare un plugin pertinente richiedi suc_action load_plugin con arguments id (identificatore). Il corpo delle skill viene caricato solo su richiesta. Non attivare plugin disabilitati; rispetta le approvazioni degli strumenti.")
+        }
         return parts.joined(separator: "\n\n")
     }
 }
 struct RemoteConfiguration: Codable, Equatable {
+    var modelContextWindows: [String:Int]?
     var id = UUID()
     var endpoint = "http://127.0.0.1:8080/v1"
     var model = ""

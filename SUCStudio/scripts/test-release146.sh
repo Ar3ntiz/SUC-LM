@@ -9,5 +9,5 @@ CORE=()
 for file in "$ROOT"/Sources/*.swift; do
  case "$file" in */*Views.swift|*/Views.swift|*/SUCStudioApp.swift) ;; *) CORE+=("$file");; esac
 done
-xcrun swiftc -swift-version 5 -whole-module-optimization -sdk "$SDK" -parse-as-library -module-cache-path "$OUT/swift-cache" "${CORE[@]}" "$ROOT/tests/Release146Tests.swift" -o "$OUT/release146-tests"
+xcrun swiftc -swift-version 5 -whole-module-optimization -O -sdk "$SDK" -parse-as-library -module-cache-path "$OUT/swift-cache" "${CORE[@]}" "$ROOT/tests/Release146Tests.swift" -o "$OUT/release146-tests"
 "$OUT/release146-tests" "$ROOT/tests/release146_fixture.py"

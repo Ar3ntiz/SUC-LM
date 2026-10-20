@@ -45,7 +45,7 @@ struct BackendSettingsView: View {
                         Button("Verifica / modelli") {
                             busy = true; status = "Connessione…"
                             Task { let client = RemoteInference(config,key:key); defer { client.stop(); busy = false }
-                                do { models = try await client.models(); status = "Connesso · \(models.count) modelli"; if config.model.isEmpty { config.model = models.first ?? "" } }
+                                do { models = try await client.models(); config.modelContextWindows=client.modelContextWindows; status = "Connesso · \(models.count) modelli"; if config.model.isEmpty { config.model = models.first ?? "" } }
                                 catch { status = error.localizedDescription }
                             }
                         }.disabled(busy || !loaded)

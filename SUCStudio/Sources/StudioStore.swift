@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
     @Published var serverBusy = false
     @Published var apiAddress = ""
     @Published var error: String?
+    @Published var artifactsVisible=false
     @Published var search = ""
     @Published var showArchived = false
     @Published var latestMetrics: Metrics?
@@ -38,6 +39,7 @@ import UniformTypeIdentifiers
     @Published var approvals: [ActionApproval] = []
     var approvalWaiters: [UUID: CheckedContinuation<Bool, Never>] = [:]
     var agentTasks: [UUID: Task<Void, Never>] = [:]
+    var activeSkillInstructions:[UUID:String]=[:]
     var agentTurnStarts: [UUID:Int] = [:]
     var agentIterations: [UUID: Int] = [:]
     var subtaskCounts: [UUID: Int] = [:]
@@ -56,7 +58,15 @@ import UniformTypeIdentifiers
     var requestHookTasks: [String: Task<Void, Never>] = [:]
     @Published var attachmentLoads = Set<UUID>()
     var selectedAttachmentsLoading: Bool { archive.selected.map { attachmentLoads.contains($0) } ?? false }
-    var canSendSelected: Bool { chatReady && !(archive.selected.map { editingSessions.contains($0) } ?? false) && !(archive.selected.map { agentRuns.contains($0) } ?? false) && !selectedAttachmentsLoading && !(archive.selected.map { mcpRuns.contains($0) } ?? false) && selected.map { !$0.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !($0.draftAttachments ?? []).isEmpty } == true }
+    var canSendSelected: Bool { chatReady && !(archive.selected.map { editingSessions.contains($0) } ?? false) && !selectedAttachmentsLoading && selected.map { !$0.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !($0.draftAttachments ?? []).isEmpty } == true }
+    var queueDrainScheduled = Set<UUID>()
+    @Published var compacting = Set<UUID>()
+    @Published var compactionProgress: [UUID:CompactionProgress] = [:]
+    var compactionTasks: [UUID:Task<Void,Never>] = [:]
+    var compactionClients: [UUID:RemoteInference] = [:]
+    var summaryWaiters: [String:SummaryWaiter] = [:]
+    var compactionRequestSessions: [String:UUID] = [:]
+    var pendingContextTools: [UUID:(text:String,isTool:Bool)] = [:]
     @Published var editingSessions = Set<UUID>()
     private var retiredRequests = Set<String>()
     var remoteClients: [String: RemoteInference] = [:]
@@ -79,9 +89,9 @@ import UniformTypeIdentifiers
     private var saveTask: Task<Void, Never>?
     private var loadAfterStart = false
     private var loadID = ""
-    private var quitting = false
+    var quitting = false
     var selected: ChatSession? { archive.sessions.first { $0.id == archive.selected } }
-    var hasWork: Bool { terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
+    var hasWork: Bool { !compacting.isEmpty || terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
     var modelReady: Bool { modelState == "ready" }
     var stateLabel: String { ["ready": "Modello pronto", "loading": "Caricamento…", "unloaded": "Nessun modello", "error": "Errore motore"][modelState] ?? modelState }
     init(storageURL: URL? = nil) {
@@ -95,6 +105,8 @@ import UniformTypeIdentifiers
         if archive.sessions.isEmpty { let s = ChatSession(); archive.sessions = [s]; archive.selected = s.id }
         if !archive.sessions.contains(where: { $0.id == archive.selected }) { archive.selected = archive.sessions.first?.id }
         if !StudioPlatform.localInferenceAvailable { archive.settings.chatBackend = "remote" }
+        // Restored queues require explicit consent to resume after relaunch.
+        for i in archive.sessions.indices where !(archive.sessions[i].queuedMessages ?? []).isEmpty { archive.sessions[i].queuePaused = true }
         StudioTypography.apply(archive.settings)
         if storageURL == nil { refreshLoginStatus(); if archive.settings.keepAwake == true { setAwake(true) } }
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -105,8 +117,9 @@ import UniformTypeIdentifiers
         engine.onLog = { [weak self] text in self?.appendLog(text) }
         engine.onExit = { [weak self] code in
             guard let self else { return }
+            for waiter in self.summaryWaiters.values{waiter.continuation.resume(throwing:MCPConnection.failure("Motore locale terminato."))};self.summaryWaiters.removeAll();self.compactionRequestSessions.removeAll()
             self.modelState = "unloaded"; self.loadedModel = ""; self.serverRunning = false; self.serverBusy = false
-            for (id, target) in self.requests where self.remoteClients[id] == nil { self.mutateMessage(target.session, target.message) { $0.state = "interrupted" }; self.requests.removeValue(forKey: id);self.operationJournal.update(id:id,state:"Interrotta"); self.completeSubagent(target.session,result:.failure(MCPConnection.failure("Motore locale terminato."))) };for id in self.apiRequests {self.operationJournal.update(id:id,state:"Interrotta")};if !self.loadID.isEmpty{self.operationJournal.update(id:self.loadID,state:"Interrotta")}; self.apiRequests.removeAll(); self.scheduleSave()
+            for (id, target) in self.requests where self.remoteClients[id] == nil { self.mutateMessage(target.session, target.message) { $0.state = "interrupted" }; self.requests.removeValue(forKey: id);self.operationJournal.update(id:id,state:"Interrotta"); self.completeSubagent(target.session,result:.failure(MCPConnection.failure("Motore locale terminato."))); self.finishAgentReport(target.session,reason:"Motore locale terminato.") };for id in self.apiRequests {self.operationJournal.update(id:id,state:"Interrotta")};if !self.loadID.isEmpty{self.operationJournal.update(id:self.loadID,state:"Interrotta")}; self.apiRequests.removeAll(); self.scheduleSave()
             if !self.quitting && code != 0 { self.error = "Il motore si è chiuso (\(code)). Puoi ricaricare il modello." }
         }
     }
@@ -161,13 +174,13 @@ import UniformTypeIdentifiers
     }
     func newSession() { let s = ChatSession(); archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; search = ""; tab = "chat"; scheduleSave() }
     func duplicate(_ session: ChatSession, through index: Int? = nil) {
-        var s = session; s.id = UUID(); s.title += " · copia"; s.created = Date(); s.updated = Date(); s.archived = false
+        var s = session; s.contextSummary=nil; s.contextThroughID=nil; s.compactRequested=nil; s.queuedMessages=nil; s.queuePaused=nil; s.id = UUID(); s.title += " · copia"; s.created = Date(); s.updated = Date(); s.archived = false
         if let index { s.messages = Array(s.messages.prefix(index)) }
         s.messages = s.messages.map { var m = $0; m.id = UUID(); if m.state != "complete" { m.state = "interrupted" }; return m }
         archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; scheduleSave()
     }
     func deleteSession(_ s: ChatSession) {
-        guard terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
+        guard !compacting.contains(s.id), terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
         let alert = NSAlert(); alert.messageText = "Eliminare “\(s.title)”?"; alert.informativeText = "Questa azione elimina la sessione e i suoi messaggi."; alert.addButton(withTitle: "Elimina"); alert.addButton(withTitle: "Annulla")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Task{_ = await invokeHooks("SessionEnd",session:s,extra:["reason":"other"])}
@@ -226,7 +239,7 @@ import UniformTypeIdentifiers
             let results = await Task.detached(priority: .userInitiated) {
                 urls.map { url -> Result<ChatAttachment, Error> in Result { try AttachmentReader.read(url) } }
             }.value
-            defer { attachmentLoads.remove(id) }
+            defer { attachmentLoads.remove(id); scheduleChatQueue(id) }
             guard !quitting, let index = archive.sessions.firstIndex(where: { $0.id == id }) else { return }
             var files = archive.sessions[index].draftAttachments ?? [], failures: [String] = []
             for (url, result) in zip(urls, results) {
@@ -238,7 +251,12 @@ import UniformTypeIdentifiers
         }
     }
     func removeAttachment(_ id: UUID) { mutateSelected { $0.draftAttachments?.removeAll { $0.id == id } } }
-    func sendMessage(sessionID: UUID? = nil, toolResult: String? = nil, isToolResult: Bool = true) {
+    func sendMessage(sessionID: UUID? = nil, toolResult: String? = nil, isToolResult: Bool = true, queuedInput: ChatMessage? = nil, bypassQueue: Bool = false) {
+        if toolResult == nil, queuedInput == nil, !bypassQueue, let id=sessionID ?? archive.selected, handleChatCommand(id) {return}
+        if toolResult == nil, queuedInput == nil, !bypassQueue, let id=sessionID ?? archive.selected,
+           sessionTurnBusy(id) || !(archive.sessions.first(where:{$0.id==id})?.queuedMessages ?? []).isEmpty {
+            enqueueDraft(id); return
+        }
         guard let s = archive.sessions.first(where: { $0.id == (sessionID ?? archive.selected) }), chatReady, !attachmentLoads.contains(s.id), (toolResult != nil || !agentRuns.contains(s.id)) else { return }
         let userTurn=toolResult == nil || !isToolResult
         let firstHookTurn=userTurn && !hookSessions.contains(s.id)
@@ -248,34 +266,43 @@ import UniformTypeIdentifiers
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
             let a = NSAlert(); a.messageText = "Modello diverso per questa risposta"; a.informativeText = "La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."; a.addButton(withTitle: "Continua"); a.addButton(withTitle: "Annulla"); guard a.runModal() == .alertFirstButtonReturn else { return }
         }
-        let text = toolResult ?? s.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard text.utf8.count < 1_000_000 else { error = "Messaggio troppo grande."; return }
-        let files = toolResult == nil ? s.draftAttachments ?? [] : []
+        let text = toolResult ?? queuedInput?.text ?? s.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Tool results include a small harness header; keep the user-input limit unchanged.
+        let messageLimit = toolResult != nil && isToolResult ? MCPConnection.maxResultBytes + 64 * 1024 : 1_000_000
+        guard text.utf8.count < messageLimit else { error = "Messaggio troppo grande."; return }
+        let files = toolResult == nil ? (queuedInput.map{$0.attachments ?? []} ?? s.draftAttachments ?? []) : []
         guard !text.isEmpty || !files.isEmpty else { return }
         do { try AttachmentReader.validate(files) } catch { self.error = error.localizedDescription; return }
-        let historical=s.messages.filter { !$0.isUIReport && $0.state == "complete" && ["user", "assistant"].contains($0.role) }
+        let historical=s.activeContextMessages
         let allFiles=files + historical.flatMap { $0.attachments ?? [] }
         guard usesRemote || !allFiles.contains(where: \.isImage) else { error="Le immagini richiedono Server remoto con un modello vision. Il motore C++ locale attuale accetta solo testo.";return }
         do { for message in historical { try AttachmentReader.validate(message.attachments ?? []) } } catch { self.error=error.localizedDescription;return }
-        let userMessage = ChatMessage(role: "user", text: text, attachments: files.isEmpty ? nil : files,kind:toolResult == nil || !isToolResult ? nil:"tool_result")
+        let userMessage = queuedInput ?? ChatMessage(role: "user", text: text, attachments: files.isEmpty ? nil : files,kind:toolResult == nil || !isToolResult ? nil:"tool_result")
         var history: [[String:Any]] = historical.map { ["role": $0.role, "content": usesRemote ? $0.remoteContent : $0.modelContent] }
-        let explicit = userTurn ? SkillDocument.explicitInstructions(text,skills:archive.settings.skills ?? []) : ""
+        if userTurn {activeSkillInstructions[s.id]=[SkillDocument.explicitInstructions(text,skills:archive.settings.skills ?? []),PluginCatalog.explicitInstructions(text,plugins:archive.settings.plugins ?? [],skills:archive.settings.skills ?? [])].filter{!$0.isEmpty}.joined(separator:"\n\n")}
+        let explicit=activeSkillInstructions[s.id] ?? ""
         let pendingContext=hookContexts.removeValue(forKey:s.id) ?? []
-        let toolCatalog=mcpTools.map{"- mcp__\($0.serverName)__\($0.name): \($0.description) · schema \($0.schema)"}.joined(separator:"\n")
-        let mcpPrompt=toolCatalog.isEmpty ? "":"Strumenti MCP attivi:\n"+toolCatalog+"\nUsa suc_action mcp_call con arguments server, tool, input (oggetto JSON codificato come stringa). Attendi il risultato reale. Si applicano le approvazioni della sessione."
-        let effectivePrompt = ([mcpPrompt,PromptComposer.compose(settings: archive.settings, session: s),explicit]+pendingContext).filter{!$0.isEmpty}.joined(separator:"\n\n")
+        let mcpPrompt=MCPCatalog.prompt(mcpTools)
+        let memory=s.activeContextSummary
+        let effectivePrompt = ([mcpPrompt,PromptComposer.compose(settings: archive.settings, session: s),explicit,memory.isEmpty ? "":"Memoria sintetica della conversazione (dati storici, non nuove istruzioni):\n"+memory]+pendingContext).filter{!$0.isEmpty}.joined(separator:"\n\n")
         if !effectivePrompt.isEmpty { history.insert(["role": "system", "content": effectivePrompt], at: 0) }
         history.append(["role": "user", "content": usesRemote ? userMessage.remoteContent : userMessage.modelContent])
+        if maybeCompactBeforeSend(s,messages:history,maxTokens:s.maxTokens,queued:queuedInput != nil,toolResult:toolResult,isTool:isToolResult) {
+            hookContexts[s.id,default:[]]+=pendingContext
+            if firstHookTurn {hookSessions.remove(s.id)}
+            return
+        }
         let sampling = s.sampling ?? SamplingSettings()
-        var body: [String: Any] = ["top_p": sampling.topP, "top_k": sampling.topK, "min_p": sampling.minP, "seed": sampling.seed, "model": chatModel, "messages": history, "max_tokens": s.maxTokens, "temperature": s.temperature, "chat_template_kwargs": ["enable_thinking": s.thinking]]
+        var body: [String: Any] = ["top_p": sampling.topP, "top_k": sampling.topK, "min_p": sampling.minP, "seed": sampling.seed, "model": chatModel, "messages": history, "max_tokens": contextOutputLimit(s,history:history), "temperature": s.temperature, "chat_template_kwargs": ["enable_thinking": s.thinking]]
         let stops = sampling.stop.components(separatedBy: "\n").filter { !$0.isEmpty }
         if !stops.isEmpty { body["stop"] = Array(stops.prefix(32)) }
-        guard let data = try? JSONSerialization.data(withJSONObject: body), data.count < (usesRemote ? 20 : 2) * 1024 * 1024 else { error = "Conversazione troppo grande: apri una nuova sessione."; return }
+        guard let data = try? JSONSerialization.data(withJSONObject: body), data.count < 32 * 1024 * 1024 else { error = "Conversazione troppo grande: apri una nuova sessione."; return }
         let response = ChatMessage(implicitThinking:!usesRemote && s.thinking,role: "assistant", text: "", state: "queued", model: chatModel, generation: GenerationSnapshot(temperature: s.temperature, maxTokens: s.maxTokens, context: usesRemote ? 0 : loadedContext, thinking: s.thinking, systemPrompt: effectivePrompt, sampling: sampling))
         if toolResult == nil || !isToolResult { agentTurnStarts[s.id]=(s.actions ?? []).count }
         mutateSession(s.id) { session in
             if session.messages.isEmpty { session.title = String((text.isEmpty ? files.first?.name ?? "Allegati" : text).prefix(60)) }
-            session.messages.append(userMessage); session.messages.append(response); if toolResult == nil { session.draft = ""; session.draftAttachments = nil }
+            session.messages.append(userMessage); session.messages.append(response); if let queuedInput { session.queuedMessages?.removeAll{$0.id==queuedInput.id} }
+            else if toolResult == nil { session.draft = ""; session.draftAttachments = nil }
         }
         let id = UUID().uuidString; requests[id] = (s.id, response.id, Date());operationJournal.update(id:id,title:"Generazione · "+chatModel,state:"In coda",sessionID:s.id)
         let remote = usesRemote ? archive.settings.remote : nil
@@ -302,7 +329,7 @@ import UniformTypeIdentifiers
                         request["messages"]=messages
                         mutateMessage(s.id,response.id){$0.generation?.systemPrompt=combined}
                     }
-                    guard let encoded=try? JSONSerialization.data(withJSONObject:request),encoded.count<(remote==nil ? 2:20)*1024*1024 else{throw ExtensionFiles.failure("Contesto degli hook troppo grande per la richiesta.")}
+                    guard let encoded=try? JSONSerialization.data(withJSONObject:request),encoded.count<32*1024*1024 else{throw ExtensionFiles.failure("Contesto degli hook troppo grande per la richiesta.")}
                     try Task.checkCancellation();dispatchGeneration(id:id,body:request,remote:remote)
                 }
                 catch { receive(["event":Task.isCancelled ? "cancelled" : "error","id":id,"payload":["message":error.localizedDescription]]) }
@@ -316,6 +343,9 @@ import UniformTypeIdentifiers
         let userIndex:Int
         if regenerate { guard let previous=session.messages[..<index].lastIndex(where:{$0.role=="user" && !$0.isOperational}) else{return};userIndex=previous }
         else { guard session.messages[index].role=="user" else{return};userIndex=index }
+        guard !compacting.contains(session.id) else{error="Interrompi prima la compattazione.";return}
+        pauseChatQueue(session.id)
+        if let boundary=session.contextThroughID,let compactIndex=session.messages.firstIndex(where:{$0.id==boundary}),userIndex<=compactIndex {mutateSession(session.id){$0.contextSummary=nil;$0.contextThroughID=nil}}
         editingSessions.insert(session.id)
         defer{editingSessions.remove(session.id)}
         let oldTask=agentTasks[session.id]
@@ -333,12 +363,14 @@ import UniformTypeIdentifiers
             value.messages=Array(session.messages.prefix(userIndex))
             value.draft=original.text;value.draftAttachments=original.attachments
         }
-        if regenerate { sendMessage(sessionID:session.id) }
+        if regenerate { sendMessage(sessionID:session.id,bypassQueue:true) }
     }
 
     func cancelSelected() {
         guard let session = archive.selected else { return }
+        pauseChatQueue(session)
         if let target=archive.sessions.first(where:{$0.id==session}) {Task{_ = await invokeHooks("Interrupt",session:target)}}
+        compactionTasks[session]?.cancel();compactionClients[session]?.stop();mutateSession(session){$0.compactRequested=nil};if pendingContextTools.removeValue(forKey:session) != nil {finishAgentReport(session,reason:"Richiesta interrotta.")}
         stopAgent(session)
         for (id, target) in requests where target.session == session { requestHookTasks[id]?.cancel(); if let client = remoteClients[id] { remoteTasks[id]?.cancel(); client.stop() } else { engine.send(["command": "cancel", "id": id]) }; operationJournal.update(id:id,state:"Interruzione richiesta");mutateMessage(target.session, target.message) { $0.state = "cancelling" } }
     }
@@ -353,6 +385,7 @@ import UniformTypeIdentifiers
             remoteTasks[id] = Task {
                 defer { client.stop(); remoteClients.removeValue(forKey: id); remoteTasks.removeValue(forKey: id) }
                 do {
+                    try Task.checkCancellation()
                     try await client.generate(body) { event in var value = event; value["id"] = id; self.receive(value) }
                     receive(["event":"finished", "id":id, "payload":[:]])
                 } catch {
@@ -374,6 +407,7 @@ import UniformTypeIdentifiers
     func rotateKey() { guard !serverRunning else { error = "Arresta il server prima di ruotare la chiave."; return }; do { _ = try KeyStore.rotate(); appendLog("API key ruotata.") } catch { self.error = error.localizedDescription } }
     func receive(_ e: [String: Any]) {
         let name = e["event"] as? String ?? "", id = e["id"] as? String ?? "", p = e["payload"] as? [String: Any] ?? [:]
+        if consumeCompactionEvent(e) {return}
         guard !retiredRequests.contains(id) else { return }
         switch name {
         case "queued":operationJournal.update(id:id,state:"In coda")
@@ -417,7 +451,7 @@ import UniformTypeIdentifiers
         case "health":
             guard let target=requests[id],let state=archive.sessions.first(where:{$0.id==target.session})?.messages.first(where:{$0.id==target.message})?.state,["queued","prefill","remote_wait"].contains(state) else{return}
             switch p["status"] as? String {
-            case "ok":activePhase="Server raggiungibile · elaborazione in corso"
+            case "ok":activePhase="Server raggiungibile · in attesa della risposta"
             case "unsupported":activePhase="Elaborazione remota · health check non disponibile"
             case "unreachable":activePhase="Elaborazione remota · health check senza risposta"
             default:break
@@ -492,11 +526,11 @@ import UniformTypeIdentifiers
         } catch { self.error = error.localizedDescription }
     }
     func restoreBackup() {
-        do { guard FileManager.default.fileExists(atPath: archiveURL.appendingPathExtension("backup").path) else { throw NSError(domain: "Backup", code: 1, userInfo: [NSLocalizedDescriptionKey: "Nessun backup disponibile."]) }; let value = try ArchiveDisk.load(archiveURL.appendingPathExtension("backup")); for id in Array(mcpConnections.keys) { disconnectMCP(id) }; archive = value; StudioTypography.apply(archive.settings); setAwake(archive.settings.keepAwake ?? false); saveError = false; scheduleSave(); Task { for configuration in archive.settings.mcpServers ?? [] where configuration.enabled { await connectMCP(configuration) } } } catch { self.error = error.localizedDescription }
+        do { guard FileManager.default.fileExists(atPath: archiveURL.appendingPathExtension("backup").path) else { throw NSError(domain: "Backup", code: 1, userInfo: [NSLocalizedDescriptionKey: "Nessun backup disponibile."]) }; var value = try ArchiveDisk.load(archiveURL.appendingPathExtension("backup")); for i in value.sessions.indices where !(value.sessions[i].queuedMessages ?? []).isEmpty {value.sessions[i].queuePaused=true}; for id in Array(mcpConnections.keys) { disconnectMCP(id) }; archive = value; StudioTypography.apply(archive.settings); setAwake(archive.settings.keepAwake ?? false); saveError = false; scheduleSave(); Task { for configuration in archive.settings.mcpServers ?? [] where configuration.enabled { await connectMCP(configuration) } } } catch { self.error = error.localizedDescription }
     }
     func quit(completion: @escaping (Bool) -> Void) {
         if hasWork { let alert = NSAlert(); alert.messageText = "Interrompere il lavoro e uscire?"; alert.addButton(withTitle: "Interrompi ed esci"); alert.addButton(withTitle: "Annulla"); guard alert.runModal() == .alertFirstButtonReturn else { completion(false); return } }
-        quitting = true; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
+        quitting = true; for task in compactionTasks.values{task.cancel()};for client in compactionClients.values{client.stop()}; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
         Task {
             for tasks in backgroundHooks.values {for task in tasks.values{task.cancel()}}
             for session in archive.sessions where hookSessions.contains(session.id) {_ = await invokeHooks("SessionEnd",session:session,extra:["reason":"other"])}

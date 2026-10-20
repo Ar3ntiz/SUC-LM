@@ -3,11 +3,27 @@ import Foundation
 extension ChatMessage {
     var protocolText: String {ThinkingParts.split(text,separate:reasoning,implicit:implicitThinking==true).answer}
     var isOperational:Bool { kind=="tool_call" || kind=="tool_result" }
-    var isUIReport:Bool { kind=="action_report" || kind=="action_notice" }
+    var isUIReport:Bool { kind=="action_report" || kind=="action_notice" || kind=="command_help" }
+    var commandAction:WorkspaceAction? {
+        guard role=="assistant",let action=executedAction ?? WorkspaceAction.parse(protocolText),
+              ["run_command","run_interactive"].contains(action.name) else{return nil}
+        return action
+    }
+    var chatParts:ThinkingParts {
+        var parts=ThinkingParts.split(text,separate:reasoning,implicit:implicitThinking==true)
+        guard role=="assistant",!isUIReport else{return parts}
+        let streaming=["queued","prefill","remote_wait","generating","cancelling"].contains(state)
+        if kind=="tool_call" || WorkspaceAction.isActionEnvelope(parts.answer) || (streaming && WorkspaceAction.pendingEnvelope(parts.answer)) {
+            parts.answer=WorkspaceAction.commentaryBeforeEnvelope(parts.answer,partial:streaming)
+        }
+        return parts
+    }
     func visibleInChat(agent:Bool,web:Bool=false)->Bool {
-        if isOperational {return false}
+        if kind=="tool_result" {return false}
         guard role=="assistant",!isUIReport else{return true}
-        if WorkspaceAction.parse(protocolText) != nil || WorkspaceAction.isActionEnvelope(protocolText) {return false}
+        let parts=chatParts
+        if !parts.answer.isEmpty || !parts.reasoning.isEmpty || commandAction != nil {return true}
+        if isOperational || WorkspaceAction.isActionEnvelope(protocolText) {return false}
         let streaming=["queued","prefill","remote_wait","generating","cancelling"].contains(state)
         return !(streaming && WorkspaceAction.pendingEnvelope(protocolText))
     }
@@ -30,6 +46,9 @@ extension StudioStore {
         if record.state != "completed" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(String(record.result.prefix(1200)))") }
     }
     func finishAgentReport(_ sessionID:UUID,reason:String?=nil) {
+        if reason != nil { pauseChatQueue(sessionID) }
+        defer { if reason == nil { scheduleContextContinuation(sessionID) } }
+        activeSkillInstructions.removeValue(forKey:sessionID)
         guard let start=agentTurnStarts.removeValue(forKey:sessionID),let session=archive.sessions.first(where:{$0.id==sessionID}) else{return}
         let records=Array((session.actions ?? []).dropFirst(start))
         guard !records.isEmpty || reason != nil else{return}
