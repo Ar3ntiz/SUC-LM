@@ -90,3 +90,7 @@ Con SUC Studio 1.4.7 il riuso del prefisso e i miglioramenti del motore funziona
 Il prefill calcolato dai tempi SUC usa soltanto i token nuovi: `prompt_tokens - prompt_tokens_details.cached_tokens`. Per llama.cpp, `timings.prompt_n` è già il numero di token elaborati e non viene ridotto una seconda volta. Le velocità esplicite fornite dal server hanno precedenza. Se tutto il prompt è in cache e non c’è una velocità esplicita, compare `—`. Quando presenti, i token riusati vengono mostrati nella barra delle metriche. Le stime da tempo al primo token rimangono indicate con `≈` e includono gli effetti della rete.
 
 Installa `dist/SUC-Studio-Android-0.1.3.apk` come aggiornamento, senza disinstallare, usando la stessa firma delle versioni precedenti. Sessioni, API key e impostazioni rimangono conservate. La compatibilità del protocollo con server senza il campo cache resta invariata.
+
+## Android 0.1.4
+
+Verifica / modelli sostituisce il modello salvato se non è più disponibile e seleziona automaticamente l'unico modello esposto dal server. Fra più modelli mantiene una selezione ancora valida. Premi Salva server per confermare la configurazione.

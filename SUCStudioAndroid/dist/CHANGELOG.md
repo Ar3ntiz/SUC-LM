@@ -1,5 +1,9 @@
 # SUC Studio Android — changelog
 
+## 0.1.4
+
+Verifica / modelli aggiorna un modello non più disponibile e seleziona quello corrente se unico, anche con il campo già compilato. Fra più modelli mantiene una selezione valida. Asset ES2017 rigenerato, test UI/web/scrolling e build APK superati; firma compatibile con la 0.1.3.
+
 ## 0.1.3
 
 Corretto il prefill con cache: dai tempi SUC si contano solo i token nuovi, rispettando il conteggio già netto di llama.cpp e le velocità esplicite dei server. Visualizzati i token riusati; con cache completa nessuna velocità artificiale. Gestiti frame SSE separati e server senza dati cache. Sessioni e impostazioni conservate.

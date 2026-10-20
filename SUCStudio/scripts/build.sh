@@ -38,6 +38,7 @@ cp "$ROOT/../docs/optimization/INFERENCE_1.4.7.md" "$ROOT/../docs/optimization/R
 cp "$ROOT/../docs/optimization/LONG_CHAT_DIAGNOSTICS.md" "$ROOT/../docs/optimization/RELEASE_1.4.7.02.md" "$APP/Contents/Resources/docs/"
 cp "$ROOT/../docs/optimization/CHAT_PREFIX_CHECKPOINTS.md" "$ROOT/../docs/optimization/RELEASE_1.4.7.03.md" "$APP/Contents/Resources/docs/"
 cp "$ROOT/../docs/optimization/RELEASE_1.4.7.04.md" "$APP/Contents/Resources/docs/"
+cp "$ROOT/../docs/optimization/RELEASE_1.4.7.05.md" "$APP/Contents/Resources/docs/"
 cp "$ROOT/docs/CUSTOMIZATION_1.4.6.02_IT.md" "$APP/Contents/Resources/docs/"
 mkdir -p "$APP/Contents/Resources/licenses"
 cp "$ROOT/licenses/"* "$APP/Contents/Resources/licenses/"

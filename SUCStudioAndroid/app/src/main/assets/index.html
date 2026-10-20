@@ -96,7 +96,12 @@ function nativeEvent(type, data) {
       document.body.append(p);
     } else if (type === "models") {
       $("models").innerHTML = data.items.map((m) => `<option value="${esc(m)}">`).join("");
-      if (!$("serverModel").value && data.items.length) $("serverModel").value = data.items[0];
+      if (data.items.length === 1 || !data.items.includes($("serverModel").value.trim())) {
+        if (data.items.length) {
+          $("serverModel").value = data.items[0];
+          serverDirty = true;
+        }
+      }
       $("serverStatus").textContent = data.items.length + " modelli disponibili";
       toast("Connessione riuscita");
     } else if (type === "preview") showDialog(`<h2>${esc(data.name)}</h2><pre style="white-space:pre-wrap;max-height:55vh;overflow:auto">${esc(data.text.slice(0, 6e4))}</pre>`, null);

@@ -1,0 +1,317 @@
+{
+  "scope": "Six-case hard smoke only, not full 120-case score or KL qualification",
+  "selection": "First case per source in original suite order",
+  "suite_sha256": "a7296a67a4cfa60bb8b329e6e66f8a1ea2b9c3d68a788b92822d68dac014276c",
+  "helper_sha256": "76e1d55cdcda3ec9390606f54d0f912fe9f6ff90998ceaaac6f3a269db8439fc",
+  "records": [
+    {
+      "profile": "off",
+      "id": "gsm8k/test-777",
+      "source": "GSM8K",
+      "prompt_tokens": 135,
+      "prompt_sha256": "0777c1304a56672176b3ace2991d34bd2b15204529130439de05f856b86408b4",
+      "budget": 1024,
+      "picked": "4000",
+      "passed": false,
+      "text": "To find the total cost of replacing Mike's movie collection, we need to break down the 600 movies into three categories based on the information provided: movies in series, older movies, and normal movies.\n\n**Step 1: Calculate the number of movies in series and their cost.**\nMike has 600 movies in total.\nOne-third of the movies are in various series.\nNumber of series movies = $\\frac{1}{3} \\times 600 = 200$ movies.\n\nThe problem states he can get these for \"$6 of the cost of a normal movie\". This phrasing is slightly ambiguous. It usually means the cost is $6 *less* than the normal cost, or the cost *is* $6. Let's re-read carefully: \"get those for only $6 of the cost of a normal movie\". In standard English word problems, \"for only $X\" usually implies the price is $X. However, the phrase \"of the cost\" suggests a relationship. Let's look at the next sentence: \"older movies which are $5\". This implies specific prices. If the series movies were $6 less than $10, they would be $4. If they cost $6, that is a specific price. Let's look at the phrasing \"for only $6 of the cost\". This is likely a typo for \"for only $6\" or \"for $6 less than the cost\". Let's assume the standard interpretation of \"for only $[Amount]\" means the price is that amount. But wait, \"of the cost of a normal movie\" is a specific prepositional phrase. Let's consider two interpretations:\nInterpretation A: The price is $6.\nInterpretation B: The price is $10 - $6 = $4.\nInterpretation C: The price is 6% of the cost? Unlikely.\nInterpretation D: The price is $6 *per movie*? Yes.\n\nLet's look at similar problems online. Often, \"for only $X\" means the price is $X. The \"of the cost of a normal movie\" might be extraneous or poorly phrased context meaning \"compared to the normal cost\". However, if it meant \"$6 less\", it would usually say \"$6 less than\". If it meant \"$6\", it would say \"for $6\". Let's look at the structure again. \"get those for only $6 of the cost of a normal movie\". This is grammatically awkward. Let's assume the price is **$6** per movie, as \"for only $6\" is a strong indicator of the final price. If the price were $4, it would likely say \"$6 off\". Let's proceed with Price = $6.\n\nCost for series movies = $200 \\text{ movies} \\times \\$6/\\text{movie} = \\$1200$.\n\n**Step 2: Calculate the number of remaining movies.**\nRemaining movies = Total movies - Series movies\nRemaining movies = $600 - 200 = 400$ movies.\n\n**Step 3: Calculate the number of older movies and their cost.**\n40% of the *remaining* movies are older movies.\nNumber of older movies = $40\\% \\times 400 = 0.40 \\times 400 = 160$ movies.\n\nThe cost of an older movie is given as $5.\nCost for older movies = $160 \\text{ movies} \\times \\$5/\\text{movie} = \\$800$.\n\n**Step 4: Calculate the number of normal movies and their cost.**\nThe rest of the remaining movies are normal movies.\nNumber of normal movies = Remaining movies - Older movies\nNumber of normal movies = $400 - 160 = 240$ movies.\n\nThe cost of a normal movie is given as $10.\nCost for normal movies = $240 \\text{ movies} \\times \\$10/\\text{movie} = \\$2400$.\n\n**Step 5: Calculate the total cost.**\nTotal Cost = Cost for series + Cost for older + Cost for normal\nTotal Cost = $\\$1200 + \\$800 + \\$2400$\nTotal Cost = $\\$2000 + \\$2400$\nTotal Cost = $\\$4400$\n\nLet's double check the interpretation of the series price.\nIf the price was $10 - $6 = $4:\nCost for series = $200 \\times 4 = 800$.\nTotal Cost = $800 + 800 + 2400 = 4000",
+      "text_sha256": "8b631fc90bc0d1b59d504f283719a7deffb07763d32592f6b72c43139bca350c",
+      "wall_s": 36.91780712502077,
+      "usage": {
+        "prompt_tokens": 135,
+        "completion_tokens": 1024,
+        "total_tokens": 1159,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 3.86124,
+        "decode_s": 33.04263
+      }
+    },
+    {
+      "profile": "off",
+      "id": "math500/number_theory/820",
+      "source": "MATH",
+      "prompt_tokens": 100,
+      "prompt_sha256": "9cbf0b0425aa12e104ff61ddc062503ee13a072d94a0656f13440badb7f81bb1",
+      "budget": 2048,
+      "picked": "8",
+      "passed": true,
+      "text": "To find the number of possible values for $a$, we start with the fundamental relationship between the greatest common divisor (GCD) and the least common multiple (LCM) of two positive integers $a$ and $b$:\n$$ a \\cdot b = \\gcd(a,b) \\cdot \\mathop{\\text{lcm}}[a,b] $$\n\nGiven:\n$$ \\gcd(a,b) = 210 $$\n$$ \\mathop{\\text{lcm}}[a,b] = 210^3 $$\n\nSubstituting these values into the equation:\n$$ a \\cdot b = 210 \\cdot 210^3 = 210^4 $$\n\nLet $a = 210x$ and $b = 210y$. Since $\\gcd(a,b) = 210$, it follows that $\\gcd(x,y) = 1$.\nSubstituting $a$ and $b$ into the product equation:\n$$ (210x)(210y) = 210^4 $$\n$$ 210^2 xy = 210^4 $$\n$$ xy = 210^2 $$\n\nSo, the problem reduces to finding the number of pairs of positive integers $(x,y)$ such that:\n1. $xy = 210^2$\n2. $\\gcd(x,y) = 1$\n3. $a < b \\implies 210x < 210y \\implies x < y$\n\nFirst, let's find the prime factorization of $210$:\n$$ 210 = 2 \\cdot 3 \\cdot 5 \\cdot 7 $$\nThus,\n$$ 210^2 = (2 \\cdot 3 \\cdot 5 \\cdot 7)^2 = 2^2 \\cdot 3^2 \\cdot 5^2 \\cdot 7^2 $$\n\nLet $N = 210^2$. We need to distribute the prime factors of $N$ between $x$ and $y$ such that $\\gcd(x,y)=1$.\nSince $\\gcd(x,y)=1$, $x$ and $y$ cannot share any prime factors. This means that for each prime factor $p$ of $N$, all occurrences of $p$ in the factorization of $N$ must go entirely to $x$ or entirely to $y$.\n\nThe distinct prime factors of $N$ are $2, 3, 5, 7$. There are $k=4$ distinct prime factors.\nFor each prime factor, there are 2 choices: assign it to $x$ or assign it to $y$.\nTherefore, the total number of pairs $(x,y)$ such that $xy = N$ and $\\gcd(x,y)=1$ is $2^k = 2^4 = 16$.\n\nThese 16 pairs correspond to all possible ways to split the coprime factors. Since $xy = N$, if $(x,y)$ is a solution, then $(y,x)$ is also a solution.\nWe are given the condition $a < b$, which implies $x < y$.\nSince $x \\neq y$ (because if $x=y$, then $x^2 = 210^2 \\implies x=210$, but $\\gcd(210,210)=210 \\neq 1$, so $x$ and $y$ cannot be equal because they are coprime and their product is a square greater than 1, actually simpler: if $x=y$, then $x^2=210^2 \\implies x=210$. But $\\gcd(x,y)=\\gcd(210,210)=210 \\neq 1$. Thus $x \\neq y$), exactly half of the 16 pairs satisfy $x < y$.\n\nNumber of valid pairs $(x,y)$ with $x < y$ is:\n$$ \\frac{16}{2} = 8 $$\n\nEach valid pair $(x,y)$ corresponds to a unique value of $a = 210x$. Therefore, there are 8 possible values for $a$.\n\nLet's double check.\nThe prime factors are $p_1=2, p_2=3, p_3=5, p_4=7$.\nLet $S = \\{p_1, p_2, p_3, p_4\\}$.\n$x$ is formed by the product of the squares of the primes in a subset $A \\subseteq S$, and $y$ is formed by the product of the squares of the primes in $S \\setminus A$.\nLet $x = \\prod_{p \\in A} p^2$ and $y = \\prod_{p \\in S \\setminus A} p^2$.\nThe condition $x < y$ determines the subset $A$.\nTotal subsets of $S$ is $2^4 = 16$.\nSince $x \\neq y$ for any subset (as $N$ is not a square of a number coprime to itself? No, $x=y$ implies $A = S \\setminus A$, which is impossible for a set with distinct elements unless the set is empty, but here the \"elements\" are prime powers. Wait, $x=y$ implies $\\prod_{p \\in A} p^2 = \\prod_{p \\notin A} p^2$. This requires the product of primes in A to equal the product of primes in $S \\setminus A$. Since prime factorization is unique, this implies $A = S \\setminus A$, which implies $S$ is empty or elements are duplicated, which is not the case. So $x \\neq y$ always).\nThus, exactly half of the subsets result in $x < y$.\nNumber of subsets $A$ such that $x < y$ is $16 / 2 = 8$.\n\nThe possible values for $x$ are determined by the subsets of $\\{2,3,5,7\\}$ whose product of squares is less than the product of squares of the complement.\nLet $P = 2 \\cdot 3 \\cdot 5 \\cdot 7 = 210$.\n$x = (\\prod_{p \\in A} p)^2$.\n$y = (\\prod_{p \\notin A} p)^2$.\n$x < y \\iff \\prod_{p \\in A} p < \\prod_{p \\notin A} p$.\nLet $K = \\prod_{p \\in A} p$. Then $\\prod_{p \\notin A} p = 210/K$.\nCondition: $K < 210/K \\iff K^2 < 210 \\iff K < \\sqrt{210} \\approx 14.49$.\nWe need to find the number of subsets of $\\{2,3,5,7\\}$ such that the product of the elements in the subset is less than $14.49$.\nThe subsets and their products $K$:\n1. $\\emptyset$: $K=1 < 14.49$ (Valid)\n2. $\\{2\\}$: $K=2 < 14.49$ (Valid)\n3. $\\{3\\}$: $K=3 < 14.49$ (Valid)\n4. $\\{5\\}$: $K=5 < 14.49$ (Valid)\n5. $\\{7\\}$: $K=7 < 14.49$ (Valid)\n6. $\\{2,3\\}$: $K=6 < 14.49$ (Valid)\n7. $\\{2,5\\}$: $K=10 < 14.49$ (Valid)\n8. $\\{2,7\\}$: $K=14 < 14.49$ (Valid)\n9. $\\{3,5\\}$: $K=15 > 14.49$ (Invalid)\n10. $\\{3,7\\}$: $K=21 > 14.49$ (Invalid)\n11. $\\{5,7\\}$: $K=35 > 14.49$ (Invalid)\n12. $\\{2,3,5\\}$: $K=30 > 14.49$ (Invalid)\n... and any subset with 3 or 4 elements will have a product $\\ge 30$.\n\nSo the valid subsets for $A$ (which determines $x$) are:\n$\\emptyset, \\{2\\}, \\{3\\}, \\{5\\}, \\{7\\}, \\{2,3\\}, \\{2,5\\}, \\{2,7\\}$.\nThere are exactly 8 such subsets.\nEach subset corresponds to a unique $x$, and thus a unique $a = 210x$.\n\nAnswer: 8",
+      "text_sha256": "835954b343f24d726f3e3402b1e889f5744ee917de9237536dcd72c36b0d332e",
+      "wall_s": 64.77027745894156,
+      "usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 1980,
+        "total_tokens": 2080,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 2.653491,
+        "decode_s": 62.115399
+      }
+    },
+    {
+      "profile": "off",
+      "id": "mmlu_pro/1695",
+      "source": "MMLU-Pro",
+      "prompt_tokens": 496,
+      "prompt_sha256": "b613208ae06a80f7b29ec20b99c3fa3f09d2611cfb93a079a09f74611169afbc",
+      "budget": 1536,
+      "picked": "I",
+      "passed": true,
+      "text": "To determine the correct outcome for the customer's battery claim against the man, we must analyze the elements of the tort of battery under common law principles.\n\n**1. Elements of Battery:**\nBattery is an intentional tort that requires:\n*   **Act:** A voluntary act by the defendant.\n*   **Intent:** The defendant must intend to cause a harmful or offensive contact with the person of another, or intend to cause an imminent apprehension of such a contact.\n*   **Causation:** The defendant's act must cause the harmful or offensive contact.\n*   **Harmful or Offensive Contact:** The contact must actually occur.\n\n**2. Analysis of Intent and Transferred Intent:**\nThe key issue here is whether the man is liable for battery against the *customer*, given that he intended to shoot the *manager*.\n\nUnder the doctrine of **transferred intent**, if a defendant intends to commit a tort (such as battery or assault) against one person but instead commits that tort against another person, the intent is \"transferred\" from the intended victim to the actual victim.\n\n*   The man intended to shoot the manager. This constitutes an intent to cause harmful contact (battery) or imminent apprehension of harmful contact (assault) against the manager.\n*   The bullet missed the manager and hit the customer.\n*   Because the man had the specific intent to commit a tort against the manager, that intent transfers to the customer. Therefore, the man is treated as if he intended to hit the customer.\n\n**3. Evaluating the Choices:**\n\n*   **A. successful, because the man caused harm with his actions, regardless of his intent.**\n    *   Incorrect. Battery is an *intentional* tort. Strict liability does not generally apply to battery. If the man had accidentally dropped the gun and it discharged, he might not be liable for battery (though perhaps negligence). The intent is a crucial element.\n\n*   **B. unsuccessful, because the man was not aiming at the customer.**\n    *   Incorrect. This ignores the doctrine of transferred intent.\n\n*   **C. unsuccessful, because the manager could have prevented the situation by accepting the man's order.**\n    *   Incorrect. The manager's refusal to serve was not a legal justification for the man to use deadly force. There is no privilege to use deadly force to obtain food.\n\n*   **D. successful, because the man was acting recklessly and created a dangerous situation.**\n    *   Incorrect. While the man was certainly reckless, battery requires *intent*, not just recklessness. Recklessness is typically the standard for negligence or sometimes for specific statutory crimes, but for common law battery, the transferred intent doctrine provides the necessary intent. While the outcome is \"successful,\" the reasoning is legally imprecise compared to the transferred intent argument. However, let's look for a better option. If no option mentions transferred intent explicitly, we must look for the option that correctly identifies the legal basis. Option I is a strong candidate.\n\n*   **E. unsuccessful, because the man could not foresee that the bullet would hit anyone other than the manager.**\n    *   Incorrect. Foreseeability is a concept in negligence, not intentional torts. For battery, the intent transfers regardless of foreseeability of the specific victim.\n\n*   **F. unsuccessful, because the man was provoked by the manager's refusal to serve him.**\n    *   Incorrect. Provocation is not a defense to battery, especially when deadly force is used.\n\n*   **G. unsuccessful, because the man did not intend to shoot the customer.**\n    *   Incorrect. This ignores transferred intent.\n\n*   **H. successful, because there was a \"substantial certainty\" that the customer would be hit by the bullet.**\n    *   Incorrect. \"Substantial certainty\" is a way to prove intent (specifically, intent to cause harm if the result is substantially certain). However, the facts state he *missed* the manager. It is not necessarily \"substantially certain\" he would hit the customer specifically; he just missed. The stronger legal theory is transferred intent from the intended victim (manager) to the actual victim (customer).\n\n*   **I. successful, because the man intended to shoot the manager.**\n    *   **Correct.** This choice relies on the doctrine of **transferred intent**. The man had the intent to commit battery (or assault) against the manager. Because he missed and hit the customer instead, the intent transfers. The fact that he intended to shoot the manager is the legal basis for his liability toward the customer.\n\n*   **J. successful, because the bullet from the man's gun directly caused the customer's injury.**\n    *   Incorrect. Causation alone is insufficient for battery. Intent is required. If the man had slipped and the gun went off, causation would exist, but battery would not.\n\n**Conclusion:**\nThe customer will be successful because the doctrine of transferred intent applies. The man's intent to harm the manager transfers to the customer when the harm is inflicted on the customer instead. Choice I correctly identifies that the man's intent to shoot the manager is the basis for liability.\n\nAnswer: I",
+      "text_sha256": "4c94f17f342123312150c9db5f99f824c9fe7a2bb43dc8f7f0e4cfda26030e22",
+      "wall_s": 40.134535084012896,
+      "usage": {
+        "prompt_tokens": 496,
+        "completion_tokens": 1089,
+        "total_tokens": 1585,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 6.03503,
+        "decode_s": 34.097956
+      }
+    },
+    {
+      "profile": "off",
+      "id": "arc_challenge/Mercury_7032428",
+      "source": "ARC-Challenge",
+      "prompt_tokens": 189,
+      "prompt_sha256": "108f7fac0b9f4f3091b9d29518c12d08b841cc5e6039efb2910063741528e960",
+      "budget": 768,
+      "picked": "B",
+      "passed": true,
+      "text": "To determine why the described experiment is not a good scientific study, let's analyze the components of the experimental design provided:\n\n1.  **Hypothesis**: The researchers believe beta-carotene may help humans live longer. This is a testable hypothesis.\n2.  **Experimental Group**: One hundred people taking a double dose of beta-carotene. This is the group receiving the treatment being tested.\n3.  **Control Group**: One hundred people taking a placebo (sugar pill). This group serves as a baseline to compare against the experimental group.\n4.  **Duration**: Two years.\n\nNow let's evaluate the choices:\n\n*   **A. there is no control group.** This is incorrect. The group taking the placebo *is* the control group.\n*   **B. there are too many variables.** This is the most plausible issue among the choices, although the phrasing is slightly imprecise. In a rigorous scientific study, you want to control variables. However, looking at the other options, let's see if there's a more fundamental flaw. Actually, let's re-read the prompt carefully. \"This is not a good example of a scientific study and was not done because...\"\n    *   Wait, let's look closer at the ethical and practical aspects. Asking people to take a \"double dose\" of a supplement for two years to see if they live longer is ethically problematic if high doses are potentially harmful, but more importantly, \"living longer\" is a very long-term outcome. However, usually, these multiple-choice questions focus on the structural elements of the experiment (Control, Experimental, Hypothesis, Variables).\n    *   Let's re-evaluate **B**. In a real-world scenario with 100 people, there are countless uncontrolled variables (diet, exercise, genetics, smoking, etc.) that affect lifespan. Without controlling for these, the results would be meaningless. This is a common criticism of such simplistic study designs.\n    *   Let's re-evaluate **C. there is no experimental group.** This is incorrect. The group taking beta-carotene is the experimental group.\n    *   Let's re-evaluate **D. it does not have a testable hypothesis.** This is incorrect. \"Beta-carotene helps humans live longer\" is testable.\n\nLet's look for a different angle. Is there a trick?\nThe prompt says \"This is not a good example... and was not done because\".\nActually, looking at standard science test questions of this type, they often look for the presence of a control group. Here, there *is* a control group.\nThey look for an experimental group. Here, there *is* one.\nThey look for a hypothesis. Here, there *is* one.\n\nSo, by elimination, **B** is the only remaining option. Why would \"too many variables\" be the answer? In a study involving human lifespan, there are thousands of confounding variables (lifestyle, environment, genetics). A simple two-group comparison without randomization or controlling for these factors makes the study scientifically weak because you cannot isolate the effect of beta-carotene from all other factors. Therefore, the study is flawed because it fails to control for the many other variables that influence longevity.\n\nAnswer: B",
+      "text_sha256": "4909c119d4ff3a6fef7259828b0adf18e74559921e341df1043e58ae8f830163",
+      "wall_s": 23.37462424999103,
+      "usage": {
+        "prompt_tokens": 189,
+        "completion_tokens": 687,
+        "total_tokens": 876,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 2.029151,
+        "decode_s": 21.344506
+      }
+    },
+    {
+      "profile": "off",
+      "id": "bbh/multistep_arithmetic_two-243",
+      "source": "BBH",
+      "prompt_tokens": 74,
+      "prompt_sha256": "56b974e9c17cadfe45a89fabac723b13a77c26fb7031ed284c6a7f186b1cf453",
+      "budget": 1536,
+      "picked": "250992",
+      "passed": true,
+      "text": "To evaluate the arithmetic expression $((8 - -9 \\times 4 \\times 9) \\times (-4 \\times -3 \\times 7 \\times 9))$, we will break it down into two main parts based on the outermost multiplication.\n\nLet the expression be $A \\times B$, where:\n$A = (8 - -9 \\times 4 \\times 9)$\n$B = (-4 \\times -3 \\times 7 \\times 9)$\n\n**Step 1: Evaluate Part A**\nThe expression for A is $8 - -9 \\times 4 \\times 9$.\nAccording to the order of operations (PEMDAS/BODMAS), multiplication is performed before subtraction. Also, note that $- -9$ is equivalent to $+9$.\n\n1.  Perform the multiplications from left to right:\n    $-9 \\times 4 = -36$\n    $-36 \\times 9 = -324$\n\n    So, the term $-9 \\times 4 \\times 9$ evaluates to $-324$.\n\n2.  Substitute this back into the expression for A:\n    $A = 8 - (-324)$\n\n3.  Perform the subtraction (which becomes addition):\n    $A = 8 + 324$\n    $A = 332$\n\n**Step 2: Evaluate Part B**\nThe expression for B is $-4 \\times -3 \\times 7 \\times 9$.\nWe perform the multiplications from left to right.\n\n1.  $-4 \\times -3 = 12$ (negative times negative is positive)\n2.  $12 \\times 7 = 84$\n3.  $84 \\times 9$\n\n    Calculation for $84 \\times 9$:\n    $80 \\times 9 = 720$\n    $4 \\times 9 = 36$\n    $720 + 36 = 756$\n\n    So, $B = 756$.\n\n**Step 3: Multiply A and B**\nNow we calculate the final result: $A \\times B = 332 \\times 756$.\n\nLet's perform the multiplication:\n$$\n\\begin{array}{r}\n   332 \\\\\n\\times 756 \\\\\n\\hline\n  1992 & (332 \\times 6) \\\\\n 16600 & (332 \\times 50) \\\\\n232400 & (332 \\times 700) \\\\\n\\hline\n250992\n\\end{array}\n$$\n\nLet's double-check the calculation:\n$332 \\times 756$\n$= 332 \\times (700 + 50 + 6)$\n$= (332 \\times 700) + (332 \\times 50) + (332 \\times 6)$\n$= 232400 + 16600 + 1992$\n\n$232400 + 16600 = 249000$\n$249000 + 1992 = 250992$\n\nThe result is 250,992.\n\nAnswer: 250992",
+      "text_sha256": "628859e6f35eded125d29de4c93e2c93bf6a86a0e3dfc328a499f0976e8d9aa7",
+      "wall_s": 25.68906395812519,
+      "usage": {
+        "prompt_tokens": 74,
+        "completion_tokens": 782,
+        "total_tokens": 856,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 2.192582,
+        "decode_s": 23.494124
+      }
+    },
+    {
+      "profile": "off",
+      "id": "longctx/2hop-8k",
+      "source": "LongCtx",
+      "prompt_tokens": 8022,
+      "prompt_sha256": "9d8502eec9894a10b888b0e45d95d71adc2b1de14a85d89b0634cb6bc8e01871",
+      "budget": 512,
+      "picked": "4326",
+      "passed": true,
+      "text": "Based on the document provided, the archivist Annika Castellane moved the family ledgers to the town of **Ashbourne Ferry**. The text subsequently states: \"Every clerk in Ashbourne Ferry knew that the ledger vault of the town was numbered **4326**.\"\n\nAnswer: 4326",
+      "text_sha256": "6e5493ed850b05a1a05076e02da73d0993a27931a79b67ce6dfef31a930e41a8",
+      "wall_s": 94.29988820781,
+      "usage": {
+        "prompt_tokens": 8022,
+        "completion_tokens": 65,
+        "total_tokens": 8087,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 92.304144,
+        "decode_s": 1.992407
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "gsm8k/test-777",
+      "source": "GSM8K",
+      "prompt_tokens": 135,
+      "prompt_sha256": "0777c1304a56672176b3ace2991d34bd2b15204529130439de05f856b86408b4",
+      "budget": 1024,
+      "picked": "4000",
+      "passed": false,
+      "text": "To find the total cost of replacing Mike's movie collection, we need to break down the 600 movies into three categories based on the information provided: movies in series, older movies, and normal movies.\n\n**Step 1: Calculate the number of movies in series and their cost.**\nMike has 600 movies in total.\nOne-third of the movies are in various series.\nNumber of series movies = $\\frac{1}{3} \\times 600 = 200$ movies.\n\nThe problem states he can get these for \"$6 of the cost of a normal movie\". This phrasing is slightly ambiguous. It usually means the cost is $6 *less* than the normal cost, or the cost *is* $6. Let's re-read carefully: \"get those for only $6 of the cost of a normal movie\". In standard English word problems, \"for only $X\" usually implies the price is $X. However, the phrase \"of the cost\" suggests a relationship. Let's look at the next sentence: \"older movies which are $5\". This implies specific prices. If the series movies were $6 less than $10, they would be $4. If they cost $6, that is a specific price. Let's look at the phrasing \"for only $6 of the cost\". This is likely a typo for \"for only $6\" or \"for $6 less than the cost\". Let's assume the standard interpretation of \"for only $[Amount]\" means the price is that amount. But wait, \"of the cost of a normal movie\" is a specific prepositional phrase. Let's consider two interpretations:\nInterpretation A: The price is $6.\nInterpretation B: The price is $10 - $6 = $4.\nInterpretation C: The price is 6% of the cost? Unlikely.\nInterpretation D: The price is $6 *per movie*? Yes.\n\nLet's look at similar problems online. Often, \"for only $X\" means the price is $X. The \"of the cost of a normal movie\" might be extraneous or poorly phrased context meaning \"compared to the normal cost\". However, if it meant \"$6 less\", it would usually say \"$6 less than\". If it meant \"$6\", it would say \"for $6\". Let's look at the structure again. \"get those for only $6 of the cost of a normal movie\". This is grammatically awkward. Let's assume the price is **$6** per movie, as \"for only $6\" is a strong indicator of the final price. If the price were $4, it would likely say \"$6 off\". Let's proceed with Price = $6.\n\nCost for series movies = $200 \\text{ movies} \\times \\$6/\\text{movie} = \\$1200$.\n\n**Step 2: Calculate the number of remaining movies.**\nRemaining movies = Total movies - Series movies\nRemaining movies = $600 - 200 = 400$ movies.\n\n**Step 3: Calculate the number of older movies and their cost.**\n40% of the *remaining* movies are older movies.\nNumber of older movies = $40\\% \\times 400 = 0.40 \\times 400 = 160$ movies.\n\nThe cost of an older movie is given as $5.\nCost for older movies = $160 \\text{ movies} \\times \\$5/\\text{movie} = \\$800$.\n\n**Step 4: Calculate the number of normal movies and their cost.**\nThe rest of the remaining movies are normal movies.\nNumber of normal movies = Remaining movies - Older movies\nNumber of normal movies = $400 - 160 = 240$ movies.\n\nThe cost of a normal movie is given as $10.\nCost for normal movies = $240 \\text{ movies} \\times \\$10/\\text{movie} = \\$2400$.\n\n**Step 5: Calculate the total cost.**\nTotal Cost = Cost for series + Cost for older + Cost for normal\nTotal Cost = $\\$1200 + \\$800 + \\$2400$\nTotal Cost = $\\$2000 + \\$2400$\nTotal Cost = $\\$4400$\n\nLet's double check the interpretation of the series price.\nIf the price was $10 - $6 = $4:\nCost for series = $200 \\times 4 = 800$.\nTotal Cost = $800 + 800 + 2400 = 4000",
+      "text_sha256": "8b631fc90bc0d1b59d504f283719a7deffb07763d32592f6b72c43139bca350c",
+      "wall_s": 30.604204959003255,
+      "usage": {
+        "prompt_tokens": 135,
+        "completion_tokens": 1024,
+        "total_tokens": 1159,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 1.526399,
+        "decode_s": 29.073151
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "math500/number_theory/820",
+      "source": "MATH",
+      "prompt_tokens": 100,
+      "prompt_sha256": "9cbf0b0425aa12e104ff61ddc062503ee13a072d94a0656f13440badb7f81bb1",
+      "budget": 2048,
+      "picked": "8",
+      "passed": true,
+      "text": "To find the number of possible values for $a$, we start with the fundamental relationship between the greatest common divisor (GCD) and the least common multiple (LCM) of two positive integers $a$ and $b$:\n$$ a \\cdot b = \\gcd(a,b) \\cdot \\mathop{\\text{lcm}}[a,b] $$\n\nGiven:\n$$ \\gcd(a,b) = 210 $$\n$$ \\mathop{\\text{lcm}}[a,b] = 210^3 $$\n\nSubstituting these values into the equation:\n$$ a \\cdot b = 210 \\cdot 210^3 = 210^4 $$\n\nLet $a = 210x$ and $b = 210y$. Since $\\gcd(a,b) = 210$, it follows that $\\gcd(x,y) = 1$.\nSubstituting $a$ and $b$ into the product equation:\n$$ (210x)(210y) = 210^4 $$\n$$ 210^2 xy = 210^4 $$\n$$ xy = 210^2 $$\n\nSo, the problem reduces to finding the number of pairs of positive integers $(x,y)$ such that:\n1. $xy = 210^2$\n2. $\\gcd(x,y) = 1$\n3. $a < b \\implies 210x < 210y \\implies x < y$\n\nFirst, let's find the prime factorization of $210$:\n$$ 210 = 2 \\cdot 3 \\cdot 5 \\cdot 7 $$\nThus,\n$$ 210^2 = (2 \\cdot 3 \\cdot 5 \\cdot 7)^2 = 2^2 \\cdot 3^2 \\cdot 5^2 \\cdot 7^2 $$\n\nLet $N = 210^2$. We need to distribute the prime factors of $N$ between $x$ and $y$ such that $\\gcd(x,y)=1$.\nSince $\\gcd(x,y)=1$, $x$ and $y$ cannot share any prime factors. This means that for each prime factor $p$ of $N$, all occurrences of $p$ in the factorization of $N$ must go entirely to $x$ or entirely to $y$.\n\nThe distinct prime factors of $N$ are $2, 3, 5, 7$. There are $k=4$ distinct prime factors.\nFor each prime factor, there are 2 choices: assign it to $x$ or assign it to $y$.\nTherefore, the total number of pairs $(x,y)$ such that $xy = N$ and $\\gcd(x,y)=1$ is $2^k = 2^4 = 16$.\n\nThese 16 pairs correspond to all possible ways to split the coprime factors. Since $xy = N$, if $(x,y)$ is a solution, then $(y,x)$ is also a solution.\nWe are given the condition $a < b$, which implies $x < y$.\nSince $x \\neq y$ (because if $x=y$, then $x^2 = 210^2 \\implies x=210$, but $\\gcd(210,210)=210 \\neq 1$, so $x$ and $y$ cannot be equal because they are coprime and their product is a square greater than 1, actually simpler: if $x=y$, then $x^2=210^2 \\implies x=210$. But $\\gcd(x,y)=\\gcd(210,210)=210 \\neq 1$. Thus $x \\neq y$), exactly half of the 16 pairs satisfy $x < y$.\n\nNumber of valid pairs $(x,y)$ with $x < y$ is:\n$$ \\frac{16}{2} = 8 $$\n\nEach valid pair $(x,y)$ corresponds to a unique value of $a = 210x$. Therefore, there are 8 possible values for $a$.\n\nLet's double check.\nThe prime factors are $p_1=2, p_2=3, p_3=5, p_4=7$.\nLet $S = \\{p_1, p_2, p_3, p_4\\}$.\n$x$ is formed by the product of the squares of the primes in a subset $A \\subseteq S$, and $y$ is formed by the product of the squares of the primes in $S \\setminus A$.\nLet $x = \\prod_{p \\in A} p^2$ and $y = \\prod_{p \\in S \\setminus A} p^2$.\nThe condition $x < y$ determines the subset $A$.\nTotal subsets of $S$ is $2^4 = 16$.\nSince $x \\neq y$ for any subset (as $N$ is not a square of a number coprime to itself? No, $x=y$ implies $A = S \\setminus A$, which is impossible for a set with distinct elements unless the set is empty, but here the \"elements\" are prime powers. Wait, $x=y$ implies $\\prod_{p \\in A} p^2 = \\prod_{p \\notin A} p^2$. This requires the product of primes in A to equal the product of primes in $S \\setminus A$. Since prime factorization is unique, this implies $A = S \\setminus A$, which implies $S$ is empty or elements are duplicated, which is not the case. So $x \\neq y$ always).\nThus, exactly half of the subsets result in $x < y$.\nNumber of subsets $A$ such that $x < y$ is $16 / 2 = 8$.\n\nThe possible values for $x$ are determined by the subsets of $\\{2,3,5,7\\}$ whose product of squares is less than the product of squares of the complement.\nLet $P = 2 \\cdot 3 \\cdot 5 \\cdot 7 = 210$.\n$x = (\\prod_{p \\in A} p)^2$.\n$y = (\\prod_{p \\notin A} p)^2$.\n$x < y \\iff \\prod_{p \\in A} p < \\prod_{p \\notin A} p$.\nLet $K = \\prod_{p \\in A} p$. Then $\\prod_{p \\notin A} p = 210/K$.\nCondition: $K < 210/K \\iff K^2 < 210 \\iff K < \\sqrt{210} \\approx 14.49$.\nWe need to find the number of subsets of $\\{2,3,5,7\\}$ such that the product of the elements in the subset is less than $14.49$.\nThe subsets and their products $K$:\n1. $\\emptyset$: $K=1 < 14.49$ (Valid)\n2. $\\{2\\}$: $K=2 < 14.49$ (Valid)\n3. $\\{3\\}$: $K=3 < 14.49$ (Valid)\n4. $\\{5\\}$: $K=5 < 14.49$ (Valid)\n5. $\\{7\\}$: $K=7 < 14.49$ (Valid)\n6. $\\{2,3\\}$: $K=6 < 14.49$ (Valid)\n7. $\\{2,5\\}$: $K=10 < 14.49$ (Valid)\n8. $\\{2,7\\}$: $K=14 < 14.49$ (Valid)\n9. $\\{3,5\\}$: $K=15 > 14.49$ (Invalid)\n10. $\\{3,7\\}$: $K=21 > 14.49$ (Invalid)\n11. $\\{5,7\\}$: $K=35 > 14.49$ (Invalid)\n12. $\\{2,3,5\\}$: $K=30 > 14.49$ (Invalid)\n... and any subset with 3 or 4 elements will have a product $\\ge 30$.\n\nSo the valid subsets for $A$ (which determines $x$) are:\n$\\emptyset, \\{2\\}, \\{3\\}, \\{5\\}, \\{7\\}, \\{2,3\\}, \\{2,5\\}, \\{2,7\\}$.\nThere are exactly 8 such subsets.\nEach subset corresponds to a unique $x$, and thus a unique $a = 210x$.\n\nAnswer: 8",
+      "text_sha256": "835954b343f24d726f3e3402b1e889f5744ee917de9237536dcd72c36b0d332e",
+      "wall_s": 57.23154258285649,
+      "usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 1980,
+        "total_tokens": 2080,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 0.991724,
+        "decode_s": 56.237383
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "mmlu_pro/1695",
+      "source": "MMLU-Pro",
+      "prompt_tokens": 496,
+      "prompt_sha256": "b613208ae06a80f7b29ec20b99c3fa3f09d2611cfb93a079a09f74611169afbc",
+      "budget": 1536,
+      "picked": "I",
+      "passed": true,
+      "text": "To determine the correct outcome for the customer's battery claim against the man, we must analyze the elements of the tort of battery under common law principles.\n\n**1. Elements of Battery:**\nBattery is an intentional tort that requires:\n*   **Act:** A voluntary act by the defendant.\n*   **Intent:** The defendant must intend to cause a harmful or offensive contact with the person of another, or intend to cause an imminent apprehension of such a contact.\n*   **Causation:** The defendant's act must cause the harmful or offensive contact.\n*   **Harmful or Offensive Contact:** The contact must actually occur.\n\n**2. Analysis of Intent and Transferred Intent:**\nThe key issue here is whether the man is liable for battery against the *customer*, given that he intended to shoot the *manager*.\n\nUnder the doctrine of **transferred intent**, if a defendant intends to commit a tort (such as battery or assault) against one person but instead commits that tort against another person, the intent is \"transferred\" from the intended victim to the actual victim.\n\n*   The man intended to shoot the manager. This constitutes an intent to cause harmful contact (battery) or imminent apprehension of harmful contact (assault) against the manager.\n*   The bullet missed the manager and hit the customer.\n*   Because the man had the specific intent to commit a tort against the manager, that intent transfers to the customer. Therefore, the man is treated as if he intended to hit the customer.\n\n**3. Evaluating the Choices:**\n\n*   **A. successful, because the man caused harm with his actions, regardless of his intent.**\n    *   Incorrect. Battery is an *intentional* tort. Strict liability does not generally apply to battery. If the man had accidentally dropped the gun and it discharged, he might not be liable for battery (though perhaps negligence). The intent is a crucial element.\n\n*   **B. unsuccessful, because the man was not aiming at the customer.**\n    *   Incorrect. This ignores the doctrine of transferred intent.\n\n*   **C. unsuccessful, because the manager could have prevented the situation by accepting the man's order.**\n    *   Incorrect. The manager's refusal to serve was not a legal justification for the man to use deadly force. There is no privilege to use deadly force to obtain food.\n\n*   **D. successful, because the man was acting recklessly and created a dangerous situation.**\n    *   Incorrect. While the man was certainly reckless, battery requires *intent*, not just recklessness. Recklessness is typically the standard for negligence or sometimes for specific statutory crimes, but for common law battery, the transferred intent doctrine provides the necessary intent. While the outcome is \"successful,\" the reasoning is legally imprecise compared to the transferred intent argument. However, let's look for a better option. If no option mentions transferred intent explicitly, we must look for the option that correctly identifies the legal basis. Option I is a strong candidate.\n\n*   **E. unsuccessful, because the man could not foresee that the bullet would hit anyone other than the manager.**\n    *   Incorrect. Foreseeability is a concept in negligence, not intentional torts. For battery, the intent transfers regardless of foreseeability of the specific victim.\n\n*   **F. unsuccessful, because the man was provoked by the manager's refusal to serve him.**\n    *   Incorrect. Provocation is not a defense to battery, especially when deadly force is used.\n\n*   **G. unsuccessful, because the man did not intend to shoot the customer.**\n    *   Incorrect. This ignores transferred intent.\n\n*   **H. successful, because there was a \"substantial certainty\" that the customer would be hit by the bullet.**\n    *   Incorrect. \"Substantial certainty\" is a way to prove intent (specifically, intent to cause harm if the result is substantially certain). However, the facts state he *missed* the manager. It is not necessarily \"substantially certain\" he would hit the customer specifically; he just missed. The stronger legal theory is transferred intent from the intended victim (manager) to the actual victim (customer).\n\n*   **I. successful, because the man intended to shoot the manager.**\n    *   **Correct.** This choice relies on the doctrine of **transferred intent**. The man had the intent to commit battery (or assault) against the manager. Because he missed and hit the customer instead, the intent transfers. The fact that he intended to shoot the manager is the legal basis for his liability toward the customer.\n\n*   **J. successful, because the bullet from the man's gun directly caused the customer's injury.**\n    *   Incorrect. Causation alone is insufficient for battery. Intent is required. If the man had slipped and the gun went off, causation would exist, but battery would not.\n\n**Conclusion:**\nThe customer will be successful because the doctrine of transferred intent applies. The man's intent to harm the manager transfers to the customer when the harm is inflicted on the customer instead. Choice I correctly identifies that the man's intent to shoot the manager is the basis for liability.\n\nAnswer: I",
+      "text_sha256": "4c94f17f342123312150c9db5f99f824c9fe7a2bb43dc8f7f0e4cfda26030e22",
+      "wall_s": 35.35251516615972,
+      "usage": {
+        "prompt_tokens": 496,
+        "completion_tokens": 1089,
+        "total_tokens": 1585,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 4.446264,
+        "decode_s": 30.903738
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "arc_challenge/Mercury_7032428",
+      "source": "ARC-Challenge",
+      "prompt_tokens": 189,
+      "prompt_sha256": "108f7fac0b9f4f3091b9d29518c12d08b841cc5e6039efb2910063741528e960",
+      "budget": 768,
+      "picked": "B",
+      "passed": true,
+      "text": "To determine why the described experiment is not a good scientific study, let's analyze the components of the experimental design provided:\n\n1.  **Hypothesis**: The researchers believe beta-carotene may help humans live longer. This is a testable hypothesis.\n2.  **Experimental Group**: One hundred people taking a double dose of beta-carotene. This is the group receiving the treatment being tested.\n3.  **Control Group**: One hundred people taking a placebo (sugar pill). This group serves as a baseline to compare against the experimental group.\n4.  **Duration**: Two years.\n\nNow let's evaluate the choices:\n\n*   **A. there is no control group.** This is incorrect. The group taking the placebo *is* the control group.\n*   **B. there are too many variables.** This is the most plausible issue among the choices, although the phrasing is slightly imprecise. In a rigorous scientific study, you want to control variables. However, looking at the other options, let's see if there's a more fundamental flaw. Actually, let's re-read the prompt carefully. \"This is not a good example of a scientific study and was not done because...\"\n    *   Wait, let's look closer at the ethical and practical aspects. Asking people to take a \"double dose\" of a supplement for two years to see if they live longer is ethically problematic if high doses are potentially harmful, but more importantly, \"living longer\" is a very long-term outcome. However, usually, these multiple-choice questions focus on the structural elements of the experiment (Control, Experimental, Hypothesis, Variables).\n    *   Let's re-evaluate **B**. In a real-world scenario with 100 people, there are countless uncontrolled variables (diet, exercise, genetics, smoking, etc.) that affect lifespan. Without controlling for these, the results would be meaningless. This is a common criticism of such simplistic study designs.\n    *   Let's re-evaluate **C. there is no experimental group.** This is incorrect. The group taking beta-carotene is the experimental group.\n    *   Let's re-evaluate **D. it does not have a testable hypothesis.** This is incorrect. \"Beta-carotene helps humans live longer\" is testable.\n\nLet's look for a different angle. Is there a trick?\nThe prompt says \"This is not a good example... and was not done because\".\nActually, looking at standard science test questions of this type, they often look for the presence of a control group. Here, there *is* a control group.\nThey look for an experimental group. Here, there *is* one.\nThey look for a hypothesis. Here, there *is* one.\n\nSo, by elimination, **B** is the only remaining option. Why would \"too many variables\" be the answer? In a study involving human lifespan, there are thousands of confounding variables (lifestyle, environment, genetics). A simple two-group comparison without randomization or controlling for these factors makes the study scientifically weak because you cannot isolate the effect of beta-carotene from all other factors. Therefore, the study is flawed because it fails to control for the many other variables that influence longevity.\n\nAnswer: B",
+      "text_sha256": "4909c119d4ff3a6fef7259828b0adf18e74559921e341df1043e58ae8f830163",
+      "wall_s": 20.99845091602765,
+      "usage": {
+        "prompt_tokens": 189,
+        "completion_tokens": 687,
+        "total_tokens": 876,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 1.638016,
+        "decode_s": 19.359296
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "bbh/multistep_arithmetic_two-243",
+      "source": "BBH",
+      "prompt_tokens": 74,
+      "prompt_sha256": "56b974e9c17cadfe45a89fabac723b13a77c26fb7031ed284c6a7f186b1cf453",
+      "budget": 1536,
+      "picked": "250992",
+      "passed": true,
+      "text": "To evaluate the arithmetic expression $((8 - -9 \\times 4 \\times 9) \\times (-4 \\times -3 \\times 7 \\times 9))$, we will break it down into two main parts based on the outermost multiplication.\n\nLet the expression be $A \\times B$, where:\n$A = (8 - -9 \\times 4 \\times 9)$\n$B = (-4 \\times -3 \\times 7 \\times 9)$\n\n**Step 1: Evaluate Part A**\nThe expression for A is $8 - -9 \\times 4 \\times 9$.\nAccording to the order of operations (PEMDAS/BODMAS), multiplication is performed before subtraction. Also, note that $- -9$ is equivalent to $+9$.\n\n1.  Perform the multiplications from left to right:\n    $-9 \\times 4 = -36$\n    $-36 \\times 9 = -324$\n\n    So, the term $-9 \\times 4 \\times 9$ evaluates to $-324$.\n\n2.  Substitute this back into the expression for A:\n    $A = 8 - (-324)$\n\n3.  Perform the subtraction (which becomes addition):\n    $A = 8 + 324$\n    $A = 332$\n\n**Step 2: Evaluate Part B**\nThe expression for B is $-4 \\times -3 \\times 7 \\times 9$.\nWe perform the multiplications from left to right.\n\n1.  $-4 \\times -3 = 12$ (negative times negative is positive)\n2.  $12 \\times 7 = 84$\n3.  $84 \\times 9$\n\n    Calculation for $84 \\times 9$:\n    $80 \\times 9 = 720$\n    $4 \\times 9 = 36$\n    $720 + 36 = 756$\n\n    So, $B = 756$.\n\n**Step 3: Multiply A and B**\nNow we calculate the final result: $A \\times B = 332 \\times 756$.\n\nLet's perform the multiplication:\n$$\n\\begin{array}{r}\n   332 \\\\\n\\times 756 \\\\\n\\hline\n  1992 & (332 \\times 6) \\\\\n 16600 & (332 \\times 50) \\\\\n232400 & (332 \\times 700) \\\\\n\\hline\n250992\n\\end{array}\n$$\n\nLet's double-check the calculation:\n$332 \\times 756$\n$= 332 \\times (700 + 50 + 6)$\n$= (332 \\times 700) + (332 \\times 50) + (332 \\times 6)$\n$= 232400 + 16600 + 1992$\n\n$232400 + 16600 = 249000$\n$249000 + 1992 = 250992$\n\nThe result is 250,992.\n\nAnswer: 250992",
+      "text_sha256": "628859e6f35eded125d29de4c93e2c93bf6a86a0e3dfc328a499f0976e8d9aa7",
+      "wall_s": 22.8679923331365,
+      "usage": {
+        "prompt_tokens": 74,
+        "completion_tokens": 782,
+        "total_tokens": 856,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 0.843398,
+        "decode_s": 22.023378
+      }
+    },
+    {
+      "profile": "auto",
+      "id": "longctx/2hop-8k",
+      "source": "LongCtx",
+      "prompt_tokens": 8022,
+      "prompt_sha256": "9d8502eec9894a10b888b0e45d95d71adc2b1de14a85d89b0634cb6bc8e01871",
+      "budget": 512,
+      "picked": "4326",
+      "passed": true,
+      "text": "Based on the document, the archivist Annika Castellane moved the family ledgers to the town of **Ashbourne Ferry**. Later in the text, it is stated: \"Every clerk in Ashbourne Ferry knew that the ledger vault of the town was numbered **4326**.\"\n\nAnswer: 4326",
+      "text_sha256": "0dd790801f2f72c8bcfb38181bd2370733e786d61e83839563dc534bf9bdb1fe",
+      "wall_s": 32.48078095796518,
+      "usage": {
+        "prompt_tokens": 8022,
+        "completion_tokens": 68,
+        "total_tokens": 8090,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "metrics": {
+        "prefill_s": 30.442116,
+        "decode_s": 2.035363
+      }
+    }
+  ],
+  "completed": true,
+  "scores": {
+    "off": 5,
+    "auto": 5
+  },
+  "paired_answer_agreement": 6,
+  "paired_text_agreement": 5,
+  "full_hard120_completed": false,
+  "reference_kl_completed": false
+}

@@ -1,0 +1,46 @@
+{
+  "package_version": "1.4.7.05",
+  "build": "32",
+  "package_sha256": "c222d74559555fb9cf91651348330cd60a2a415c0599e3a0460be0b42e0c95da",
+  "tested_helper_sha256": "76e1d55cdcda3ec9390606f54d0f912fe9f6ff90998ceaaac6f3a269db8439fc",
+  "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+  "architectures": {
+    "app": [
+      "x86_64",
+      "arm64"
+    ],
+    "command": [
+      "x86_64",
+      "arm64"
+    ],
+    "terminal": [
+      "x86_64",
+      "arm64"
+    ],
+    "engine": [
+      "arm64"
+    ]
+  },
+  "extracted_signature_valid": true,
+  "actual_packaged_helper_tested": true,
+  "hard_smoke_scores": {
+    "off": 5,
+    "auto": 5
+  },
+  "hard_answer_agreement": 6,
+  "hard_text_agreement": 5,
+  "full_hard120_completed": false,
+  "reference_kl_completed": false,
+  "default_prefill": "conservative batch",
+  "android_apk_sha256": "d94015ffdc71a491844c69420d563f24dada11e02b76988b6d656e07be76d503",
+  "loader_ui_fix": {
+    "version_unchanged": true,
+    "build_unchanged": true,
+    "indicator": "activity and engine phase, independent of resident memory",
+    "memory_percent_removed": true,
+    "engine_binary_unchanged": true,
+    "load_memory_tests_passed": true,
+    "release_identity_tests_passed": true,
+    "gui_runtime_load_retested": false
+  }
+}

@@ -43,6 +43,7 @@
 #include "suc/model.hpp"
 #include "suc/live_prefix.hpp"
 #include "suc/inference_engine.hpp"
+#include "suc/adaptive_prefill.hpp"
 #include "suc/qwen4.hpp"
 #include "suc/request_params.hpp"
 #include "suc/sampling.hpp"
@@ -50,6 +51,7 @@
 #include "tool_common.hpp"  // resolved exclusively from ../cpp/tools by build scripts
 #include "studio_support.hpp"
 #include "memory_policy.hpp"
+#include "load_memory.hpp"
 #include <sys/sysctl.h>
 #include <sys/stat.h>
 
@@ -788,13 +790,25 @@ struct LoadedEngine {
     S.model_name = path.substr(path.find_last_of('/') + 1);
     S.max_ctx = rf.max_ctx; S.think = false;
     const auto t0 = std::chrono::steady_clock::now();
+    auto load_device=NS::TransferPtr(MTL::CreateSystemDefaultDevice());
+    const auto initial_metal=load_device?load_device->currentAllocatedSize():0;
+    LoadMemoryMonitor load_monitor(path,[&](const std::string&,const LoadMemoryMonitor::Sample& m) {
+      event("load_progress",request_id,"{\"resident_bytes\":"+(m.valid?std::to_string(m.resident):"null")+
+        ",\"initial_resident_bytes\":"+std::to_string(m.initial)+",\"target_bytes\":"+std::to_string(m.target)+
+        ",\"footprint_bytes\":"+std::to_string(m.footprint)+",\"baseline_footprint_bytes\":"+std::to_string(m.baseline)+
+        ",\"metal_allocated_bytes\":"+std::to_string(load_device?load_device->currentAllocatedSize():0)+
+        ",\"initial_metal_bytes\":"+std::to_string(initial_metal)+
+        ",\"memory_query_s\":"+std::to_string(m.query_s)+"}");
+    });
     OpenOptions oo;
     oo.verify_checksum = rf.verify;
+    load_monitor.phase("Verifica del file modello");
     event("load_progress",request_id,"{\"phase\":"+jstr("Verifica del file modello")+"}");
     file = std::make_unique<Suc1File>(Suc1File::open(path, oo));
     auto& f = *file;
     S.arch = f.directory()["architecture"];
     const std::string tp = rf.tokenizer_path.empty() ? resolve_tokenizer_path(f.tokenizer_id()) : rf.tokenizer_path;
+    load_monitor.phase("Verifica del tokenizer");
     event("load_progress",request_id,"{\"phase\":"+jstr("Verifica del tokenizer")+"}");
     verify_tokenizer(f.tokenizer_id(), tp);
     tokenizer = std::make_unique<Tokenizer>(Tokenizer::from_file(tp));
@@ -802,6 +816,7 @@ struct LoadedEngine {
     S.tok = &tok;
     Tuning tu;
     tu.tuning_cache = rf.tuning_cache;
+    load_monitor.phase("Preparazione Metal");
     event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione Metal")+"}");
     context = std::make_unique<Context>(tu);
     auto& ctx = *context;
@@ -863,6 +878,7 @@ struct LoadedEngine {
       exclude.insert(exclude.end(), r.begin(), r.end());
       xs = std::make_unique<ExpertStream>(ctx, f, xo);
     }
+    load_monitor.phase("Mappatura dei pesi e allocazione memoria");
     event("load_progress",request_id,"{\"phase\":"+jstr("Mappatura dei pesi e allocazione memoria")+"}");
     mapping = std::make_unique<MappedFile>(ctx, f, exclude, rf.max_view_bytes);
     auto& mf = *mapping;
@@ -873,7 +889,10 @@ struct LoadedEngine {
 
 
 
+    load_monitor.phase("Preparazione del grafo del modello");
     event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione del grafo del modello")+"}");
+    const bool adaptive_history=rf.history_prefill && rf.batch_prefill && !rf.chunk_given &&
+      !rf.exact_prefill && !prefill_exact_env() && !xs && (is_q4||is_glm||is_ds4);
     if (is_q4) {
       const Qwen4Config qc = Qwen4Config::from_architecture(S.arch);
       Qwen4Options qo;
@@ -882,6 +901,7 @@ struct LoadedEngine {
       qo.layer_prefill = rf.batch_prefill;   // batched layer-major prefill; exact mode selects decode-step arithmetic
       qo.exact_prefill = rf.exact_prefill;
       qo.chunk = suc::service_prefill_chunk(qc.dense ? "qwen3_5" : "qwen4_exp", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
+      if(adaptive_history) qo.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       qo.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Qwen4Model, Qwen4Options>>(ctx, mf, qo);
       S.stop_ids.push_back(qc.eos);
@@ -900,6 +920,7 @@ struct LoadedEngine {
       go.exact_prefill = rf.exact_prefill;
       go.chunk = suc::service_prefill_chunk("glm5_next", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       go.mixed_rows = rf.mixed_rows;
+      if(adaptive_history) go.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       go.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Glm5Model, Glm5Options>>(ctx, mf, go);
       S.stop_ids = gc.eos;
@@ -918,6 +939,7 @@ struct LoadedEngine {
       dopt.exact_prefill = rf.exact_prefill;
       dopt.chunk = suc::service_prefill_chunk("deepseek_v4", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       dopt.mixed_rows = rf.mixed_rows;
+      if(adaptive_history) dopt.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       dopt.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Ds4Model, Ds4Options>>(ctx, mf, dopt);
       S.stop_ids.push_back(dc.eos);
@@ -956,9 +978,12 @@ struct LoadedEngine {
     if(plan.reserve>=plan.limit || weights>plan.limit-plan.reserve)
       throw std::runtime_error("Memoria pesi effettiva oltre il limite prudenziale; caricamento annullato prima del warm-up");
     S.expert_stream = xs.get();
+    load_monitor.phase("Preparazione del motore");
     event("load_progress",request_id,"{\"phase\":"+jstr("Preparazione del motore")+"}");
+    if(adaptive_history) engine=std::make_unique<suc::AdaptivePrefillEngine>(std::move(engine));
     engine = std::make_unique<suc::LivePrefixEngine<Engine>>(std::move(engine));
     S.engine = engine.get();
+    load_monitor.phase("Compilazione e riscaldamento Metal");
     event("load_progress",request_id,"{\"phase\":"+jstr("Compilazione e riscaldamento Metal")+"}");
     S.engine->step(0);   // warm-up: compile the decode pipelines, then reset
     S.engine->reset();

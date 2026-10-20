@@ -50,6 +50,10 @@ add_executable(suc-sampling-bench tools/suc_sampling_bench.cpp)
 target_link_libraries(suc-sampling-bench PRIVATE suc)
 
 enable_testing()
+add_executable(suc-adaptive-prefill-tests tests/test_adaptive_prefill.cpp)
+target_include_directories(suc-adaptive-prefill-tests PRIVATE include)
+add_test(NAME suc-adaptive-prefill-tests COMMAND suc-adaptive-prefill-tests)
+
 add_executable(suc-prefix-tests tests/test_live_prefix.cpp)
 target_include_directories(suc-prefix-tests PRIVATE include)
 add_test(NAME suc-prefix-tests COMMAND suc-prefix-tests)

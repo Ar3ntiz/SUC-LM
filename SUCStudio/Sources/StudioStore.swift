@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
     @Published var tab = "chat"
     @Published var modelState = "unloaded"
     @Published var loadPhase = "Preparazione del caricamento"
+    @Published var loadMemory:LoadMemoryStatus?
     @Published var prefillProgress: [UUID: PrefillStatus] = [:]
     @Published var loadedModel = ""
     @Published var serverRunning = false
@@ -200,8 +201,9 @@ import UniformTypeIdentifiers
         guard FileManager.default.isReadableFile(atPath: archive.settings.modelPath), FileManager.default.isReadableFile(atPath: archive.settings.tokenizerPath) else { error = "Modello o tokenizer non accessibile. Seleziona nuovamente il file."; return }
         if modelReady { loadAfterStart = true; engine.send(["command": "unload"]); return }
         scheduleSave()
-        do { try engine.start();engine.send(["command":"set_model_log","enabled":archive.settings.ioLogEnabled]); memoryPlan = ""; expertStats = ""; modelState = "loading"; loadPhase = "Preparazione del caricamento"; loadID = UUID().uuidString;operationJournal.update(id:loadID,title:"Caricamento · "+URL(fileURLWithPath:archive.settings.modelPath).lastPathComponent,state:"In corso")
-            var args = ["--prefill", archive.settings.prefill]
+        do { try engine.start();engine.send(["command":"set_model_log","enabled":archive.settings.ioLogEnabled]); memoryPlan = ""; expertStats = ""; modelState = "loading"; loadMemory = nil; loadPhase = "Preparazione del caricamento"; loadID = UUID().uuidString;operationJournal.update(id:loadID,title:"Caricamento · "+URL(fileURLWithPath:archive.settings.modelPath).lastPathComponent,state:"In corso")
+            let adaptive=archive.settings.prefill=="adaptive"
+            var args = ["--prefill", adaptive ? "batch":archive.settings.prefill,"--history-prefill",adaptive ? "auto":"off"]
             if archive.settings.effectiveMemoryMode == "manual" { args += ["--expert-budget", archive.settings.expertBudget] }
             engine.send(["command": "load", "id": loadID, "path": archive.settings.modelPath, "tokenizer": archive.settings.tokenizerPath, "context": archive.settings.context, "memory_mode": archive.settings.effectiveMemoryMode, "runtime_args": args])
         } catch { modelState = "error"; self.error = error.localizedDescription }
@@ -399,7 +401,7 @@ import UniformTypeIdentifiers
             memoryPlan = "\(mode) · limite prudenziale \(gib("limit_bytes"))\nPesi residenti stimati \(gib("resident_bytes")) · riserva stimata \(gib("reserve_bytes")) · cache expert \(gib("expert_budget_bytes"))"
             appendLog(memoryPlan)
         case "load_progress":
-            if id == loadID, modelState == "loading" { loadPhase = p["phase"] as? String ?? loadPhase }; return
+            if id == loadID, modelState == "loading" { loadPhase = p["phase"] as? String ?? loadPhase; if let measured=LoadMemoryStatus(p) {loadMemory=measured} }; return
         case "prefill_progress":
             guard let t=requests[id], let value=PrefillStatus(p),
                   let state=archive.sessions.first(where:{$0.id==t.session})?.messages.first(where:{$0.id==t.message})?.state,

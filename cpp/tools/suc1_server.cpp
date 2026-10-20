@@ -41,6 +41,7 @@
 #include "suc/model.hpp"
 #include "suc/live_prefix.hpp"
 #include "suc/inference_engine.hpp"
+#include "suc/adaptive_prefill.hpp"
 #include "suc/qwen4.hpp"
 #include "suc/request_params.hpp"
 #include "suc/sampling.hpp"
@@ -801,6 +802,8 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<Engine> engine;
     std::string family;
+    const bool adaptive_history=rf.history_prefill && rf.batch_prefill && !rf.chunk_given &&
+      !rf.exact_prefill && !prefill_exact_env() && !xs && (is_q4||is_glm||is_ds4);
     if (is_q4) {
       const Qwen4Config qc = Qwen4Config::from_architecture(S.arch);
       Qwen4Options qo;
@@ -811,6 +814,7 @@ int main(int argc, char** argv) {
       qo.layer_prefill = rf.batch_prefill;
       qo.exact_prefill = rf.exact_prefill;
       qo.chunk = suc::service_prefill_chunk(qc.dense ? "qwen3_5" : "qwen4_exp", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
+      if(adaptive_history) qo.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       qo.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Qwen4Model, Qwen4Options>>(ctx, mf, qo);
       S.stop_ids.push_back(qc.eos);
@@ -829,6 +833,7 @@ int main(int argc, char** argv) {
       go.exact_prefill = rf.exact_prefill;
       go.chunk = suc::service_prefill_chunk("glm5_next", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       go.mixed_rows = rf.mixed_rows;
+      if(adaptive_history) go.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       go.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Glm5Model, Glm5Options>>(ctx, mf, go);
       S.stop_ids = gc.eos;
@@ -848,6 +853,7 @@ int main(int argc, char** argv) {
       dopt.exact_prefill = rf.exact_prefill;
       dopt.chunk = suc::service_prefill_chunk("deepseek_v4", rf.max_ctx, rf.chunk_given ? rf.chunk : 0, rf.exact_prefill || prefill_exact_env(), rf.batch_prefill, bool(xs));
       dopt.mixed_rows = rf.mixed_rows;
+      if(adaptive_history) dopt.chunk=1024; // Buffer capacity; wrapper controls actual rows.
       dopt.expert_stream = xs.get();
       engine = std::make_unique<StepEngine<Ds4Model, Ds4Options>>(ctx, mf, dopt);
       S.stop_ids.push_back(dc.eos);
@@ -881,6 +887,7 @@ int main(int argc, char** argv) {
     }
     for (uint32_t t : tok.eos_ids())
       if (std::find(S.stop_ids.begin(), S.stop_ids.end(), t) == S.stop_ids.end()) S.stop_ids.push_back(t);
+    if(adaptive_history) engine=std::make_unique<suc::AdaptivePrefillEngine>(std::move(engine));
     engine = std::make_unique<suc::LivePrefixEngine<Engine>>(std::move(engine));
     S.engine = engine.get();
     S.engine->step(0);   // warm-up: compile the decode pipelines, then reset

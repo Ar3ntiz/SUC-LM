@@ -53,6 +53,7 @@ struct RuntimeFlags {
   int sdpa_2pass = -1;
   std::size_t chunk = 64;
   bool chunk_given = false;
+  bool history_prefill = false; // opt-in until numerical qualification; service-only scheduling
   uint64_t max_view_bytes = 0;   // --max-view-bytes: cap the GPU views of the mapped file (0 = maxBufferLength; tests)
   metal::ExpertStreamOptions xo;
   metal::ExpertStack::Rows mixed_rows = metal::ExpertStack::Rows::Routed;
@@ -99,6 +100,11 @@ bool parse_runtime_flag(const std::string& a, Next&& next, RuntimeFlags& r) {
     r.batch_prefill = v != "token";
     r.exact_prefill = v == "exact";
     r.prefill_given = true;
+  }
+  else if (a == "--history-prefill") {
+    const auto mode=next();
+    if(mode!="auto" && mode!="off")throw std::invalid_argument("--history-prefill auto|off");
+    r.history_prefill=mode=="auto";
   }
   else if (a == "--chunk") { r.chunk = std::stoul(next()); r.chunk_given = true; if (!r.chunk) throw std::invalid_argument("--chunk must be positive"); }
   else if (a == "--max-view-bytes") r.max_view_bytes = std::stoull(next());

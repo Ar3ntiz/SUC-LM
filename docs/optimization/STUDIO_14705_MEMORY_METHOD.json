@@ -1,0 +1,9 @@
+{
+  "model_bytes": 96317565824,
+  "page_bytes": 16384,
+  "vm_region_pages_resident": 2842763,
+  "mincore_pages_resident": 2842763,
+  "vm_region_query_s": 0.181790125,
+  "mincore_query_s": 1.81061325,
+  "scope": "One native M1 query on the same whole-file mapping; no file payload read, no GPU load; not an end-to-end load speedup measurement"
+}

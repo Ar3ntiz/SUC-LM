@@ -33,3 +33,9 @@ Le sessioni Android sono locali al dispositivo; nessuna sincronizzazione automat
 - [x] D4 — Eseguire test, produrre e verificare APK 0.1.3, aggiornare guida/changelog e sincronizzare nei sorgenti.
 
 Verifiche 0.1.3: 13 test JVM e tre script DOM superati; compilazione APK riuscita, manifest/versionCode 4 e min SDK 26 verificati. Firma debug identica alla 0.1.2 e SHA256 verificato. Nessun nuovo collaudo su dispositivo fisico o benchmark con modello reale; per questa correzione la verifica copre il parser SSE, il calcolo delle metriche e la UI con dati di protocollo controllati.
+
+## 0.1.4 — selezione modello remoto
+
+- [x] Verifica sostituisce un ID obsoleto con quello disponibile e seleziona il modello se unico. Fra più modelli mantiene una selezione ancora valida. Una lista vuota non cancella il campo.
+- [x] Rigenerato asset ES2017; suite UI, web challenge e scrolling superate.
+- [x] APK debug 0.1.4 generato in dist; build Gradle riuscita.

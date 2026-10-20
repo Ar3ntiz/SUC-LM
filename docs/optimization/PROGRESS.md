@@ -19,3 +19,7 @@ Qualified Qwen hybrid prefix checkpoints retain bounded recurrent state without 
 ## Studio 1.4.7.04 progress and live telemetry
 
 Actual helper/SSE progress, model-loading phases, cancellation/replay and server-token live metrics passed. Universal build and extracted installer were verified; GUI acceptance remains manual. See [release/setup](RELEASE_1.4.7.04.md).
+
+## Studio 1.4.7.05 candidate and Android 0.1.4
+
+Loading activity follows engine phases; resident-memory readings are separate, without completion percentages. Adaptive history prefill 1024/64 is opt-in; conservative Batch remains the default. Qwen 8k prefill measured 67.673 to 28.834 seconds in one pass per profile. Six fixed hard cases scored 5/6 for both profiles; full hard-suite and reference-KL qualification of the adaptive profile remain pending. Android Verify refreshes stale model IDs. MTP is shelved. See [release and limits](RELEASE_1.4.7.05.md).

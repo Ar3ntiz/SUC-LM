@@ -36,9 +36,10 @@ PY
 # Fingerprint content, not mtimes: checkout switches and restored older files
 # must rebuild too. Removed source files must not survive as stale linked objects.
 BUILD_SIG="$("$PYTHON_BIN" - "$OUT/engine-inputs.json" "${FLAGS[*]}" "$($CXX --version)" <<'PYHASH'
-import hashlib,sys
+import hashlib,json,sys
 from pathlib import Path
-print(hashlib.sha256(Path(sys.argv[1]).read_bytes()+(sys.argv[2]+sys.argv[3]).encode()).hexdigest())
+content=json.loads(Path(sys.argv[1]).read_text())["content_sha256"]
+print(hashlib.sha256((content+sys.argv[2]+sys.argv[3]).encode()).hexdigest())
 PYHASH
 )"
 if [[ ! -f "$OUT/build.signature" || "$(cat "$OUT/build.signature")" != "$BUILD_SIG" || "${CLEAN:-0}" == 1 ]]; then

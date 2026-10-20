@@ -1,0 +1,648 @@
+{
+  "engine_manifest": {
+    "content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "files": {
+      "include/suc/adaptive_prefill.hpp": "2e3a7804d3233f622428da215e85cb67a20f808237227cc08176ff32fee6dd70",
+      "include/suc/bits.hpp": "72abb139ae101b5dc2a86d1d65d32ee7544638029e34615fab76ce766d80a6e4",
+      "include/suc/decode.hpp": "c9ae6f731d357fe67727e240ff4b6e61215e24b42b5ced3fa3e33850d35b294c",
+      "include/suc/deepseek_v4.hpp": "71d65e0f23df36174fa6bd95da23a027b288cde4c164c82b085516d63a038fee",
+      "include/suc/expert_mixed.hpp": "475d2dca6893b7b6e953bcf84cf8bbe96411ac6a54916fd3132de029841925e3",
+      "include/suc/expert_stream.hpp": "22c155820b2c2e38165ce516f2590e4b321a06fb594e5c02769e5341932eab90",
+      "include/suc/glm5.hpp": "7ed302dd894fdc913e019fe1f636cfc707a7e1c3551202f970c3f9fa720c9fa4",
+      "include/suc/hadamard.hpp": "e678d393aee2ca98aeef545f25942ce6064c242fffe897ee809a50b2e006f137",
+      "include/suc/inference_engine.hpp": "667fbdfaf8b5ba358df277b87e1a7e0387a8df23cbbe7349cd46a4f1d4cab8d2",
+      "include/suc/json.hpp": "2a7c84bb83b6d0f1c6d0a6c0ca7a4d81e8477c48e93e9e5fe7c3405f45df6334",
+      "include/suc/live_prefix.hpp": "46e7cbd6e845090dee292a2549dab3e78e070fd3351c4b4b51547174232ec57e",
+      "include/suc/metal.hpp": "50c39d2975eb73a87c80f92f94bea66666782fb0798fdaf3d50766eaf93ad534",
+      "include/suc/model.hpp": "92c320706cfad107e312bbe156fedb89dd547116cd99a0b5c7ef6ca2012d6d76",
+      "include/suc/npy.hpp": "74fc58eecdd613872ec2aa79c1291771798fc9d27bc14f41f9da94b021fb8d46",
+      "include/suc/numpy_random.hpp": "d601f0141ea9f171f1aece73f6fad897f0f6a145630cac11e593c12a090e6aa0",
+      "include/suc/parallel.hpp": "2437c42c0e00fc198112ee98de053edb589e0ea44aae8bdb834d84becb6638ee",
+      "include/suc/prefill.hpp": "ea6bc784efb7b431e1f84a6cc8a62bfd0496c811ad46cb74bebc2b49e6f1974b",
+      "include/suc/prefill_progress.hpp": "b45385a0ed27b885cbd023bf6644bb82a4e4f1483e4006a76580426d322ccc65",
+      "include/suc/prompt_lookup.hpp": "9627b9a841be0c56dd5dc6cf42d6a6cc8ecb321156107860bffbfe4afa740007",
+      "include/suc/qwen4.hpp": "31fe3cff7929002ba9d6bf5cd0f802315c698c722252ea9bcc4b43b1077ae6a8",
+      "include/suc/request_params.hpp": "9bc98b2644989eef2834e66613897c93f25a6cdb4facaddc4874153a2d97f40a",
+      "include/suc/sampling.hpp": "fa3a8afb4c596652b8408142f246649f4d26abdeef65140806c18e392498bab8",
+      "include/suc/sha256.hpp": "25b289692b87f07b3b9ae6d74465a7f196340ef84c7028506946467d057d9188",
+      "include/suc/suc1.hpp": "e3925ae1e308455eab43f23479ddf559a1c24c679f15c47417271ec826e69392",
+      "include/suc/switch.hpp": "1444badaa588f24c74a907f691b27c9bb5994e231467392e5293bc378b1507ac",
+      "include/suc/tokenizer.hpp": "272b6f62cf7603d48b93975efa6257d16d63db5c6af21e0e4c0af18550310aa8",
+      "metal/gen_suc_kernels.py": "eeaf4a72467450c4b46df471d68a11c3aa8e9204deebaf559fcac962c16a2b7c",
+      "metal/suc_ds4_kernels.metal": "1220530a2bd6ed41fdf85fa07c4e8330146f4a638733f6f3695eee3a1343b567",
+      "metal/suc_glm5_kernels.metal": "ec45d83b990277de497a352e9df19003fc1352f22b8d30869569b576e3edcda4",
+      "metal/suc_kernels.metal": "d66017cefa2f2b36dfc058b51dfb8688ef2e163771c643fa9fc3f099459f9a55",
+      "metal/suc_model_kernels.metal": "4b79fbc5cf975e5c6c1210815b9ccbad96d23059ad313ca7d3eb2d1ef651c312",
+      "metal/suc_qwen4_kernels.metal": "48a13a1a8e5f2f39c6800a2762fe7c71f1df0c86e1ed998f6b9f6d80f5fd103d",
+      "src/bits.cpp": "84bf047eed91313c18f42a4c0d0ced40523e0167cf4ca38ead9ee1e563136ea2",
+      "src/decode.cpp": "5c0bbef7249612de132a4889dfb4c0a9697ad2f4160b44551b7f3f0c754f7ef1",
+      "src/hadamard.cpp": "4dee5410df4ebff335856115df34831f6fee35f5387d48fdcd323291ab7cd1f8",
+      "src/json.cpp": "fc18490f8538fe8fcc3616774bddd053c050cac34f016e294e1b8915bb514111",
+      "src/metal/deepseek_v4.cpp": "6473201220baa53aaf703d152df86af3cddd52e00371070a66030b0d2aed1106",
+      "src/metal/expert_mixed.cpp": "5a103a7f0b2eb3f4b6bc43c7ccb382e0bd0fe17d095bb7fc33e943368fd7a85e",
+      "src/metal/expert_stream.cpp": "1ca31ff8c7d0518e0e525dafa66437a31a0dd742bf97fdb2c5ba6bea780780e0",
+      "src/metal/glm5.cpp": "de36361147186c98ed4fcf1be2e821ddc37e0f548a1bd3d18a0cdd5dad3e8b85",
+      "src/metal/metal.cpp": "5ebfc59122922bcae65afb2dd453a267274020c6f215ea4518a31cc3d2c6df91",
+      "src/metal/model.cpp": "f6f592444028dd8e0a473e6a7399d244e2c9d9841c73de81ee070c8689137914",
+      "src/metal/qwen4.cpp": "5192f3c9f3950e25b3a7db7508946918c0a0e195313b41e24bcabde5002d14fe",
+      "src/metal/switch.cpp": "1f341ed426089b4c5e77c7654c16c9efe43857584200bd58314fcaffde19b4ea",
+      "src/npy.cpp": "e3c018dd89d98c1240dd75013cc0366837e596511393d4c50f832cb226ca47d4",
+      "src/numpy_random.cpp": "8b046806b3a15be893602e59044e83267d42aa0a9c0b761b6c2d26c34eab3a33",
+      "src/parallel.cpp": "ce473434e8f82275b19cfc687d3f2daed9256678ee9a6e39cc264729e4fb83e5",
+      "src/sampling.cpp": "6b1775628522ac1963cc6e444a92695ac12ff1d7f5bfd227f391fcbbb204d842",
+      "src/sha256.cpp": "9d77d618c54e3a33f60c9b3e3608d05cf179ef373cc68153eaf765a7564a5a1c",
+      "src/suc1.cpp": "a09b62afb0e1dca5b737a399b79b5faebd3684ba044fd4ebf76393325aae379e",
+      "src/tokenizer.cpp": "9163ba8be588b99cb264fe08cc577af5b754ba2db9e0eaa295b9fde294d2588f",
+      "src/unicode_tables.inc": "b63cdd1da3e06ca4412dcae71eee96ca6de0b699df78ff511918ea601ae048eb",
+      "tests/test_adaptive_prefill.cpp": "782446bb5ccdf5e3c635e30c9b9000cf76372be3b6a0b55a99da840bad3c8a6b",
+      "tests/test_live_prefix.cpp": "bb61bd06b6221048b1604af8fe816432537b491016284a926f2dbd5cfa6b1ef7",
+      "tests/test_main.cpp": "10e494a26087d2bc956289941d6c878195d3a13dd7447384f740af6f25a926b2",
+      "tests/test_metal.cpp": "96d351b931d4338284de50592111aa7175c53b292fc5b865be734b7ac6124018",
+      "tests/test_prefill_progress.cpp": "b1712a0a74a155ea549dfa33c423c954fd0972c1e645d8d28f2122b19c4503bf",
+      "tests/test_qwen_checkpoint.cpp": "b8209e45e7f07f403a9b38c1a5e84f921e2aa09f5587806ddff6a36e94ed5a70",
+      "tests/test_request_params_ubsan.cpp": "ff880c5700eb22def158be57f037d1663988af31382a3f547e3395ed3e933e7e",
+      "third_party/metal-cpp.SOURCE": "3aae5454d292f82dd31fb2a5fd0fd0db28799929f0b636cc5aa6a241717143b3",
+      "third_party/metal-cpp/Foundation/Foundation.hpp": "ec1d753dfaf58e4248aaf9dde3a54471356ef4283cab247509606c4b7b719d97",
+      "third_party/metal-cpp/Foundation/NSArray.hpp": "25eb26d690825d4aabc72a4b6e1d209b632247ebbfeab95a37ad2ea1726c06ea",
+      "third_party/metal-cpp/Foundation/NSAutoreleasePool.hpp": "72d1fa22f1a3a0dbc83d887123a491e6c05c18313648151530a33449d1d33337",
+      "third_party/metal-cpp/Foundation/NSBundle.hpp": "af70ff47e145e6c7a1cbf45039cecb9b8f23e7045545286e5112259df3902b8d",
+      "third_party/metal-cpp/Foundation/NSData.hpp": "95a8a9697bed80390db8204e8bdd8b09bb09385675ff7a4e7a1eab3fec653fee",
+      "third_party/metal-cpp/Foundation/NSDate.hpp": "77f861daab4145cae94a8fb7071b5f43b56aa909bda36b01f357da4b22f0b5c9",
+      "third_party/metal-cpp/Foundation/NSDefines.hpp": "9939db894bd737c3bb9a979bc7269e125fde6d6dbad248d38ab7019a9d42aa35",
+      "third_party/metal-cpp/Foundation/NSDictionary.hpp": "008415fff23f8011018ada7afba56dbbb4e6a1d2f2d7e753bdca94f86d457feb",
+      "third_party/metal-cpp/Foundation/NSEnumerator.hpp": "89952f6564ab13a0ca3a8abef24c3547291cf1d7e6b2c46f83257118593c8ab5",
+      "third_party/metal-cpp/Foundation/NSError.hpp": "d62669f4eb89c5003cb51b8b740dd9b34ff542fa97e854a1cfb0348a70eb5bfa",
+      "third_party/metal-cpp/Foundation/NSLock.hpp": "639be538d8d8d2e4bf8c61446f3f988db7250a3ef7d8c09ff6773a7b86bbb3c7",
+      "third_party/metal-cpp/Foundation/NSNotification.hpp": "df2b60a482a4884b63fa8e63e5d74974cc8f7e7c2c90ce7dc337987dbb3917d2",
+      "third_party/metal-cpp/Foundation/NSNumber.hpp": "21c7714596e4ea47451640b228ef6eccd7499ffc314ffa4cdf521a4ef69fbc85",
+      "third_party/metal-cpp/Foundation/NSObjCRuntime.hpp": "430704881295374181345a1bf415f2c5bb39438ec22ac0a6cf38a0bb98573bc8",
+      "third_party/metal-cpp/Foundation/NSObject.hpp": "0e517a51d40679f476aec9b63079550138f0711c38f05a9c197ee8880bf538fb",
+      "third_party/metal-cpp/Foundation/NSPrivate.hpp": "da3dae9f28a06df8bc275f01de2bd83137747ac24bf1d88995fbc8edaa99a605",
+      "third_party/metal-cpp/Foundation/NSProcessInfo.hpp": "de67e06a7043b78e4362e7cf2889e34d92312fa4d6df0cddcd123f76e418b250",
+      "third_party/metal-cpp/Foundation/NSRange.hpp": "dc8f1a32bd948f100884fbd14d7436b50b566494e70ecd346e6f4fac632d5ead",
+      "third_party/metal-cpp/Foundation/NSSet.hpp": "eaa27914936c1c81509d186bd6935882fa49f329e6e822f6668dbc3c66ba9702",
+      "third_party/metal-cpp/Foundation/NSSharedPtr.hpp": "0dea8b2ec04c9fbabfc4a105a372ec2750789ad83ff4b878b78814a81bc2c6fa",
+      "third_party/metal-cpp/Foundation/NSString.hpp": "ae8fef6fdafaabafbc41cd09ddfe45db21f2e79be444c17c7235678114d66d22",
+      "third_party/metal-cpp/Foundation/NSTypes.hpp": "79258aaf92c78a98e83854e5562440b61e5cee9481afbbc35b6746a54a97eec9",
+      "third_party/metal-cpp/Foundation/NSURL.hpp": "c0759aa18814aa17153c682c2502a1af507266941cd4f9458550c3ca30bee4bd",
+      "third_party/metal-cpp/LICENSE.txt": "f4e92c7fe2aa066e294c0da9d08683dc9fb741ee6e6debbfad99a0c96e07c1f2",
+      "third_party/metal-cpp/Metal/MTLAccelerationStructure.hpp": "ed83a27004107837ff95dec8fcdd132a1bc5f3c9ccb0924a57dc3a9b30af30e5",
+      "third_party/metal-cpp/Metal/MTLAccelerationStructureCommandEncoder.hpp": "88e3a67bb044bf46b4390ca5303ee59c86ae1642be448828ee96b4798b590a70",
+      "third_party/metal-cpp/Metal/MTLAccelerationStructureTypes.hpp": "2f5067d08ddedbbdbdeeeeaef5b19561a0f40bb34151b5c57290cbec7c16d0a5",
+      "third_party/metal-cpp/Metal/MTLAllocation.hpp": "7cfb1f1e86def3d10b96a13b110a5ede6317dc756496619b8af0ca35b61df267",
+      "third_party/metal-cpp/Metal/MTLArgument.hpp": "308b1ef22d125f22b8f47e5bb0c5c99753c3b2230c542f498ea763ea7443c3af",
+      "third_party/metal-cpp/Metal/MTLArgumentEncoder.hpp": "1e1af61ba2bff7ca50459f626796589f3d5f4ba48d3565938116ab14dfefa3f8",
+      "third_party/metal-cpp/Metal/MTLBinaryArchive.hpp": "079bc28323b273b9c0921ee9add3fa221427772ed0289a65ff5f378b2ac39080",
+      "third_party/metal-cpp/Metal/MTLBlitCommandEncoder.hpp": "0fb63a448056cd654ce6047ce912fd5b038a07137ed710db4bd5dca669b20827",
+      "third_party/metal-cpp/Metal/MTLBlitPass.hpp": "30aabee0167d86bbfdc484a24607d242a77b88c5d9fde7149d47b6df0295990b",
+      "third_party/metal-cpp/Metal/MTLBuffer.hpp": "e994e711f12d407614f026c1727c1149b133d58c7296c5d7b24d9e3c776dc4c9",
+      "third_party/metal-cpp/Metal/MTLCaptureManager.hpp": "1385635bcbbee775f59b8cc93335645174096a87422a3298d65d0654508aa378",
+      "third_party/metal-cpp/Metal/MTLCaptureScope.hpp": "d77d985607790d7751c63ad511eabe02dc3cbc68e22e8e6aa881e8264f829231",
+      "third_party/metal-cpp/Metal/MTLCommandBuffer.hpp": "b4d4e53aa9a101ad9b47dffaab6a1d5a7a98a0e6f2e74c48da2643dd841a810f",
+      "third_party/metal-cpp/Metal/MTLCommandEncoder.hpp": "d4eb577462a1ca7b6927f903152730ed5599bdd73eb0b2277e440c3b368c349c",
+      "third_party/metal-cpp/Metal/MTLCommandQueue.hpp": "d95a370be11490dbda070139e172c695032e32e842749365c5ad77376646843f",
+      "third_party/metal-cpp/Metal/MTLComputeCommandEncoder.hpp": "53ef5483792e207495514ca1f23569e1adad1fc6ff23cec4dfb7dc6df43b0709",
+      "third_party/metal-cpp/Metal/MTLComputePass.hpp": "be60ef26a9c3d2aeed8126fa718f912d8b6f98cc163454a48cb1d9d9545d8e81",
+      "third_party/metal-cpp/Metal/MTLComputePipeline.hpp": "20d525f0b3e87a016fe409a783c5de3304ea9efdf947b1bd2e0cb49f9e169552",
+      "third_party/metal-cpp/Metal/MTLCounters.hpp": "ecfe0d3b44f305f81c5a6769d772b54852b26399a918429fd815ebca0193def7",
+      "third_party/metal-cpp/Metal/MTLDefines.hpp": "fa8890775325ef4a2f83d419c012467124dd63bd732e0cfb8fce75af11fb7ed4",
+      "third_party/metal-cpp/Metal/MTLDepthStencil.hpp": "ea33f5ebe37ab1615449673dfc8457e5890b45d3f2dc64240470870c9babe71a",
+      "third_party/metal-cpp/Metal/MTLDevice.hpp": "a28e355832b579a2ee9343d97b01ca53d1354153eea4bacc51e39aaa5007adc7",
+      "third_party/metal-cpp/Metal/MTLDrawable.hpp": "29536d32e34be1ce2344fea82eb727c23eb3e121956f9ea104130c930a573d58",
+      "third_party/metal-cpp/Metal/MTLDynamicLibrary.hpp": "10c46502dd704724bb26b29b979133214bc6ff7723d00ca08eb6394fdd05c87f",
+      "third_party/metal-cpp/Metal/MTLEvent.hpp": "47b3013b165936b75d0528ff53c09d404e39e9dd3b3ec8035b65497a674493de",
+      "third_party/metal-cpp/Metal/MTLFence.hpp": "22974b3788abf6b72786070afbbba9e4466021d6ab5103eb6020e97f5db6adab",
+      "third_party/metal-cpp/Metal/MTLFunctionConstantValues.hpp": "e683438a3229418b3fe81b91b94166e4f5d16feb703c86aaa409f7ee9791397a",
+      "third_party/metal-cpp/Metal/MTLFunctionDescriptor.hpp": "7964e0f670d6a8a37d7b3264d20e28c87bdc070651ae51277ac56e9f4b8bb42f",
+      "third_party/metal-cpp/Metal/MTLFunctionHandle.hpp": "6a162910f6f18e0530fc43ae4a4ecd2c3038a6c27dac0ea28e1674f52475cd6e",
+      "third_party/metal-cpp/Metal/MTLFunctionLog.hpp": "0b6f60964880444f738a11aa7393877844bcf19b8dc7a963fb8ed2b9393fc3a2",
+      "third_party/metal-cpp/Metal/MTLFunctionStitching.hpp": "ae57c9677022bead58468fda7e5863ed1b81e9e6a869b1088cc3dc8a4c339bfc",
+      "third_party/metal-cpp/Metal/MTLHeaderBridge.hpp": "0742312cf47c5e5f295390736bd296b6f21ba0a86a42f7c07da67916fb6c810d",
+      "third_party/metal-cpp/Metal/MTLHeap.hpp": "3e225c51d58cf0177edd1e23737a47cf8257077c821fdbabf7f0b42c3c3b53e2",
+      "third_party/metal-cpp/Metal/MTLIOCommandBuffer.hpp": "b02bfd4225ad1afe7a9b86f65237c191fefcb92edd7ae53fba2f59a7df0d51e1",
+      "third_party/metal-cpp/Metal/MTLIOCommandQueue.hpp": "cc0e840e8e88c26deab72c5faa03b0a9811dc72b5ac4429bdcfe3df809bf2622",
+      "third_party/metal-cpp/Metal/MTLIOCompressor.hpp": "d0c85c23f31b6213072f3dd46dbc14568567e277685fe82220243d98f4a50e6d",
+      "third_party/metal-cpp/Metal/MTLIndirectCommandBuffer.hpp": "ed82717a3f4863852b91e00d3094593377bef78c7c7c09b51b6044f25f6a07d0",
+      "third_party/metal-cpp/Metal/MTLIndirectCommandEncoder.hpp": "888fe409cb5d7b4aea826ecf55830e32779268ae6085ee863af2553b60840265",
+      "third_party/metal-cpp/Metal/MTLIntersectionFunctionTable.hpp": "ed69699dfba15220b6bdfc5aedcbb9a3cd31a76f4010bf0b18f9ed82d2d68fb6",
+      "third_party/metal-cpp/Metal/MTLLibrary.hpp": "8d6cc0883f16e17ed296cbe9e3de2f6f4fa834b03789f4e071c04032606d590f",
+      "third_party/metal-cpp/Metal/MTLLinkedFunctions.hpp": "0864cdcad61932b704406d6caaa0e31c0c3059a8871e287874116e06c60187dc",
+      "third_party/metal-cpp/Metal/MTLLogState.hpp": "79f62d9f9975762082a4f1835654133f4f7e252c32945e524c0927883759b40b",
+      "third_party/metal-cpp/Metal/MTLParallelRenderCommandEncoder.hpp": "e9e6fc1af4af96ca88f82422cb42f15acab67c94cda0dc68faab1521ad4cb465",
+      "third_party/metal-cpp/Metal/MTLPipeline.hpp": "a235fcefecc1ba57d07bf91e53919a493cf7f1ae108d388597af02c174da272a",
+      "third_party/metal-cpp/Metal/MTLPixelFormat.hpp": "0afa4d866272f0c468db58a7397f3d0469d64f6d6984a40a908b227ae515f60d",
+      "third_party/metal-cpp/Metal/MTLPrivate.hpp": "9f1a764f04cb2ea442c904352e53c37b39083c1189b7a89ce02f8fd9c3a439b2",
+      "third_party/metal-cpp/Metal/MTLRasterizationRate.hpp": "947d9f67aae09f9cc0b148ab568f53b1048b8170d3a42484e05b517fcef0e75e",
+      "third_party/metal-cpp/Metal/MTLRenderCommandEncoder.hpp": "1c8a6de0a29bb0d7b1680d4e5c9cde79d589a10982ac4b2e819caff76b8e9ba3",
+      "third_party/metal-cpp/Metal/MTLRenderPass.hpp": "6bbec6494d8537fc0c762b984918c5ae3e52474231d35e1905057ea0d4bcee7a",
+      "third_party/metal-cpp/Metal/MTLRenderPipeline.hpp": "0160c6032963c286c892cfa40d6ca4d41c87c77f4d752258c61faf7b068b56a9",
+      "third_party/metal-cpp/Metal/MTLResidencySet.hpp": "eeb31faa6057605abea7af15fe254c5b8ae2eca90c5358807164784442a964df",
+      "third_party/metal-cpp/Metal/MTLResource.hpp": "bc919ec169f46aac1e9cc8d61cc35aea3f53b481c3830bf6bb51d940520a652a",
+      "third_party/metal-cpp/Metal/MTLResourceStateCommandEncoder.hpp": "046f1a42c865f397db8ae4933d639e7bd0c83002c679e672441e3379aa0d5f04",
+      "third_party/metal-cpp/Metal/MTLResourceStatePass.hpp": "6e5fb295583b32d02ab1608157db2899e7a653951009dd2f8f37fac8aa8592ae",
+      "third_party/metal-cpp/Metal/MTLSampler.hpp": "4f07ef2c8711056cfffe10e64950889ff72b562e7559da43ffda1c0838c73132",
+      "third_party/metal-cpp/Metal/MTLStageInputOutputDescriptor.hpp": "1eb1fa259cd2fc2821913f72f961e0202a28123e1f04be89e00b2633f9d3a83e",
+      "third_party/metal-cpp/Metal/MTLTexture.hpp": "12be522034967b6cfae7a9c9dcf0925c3e94a24a1f5a07c9fe83e8c13efee25b",
+      "third_party/metal-cpp/Metal/MTLTypes.hpp": "7b67afdf5540e139b2720367df489d88b29803422a04d97723d080487655090f",
+      "third_party/metal-cpp/Metal/MTLVersion.hpp": "97fde5858a68d626928877c1b5a247fd415a1eec121c689e52f654d9569d8342",
+      "third_party/metal-cpp/Metal/MTLVertexDescriptor.hpp": "4c397dc5e1ff89c440756c87ad534df4a6234f9086f8bc549f3732bf0a73812e",
+      "third_party/metal-cpp/Metal/MTLVisibleFunctionTable.hpp": "cd36dcfe2b290c95e59e484b528f57057ef581d09c32321eaed309e01df0235b",
+      "third_party/metal-cpp/Metal/Metal.hpp": "cd1795c2d97fa914c8a37895d394789bd753f921e7bdea60d6c945a5a7687cf1",
+      "third_party/metal-cpp/MetalFX/MTLFXDefines.hpp": "f20218f90e571bcc3204baee3dcf5cdffa1f60ee208ca092bd3bbbad08fd9ee9",
+      "third_party/metal-cpp/MetalFX/MTLFXPrivate.hpp": "e22bdcbc397060bfac28a874bbda6919b68a2bbb673513d7930626c87c0cf585",
+      "third_party/metal-cpp/MetalFX/MTLFXSpatialScaler.hpp": "1cf0a51d90b94b324ca92b7a6416098c17ee35ee8f899158e8e9c08b79ba477b",
+      "third_party/metal-cpp/MetalFX/MTLFXTemporalScaler.hpp": "86ad43a87dff7ed37161d0ac22beed875dd7202cdb57f58a4040854e0c6e5845",
+      "third_party/metal-cpp/MetalFX/MetalFX.hpp": "390e5f303f9dd9dc89335e2f45dd01519fbe0359acf7a6c53ecbd5321eff2f97",
+      "third_party/metal-cpp/QuartzCore/CADefines.hpp": "cad006ef1e67ee4a7759daf9c84b7a48d056e4820957d1feb8fae35858f4a854",
+      "third_party/metal-cpp/QuartzCore/CAMetalDrawable.hpp": "9a117b71c120b3c19eaf7f30dd5170fd4a7c42b19b6191e5f0412d156852b8a2",
+      "third_party/metal-cpp/QuartzCore/CAMetalLayer.hpp": "c9874e5d456966886f2a12ac39d54a16497b4051e6fa7181dc776f344d2d949c",
+      "third_party/metal-cpp/QuartzCore/CAPrivate.hpp": "0c0d1eaa8d05fc75bb8b40ce0759d32d4adde5d1eb75a88f0b0387e4a9695585",
+      "third_party/metal-cpp/QuartzCore/QuartzCore.hpp": "6f04260a5cac3b042adee63cd26b4a8f5e1f6f8e6c0a2e165714272f52afc2d8",
+      "third_party/metal-cpp/README.md": "a73441027991514074e7c5d5cf6f4d2111aa4379481468587e69eefd88901209",
+      "third_party/metal-cpp/SingleHeader/MakeSingleHeader.py": "5b87e3f4aebe564025f5e4120258a797ea77fdc92c0b5a2d7bf84e835769ad5a",
+      "tools/gen_unicode_tables.py": "6dbd2f89c4522797cffc30a6f0f2600db962078a4c48f6240fe3810143e454da",
+      "tools/suc1_decode.cpp": "6fc6dbba9c080e78d956c8d040e9af33ec47356f89b3a1b054c232c227d18490",
+      "tools/suc1_generate.cpp": "966ce1ac4541af0cda501f874d214efedd25b3312c666e98e76c4a3afea1c05c",
+      "tools/suc1_generate_glm5.inc": "17ee33101a8397b41fdfc15277d19238861421774ae40a0419748ad0338c573b",
+      "tools/suc1_inspect.cpp": "b8b4ceccb1c8d35803b9d5c298cafc76a5a6f6851ce30367f5753e53aba04922",
+      "tools/suc1_linear.cpp": "0479ebfdc4c7b0ee0aa9272c501562092e3030f41a32747140fa12d12599e0ce",
+      "tools/suc1_moe.cpp": "686df8cf8a2fdb13dbe7c40cc9b80ddde0bd71d131964279edfcb79e2c37f310",
+      "tools/suc1_server.cpp": "bce411fc4a78bf573600d6da53bd4c68b19a0b7426300300071f96e983c2c97b",
+      "tools/suc_attention_bench.cpp": "4c96b7f3001409dea11c9869b0dea8463069faa1d0613516e0f015fd68add57c",
+      "tools/suc_expert_bench.cpp": "8f60c4a68aae24a965bc1effe05f464209dd5cb1dfead47b2467e8ec1f2fd8fe",
+      "tools/suc_linear_bench.cpp": "82fc130fbb38f82797da58cb6feede2f2301a01313b01e9adf4a62d4bb9c2744",
+      "tools/suc_mm_bench.cpp": "3d8f293ce7e966a284263ea31c18b1bd879469c7cad4be837117f6a90bcc5417",
+      "tools/suc_sampling_bench.cpp": "7eca0d7e2079831ed0088e94a74155d74112e739935e585679f210e575482ce2",
+      "tools/suc_tokenize.cpp": "4d8b99176f44e36b0f8c458c522f3369241d8f118ed5209dfe6356055f3c368f",
+      "tools/tool_common.hpp": "bbf7d57cd1e3c849a8070bce33648f3f3e7166d2965728e2a23ff165f5c2f138"
+    },
+    "repository_commit": "070edc5ce1987e927c41ab7c07d77cba3390df63",
+    "source": "../cpp"
+  },
+  "model_bytes": 96317565824,
+  "scope": "Actual helper/model synthetic cold and cached chat; not KL or hard-suite quality",
+  "helper_sha256": "76e1d55cdcda3ec9390606f54d0f912fe9f6ff90998ceaaac6f3a269db8439fc",
+  "model": "/Users/username/Projects/SUC-LM/experiments/artifacts/compress/compress_qwen3.8_flash_next_side8/container/qwen3.8_flash_next_side8/qwen3.8_flash_next_side8.suc1",
+  "tokenizer_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+  "loads": [
+    {
+      "memory_plan": {
+        "mode": "resident",
+        "limit_bytes": 121634816000,
+        "resident_bytes": 96317565824,
+        "reserve_bytes": 4294967296,
+        "expert_budget_bytes": 0
+      },
+      "profile": "off",
+      "load_s": 20.070146124999997,
+      "samples": [
+        {
+          "resident_bytes": 46575828992,
+          "initial_resident_bytes": 46575828992,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 3965408,
+          "baseline_footprint_bytes": 3949024,
+          "metal_allocated_bytes": 65536,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.191696
+        },
+        {
+          "resident_bytes": 46575828992,
+          "initial_resident_bytes": 46575828992,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 4808677784,
+          "baseline_footprint_bytes": 3949024,
+          "metal_allocated_bytes": 72206041088,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.205066
+        },
+        {
+          "resident_bytes": 53501984768,
+          "initial_resident_bytes": 46575828992,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 4808677784,
+          "baseline_footprint_bytes": 3949024,
+          "metal_allocated_bytes": 72206041088,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.231939
+        },
+        {
+          "resident_bytes": 63439912960,
+          "initial_resident_bytes": 46575828992,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 4808677784,
+          "baseline_footprint_bytes": 3949024,
+          "metal_allocated_bytes": 72206041088,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.225957
+        },
+        {
+          "resident_bytes": 55517872128,
+          "initial_resident_bytes": 46575828992,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 4808694168,
+          "baseline_footprint_bytes": 3949024,
+          "metal_allocated_bytes": 72206041088,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.194025
+        }
+      ],
+      "phases": [
+        "Verifica del file modello",
+        "Verifica del tokenizer",
+        "Preparazione Metal",
+        "Mappatura dei pesi e allocazione memoria",
+        "Preparazione del grafo del modello",
+        "Preparazione del motore",
+        "Compilazione e riscaldamento Metal"
+      ]
+    },
+    {
+      "memory_plan": {
+        "mode": "resident",
+        "limit_bytes": 121634816000,
+        "resident_bytes": 96317565824,
+        "reserve_bytes": 4294967296,
+        "expert_budget_bytes": 0
+      },
+      "profile": "auto",
+      "load_s": 17.738779792000017,
+      "samples": [
+        {
+          "resident_bytes": 48477945856,
+          "initial_resident_bytes": 48477945856,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 3998176,
+          "baseline_footprint_bytes": 3981792,
+          "metal_allocated_bytes": 65536,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.150353
+        },
+        {
+          "resident_bytes": 50464292864,
+          "initial_resident_bytes": 48477945856,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 5073050176,
+          "baseline_footprint_bytes": 3981792,
+          "metal_allocated_bytes": 72470315008,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.167649
+        },
+        {
+          "resident_bytes": 53805957120,
+          "initial_resident_bytes": 48477945856,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 5073050176,
+          "baseline_footprint_bytes": 3981792,
+          "metal_allocated_bytes": 72470315008,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.160108
+        },
+        {
+          "resident_bytes": 55967449088,
+          "initial_resident_bytes": 48477945856,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 5073050176,
+          "baseline_footprint_bytes": 3981792,
+          "metal_allocated_bytes": 72470315008,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.186499
+        },
+        {
+          "resident_bytes": 56223219712,
+          "initial_resident_bytes": 48477945856,
+          "target_bytes": 96317565824,
+          "footprint_bytes": 5073066560,
+          "baseline_footprint_bytes": 3981792,
+          "metal_allocated_bytes": 72470315008,
+          "initial_metal_bytes": 65536,
+          "memory_query_s": 0.190178
+        }
+      ],
+      "phases": [
+        "Verifica del file modello",
+        "Verifica del tokenizer",
+        "Preparazione Metal",
+        "Mappatura dei pesi e allocazione memoria",
+        "Preparazione del grafo del modello",
+        "Preparazione del motore",
+        "Compilazione e riscaldamento Metal"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "profile": "off",
+      "case": "2k-cold",
+      "ttft_s": 17.618894375,
+      "wall_s": 17.655633750000003,
+      "metrics": {
+        "prompt_tokens": 2032,
+        "completion_tokens": 2,
+        "prefill_s": 17.613849,
+        "decode_s": 0.036727,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 0,
+        "total": 2032,
+        "cache": 0
+      },
+      "progress_end": {
+        "processed": 2032,
+        "total": 2032,
+        "cache": 0
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "off",
+      "case": "2k-repeat",
+      "ttft_s": 0.9812880830000026,
+      "wall_s": 1.0094864579999978,
+      "metrics": {
+        "prompt_tokens": 112,
+        "completion_tokens": 2,
+        "prefill_s": 0.980819,
+        "decode_s": 0.028186,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 1920,
+        "total": 2032,
+        "cache": 1920
+      },
+      "progress_end": {
+        "processed": 2032,
+        "total": 2032,
+        "cache": 1920
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "off",
+      "case": "2k-follow",
+      "ttft_s": 1.049212292,
+      "wall_s": 1.077185292000003,
+      "metrics": {
+        "prompt_tokens": 127,
+        "completion_tokens": 2,
+        "prefill_s": 1.048713,
+        "decode_s": 0.027996,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 1920,
+        "total": 2047,
+        "cache": 1920
+      },
+      "progress_end": {
+        "processed": 2047,
+        "total": 2047,
+        "cache": 1920
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "off",
+      "case": "8k-cold",
+      "ttft_s": 67.67379283400001,
+      "wall_s": 67.713308584,
+      "metrics": {
+        "prompt_tokens": 8032,
+        "completion_tokens": 2,
+        "prefill_s": 67.672542,
+        "decode_s": 0.039531,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 0,
+        "total": 8032,
+        "cache": 0
+      },
+      "progress_end": {
+        "processed": 8032,
+        "total": 8032,
+        "cache": 0
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "off",
+      "case": "8k-repeat",
+      "ttft_s": 1.7153953330000036,
+      "wall_s": 1.746307041999998,
+      "metrics": {
+        "prompt_tokens": 96,
+        "completion_tokens": 2,
+        "prefill_s": 1.71039,
+        "decode_s": 0.030912,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 7936,
+        "total": 8032,
+        "cache": 7936
+      },
+      "progress_end": {
+        "processed": 8032,
+        "total": 8032,
+        "cache": 7936
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "off",
+      "case": "8k-follow",
+      "ttft_s": 0.9948724590000069,
+      "wall_s": 1.0244757500000077,
+      "metrics": {
+        "prompt_tokens": 111,
+        "completion_tokens": 2,
+        "prefill_s": 0.993607,
+        "decode_s": 0.029652,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 7936,
+        "total": 8047,
+        "cache": 7936
+      },
+      "progress_end": {
+        "processed": 8047,
+        "total": 8047,
+        "cache": 7936
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "2k-cold",
+      "ttft_s": 12.437486500000006,
+      "wall_s": 12.482090167000024,
+      "metrics": {
+        "prompt_tokens": 2032,
+        "completion_tokens": 2,
+        "prefill_s": 12.432163,
+        "decode_s": 0.044647,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 0,
+        "total": 2032,
+        "cache": 0
+      },
+      "progress_end": {
+        "processed": 2032,
+        "total": 2032,
+        "cache": 0
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "2k-repeat",
+      "ttft_s": 0.9831845000000214,
+      "wall_s": 1.0112645830000133,
+      "metrics": {
+        "prompt_tokens": 112,
+        "completion_tokens": 2,
+        "prefill_s": 0.982645,
+        "decode_s": 0.028088,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 1920,
+        "total": 2032,
+        "cache": 1920
+      },
+      "progress_end": {
+        "processed": 2032,
+        "total": 2032,
+        "cache": 1920
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "2k-follow",
+      "ttft_s": 1.0969448329999807,
+      "wall_s": 1.1256972500000018,
+      "metrics": {
+        "prompt_tokens": 127,
+        "completion_tokens": 2,
+        "prefill_s": 1.096407,
+        "decode_s": 0.028798,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 1920,
+        "total": 2047,
+        "cache": 1920
+      },
+      "progress_end": {
+        "processed": 2047,
+        "total": 2047,
+        "cache": 1920
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "8k-cold",
+      "ttft_s": 28.835019167000013,
+      "wall_s": 28.873204500000014,
+      "metrics": {
+        "prompt_tokens": 8032,
+        "completion_tokens": 2,
+        "prefill_s": 28.833834,
+        "decode_s": 0.038177,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 0,
+        "total": 8032,
+        "cache": 0
+      },
+      "progress_end": {
+        "processed": 8032,
+        "total": 8032,
+        "cache": 0
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "8k-repeat",
+      "ttft_s": 0.9329812910000044,
+      "wall_s": 0.962744291000007,
+      "metrics": {
+        "prompt_tokens": 96,
+        "completion_tokens": 2,
+        "prefill_s": 0.931288,
+        "decode_s": 0.029794,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 7936,
+        "total": 8032,
+        "cache": 7936
+      },
+      "progress_end": {
+        "processed": 8032,
+        "total": 8032,
+        "cache": 7936
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "profile": "auto",
+      "case": "8k-follow",
+      "ttft_s": 0.9971008330000188,
+      "wall_s": 1.0271250420000229,
+      "metrics": {
+        "prompt_tokens": 111,
+        "completion_tokens": 2,
+        "prefill_s": 0.995873,
+        "decode_s": 0.030063,
+        "source": "suc-server",
+        "aggregation": "mean"
+      },
+      "progress_start": {
+        "processed": 7936,
+        "total": 8047,
+        "cache": 7936
+      },
+      "progress_end": {
+        "processed": 8047,
+        "total": 8047,
+        "cache": 7936
+      },
+      "text": "READY",
+      "text_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    }
+  ],
+  "passed": true
+}

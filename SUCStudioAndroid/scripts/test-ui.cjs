@@ -18,5 +18,8 @@ w.renderStats({prefill:null,decode:20,cachedTokens:1000,prefillEstimated:false,d
 assert(w.document.getElementById('stats').textContent.includes('Prefill —'));
 assert(!w.document.getElementById('stats').textContent.includes('≈ stima'));
 w.renderStats({prefill:120,decode:35});assert(!w.document.getElementById('stats').textContent.includes('token in cache'));
+w.document.getElementById('serverModel').value='old-model';w.nativeEvent('models',{items:['current-model']});assert.equal(w.document.getElementById('serverModel').value,'current-model');
+w.document.getElementById('serverModel').value='chosen';w.nativeEvent('models',{items:['other','chosen']});assert.equal(w.document.getElementById('serverModel').value,'chosen');
+w.nativeEvent('models',{items:[]});assert.equal(w.document.getElementById('serverModel').value,'chosen');
 const source=fs.readFileSync(path.join(__dirname,'../ui/index.html'),'utf8');assert(source.includes('overflow:auto;flex:1;min-height:0'));assert(source.includes("follow=false"));assert(!/\?\./.test(html.match(/<script>([\s\S]*?)<\/script>/)[1]));
 console.log('UI: Markdown/XSS, thinking, inline approvals, edit-in-place, samples, ES2017 asset and scrolling structure PASS');dom.window.close();

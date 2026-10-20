@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.7.04-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.7.05-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -92,7 +92,7 @@ Install the Apple Command Line Tools (`xcode-select --install`) with the macOS 1
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.7.04-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
+Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.7.05-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
 
 ## Installing and getting started
 
@@ -416,7 +416,7 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.04-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.7.05-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Qwen conversation cache in 1.4.7.03
 
@@ -427,3 +427,9 @@ The server keeps one bounded checkpoint of recurrent/convolution/n-gram state sh
 Durante il prefill la barra mostra token nuovi elaborati e prefisso riusato, quando il motore invia questi dati. Nelle chat lunghe con cronologia, zero token riusati produce l’avviso di rilettura completa: il comportamento è normale dopo un reset o un prefisso incompatibile. Senza telemetria la barra rimane indeterminata. Durante il caricamento del modello la barra globale mostra la fase effettiva, senza simulare percentuali.
 
 SUC invia i conteggi reali durante il decode; la media live e quella finale usano la stessa formula. Negli altri server, «Ricezione ≈» indica una stima dai caratteri ricevuti e dalla rete, non la velocità del motore. Il dato finale può quindi differire. Le metriche reali del server hanno sempre precedenza.
+
+### 1.4.7.05 candidate: model residency and adaptive prefill
+
+The global loading indicator shows activity and the current engine phase until the engine confirms readiness. Resident model-file GiB and Metal allocation are separate memory readings: they may rise or fall and do not represent completion percentages. The tooltip reports initial residency. Monitoring does not force page-in or change the memory policy.
+
+Settings → Prefill → **Automatico (1024 / 64)** enables 1024-token blocks followed by chunks of at most 64; reload the model after changing the setting. Prefix reuse and aligned checkpoints are retained; decoding remains single-token. Exact/token modes, explicit chunks and expert streaming retain their existing profiles. Conservative Batch remains the default while real-model qualification is pending; cross-profile numerical equivalence is not claimed. Standalone server: `--history-prefill auto|off`.

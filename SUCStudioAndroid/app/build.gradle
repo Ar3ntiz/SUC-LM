@@ -2,7 +2,7 @@ plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
 android {
     namespace 'local.sucstudio.android'
     compileSdk 34
-    defaultConfig { applicationId 'local.sucstudio.android'; minSdk 26; targetSdk 34; versionCode 4; versionName '0.1.3'; testInstrumentationRunner 'local.sucstudio.android.SmokeInstrumentation' }
+    defaultConfig { applicationId 'local.sucstudio.android'; minSdk 26; targetSdk 34; versionCode 5; versionName '0.1.4'; testInstrumentationRunner 'local.sucstudio.android.SmokeInstrumentation' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
     kotlinOptions { jvmTarget = '11' }
     if (System.getenv('SUC_ANDROID_KEYSTORE')) {

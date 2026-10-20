@@ -64,7 +64,8 @@ struct SettingsView: View {
             }
             Section("Memoria e prestazioni · applicate al prossimo caricamento") {
                 TextField("Contesto massimo (token)", value: $store.archive.settings.context, format: .number.grouping(.never))
-                Picker("Prefill", selection: $store.archive.settings.prefill) { Text("Batch (veloce)").tag("batch"); Text("Exact (se supportato)").tag("exact"); Text("Token").tag("token") }
+                Picker("Prefill", selection: $store.archive.settings.prefill) { Text("Automatico (1024 / 64)").tag("adaptive"); Text("Batch prudente").tag("batch"); Text("Exact (se supportato)").tag("exact"); Text("Token").tag("token") }
+                Text("Automatico usa blocchi grandi per il contesto e piccoli per la coda. Cambiare profilo richiede di ricaricare il modello e può modificare gli arrotondamenti numerici.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 Picker("Gestione memoria", selection: Binding(get: { store.archive.settings.effectiveMemoryMode }, set: { store.archive.settings.memoryMode = $0; store.scheduleSave() })) {
                     Text("Automatico").tag("auto")
                     Text("Residente").tag("resident")

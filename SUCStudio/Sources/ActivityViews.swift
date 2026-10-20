@@ -5,12 +5,38 @@ struct GlobalActivityView:View {
     var body:some View {
         VStack(spacing:0) {
             if store.modelState=="loading" {
-                HStack(spacing:10) { VStack(alignment:.leading,spacing:2) {Text("Caricamento del modello…").fontWeight(.medium);Text(store.loadPhase).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);ProgressView().progressViewStyle(.linear).frame(maxWidth:400);Text(URL(fileURLWithPath:store.archive.settings.modelPath).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1) };Spacer();Text("C++ / Metal").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }.padding(12).background(studioAccent.opacity(0.08)).accessibilityElement(children:.combine)
+                ModelLoadingActivity(phase:store.loadPhase,memory:store.loadMemory,path:store.archive.settings.modelPath)
             }
             if let item=store.approvals.first(where:{$0.sessionID != store.archive.selected || store.tab != "chat"}) {
                 HStack { Label("Approvazione richiesta · "+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button("Apri chat") {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
             }
         }.font(StudioTypography.ui(.callout))
+    }
+}
+private struct ModelLoadingActivity:View {
+    let phase:String
+    let memory:LoadMemoryStatus?
+    let path:String
+    var body:some View {
+        HStack(spacing:10) {
+            VStack(alignment:.leading,spacing:2) {
+                Text("Caricamento del modello…").fontWeight(.medium)
+                Text(phase).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                ProgressView().progressViewStyle(.linear).frame(maxWidth:400)
+                    .accessibilityLabel("Caricamento in corso")
+                memoryReadout
+                Text(URL(fileURLWithPath:path).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1)
+            }
+            Spacer()
+            Text("C++ / Metal").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+        }.padding(12).background(studioAccent.opacity(0.08)).accessibilityElement(children:.combine)
+    }
+    @ViewBuilder private var memoryReadout:some View {
+        if let memory {
+            Text(memory.label).monospacedDigit().font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                .help(memory.detail+". La residenza può aumentare o diminuire durante il caricamento. Non misura il completamento: il modello è pronto solo quando il motore lo conferma.")
+            if let metal=memory.metalLabel {Text(metal).font(StudioTypography.ui(.caption)).foregroundStyle(.tertiary)}
+        }
     }
 }
 struct GenerationActivity:View {

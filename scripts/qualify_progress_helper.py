@@ -70,7 +70,7 @@ def main():
                 assert replay_start['cache']==0
                 replay_text=''.join(e['payload']['text'] for e in replay if e['event']=='delta')
                 assert replay_text==text
-                result.update({'loading_phases':[e['payload']['phase'] for e in load if e['event']=='load_progress'], 'ipc_progress_events':len(progress),'ipc_live_metric_events':len(live),'sse_progress_events':len(remote_progress),'sse_live_metric_events':len(remote_live),'followup_cached_tokens':reused[0]['cache'],'cancel_replay_cache_zero':True,'cancel_replay_text_identical':True})
+                result.update({'loading_phases':[e['payload']['phase'] for e in load if e['event']=='load_progress' and 'phase' in e['payload']], 'ipc_progress_events':len(progress),'ipc_live_metric_events':len(live),'sse_progress_events':len(remote_progress),'sse_live_metric_events':len(remote_live),'followup_cached_tokens':reused[0]['cache'],'cancel_replay_cache_zero':True,'cancel_replay_text_identical':True})
                 return result
             finally:
                 if process.poll() is None:
