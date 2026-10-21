@@ -1,28 +1,15 @@
 {
   "macos": {
     "version": "1.4.9.03",
-    "build": 41,
+    "build": 42,
     "app_architectures": [
       "arm64",
       "x86_64"
     ],
     "engine_architecture": "arm64",
     "installer": "SUCStudio/dist/SUC-Studio-1.4.9.03-universal.pkg",
-    "sha256": "0bf533f5ad0510c9b0a7a6af60b0917adde96e755dabe1813a0230548792d5bf",
+    "sha256": "171a1dde7781279e8ea8072beee81f5919c869293c26c0dfcf344585e673a98e",
     "signing": "ad-hoc; installer unsigned; not notarized"
-  },
-  "tests": {
-    "intel_and_native_m1_ultra": "PASS: same streaming HTTP fixture suite with isolated archives/workspaces",
-    "continuation": "PASS: IT/EN promises to real file read, final/question/no-tools exclusions, FIFO and per-user-turn reset",
-    "repair_limits": "PASS: two shared attempts, action budget, persistent and mixed malformed/promise output stopped without guessed execution",
-    "markdown": "PASS Intel/M1: truly invalid token corrected by model to one file/artifact; sole missing outer delimiter normalized without changing content; persistent/mixed invalid output stays bounded",
-    "approvals_and_stop": "PASS: manual approval required after feedback; Stop prevents action and pauses queued turn",
-    "truncation": "PASS: finish_reason length not automatically retried",
-    "phase": "PASS: absent/zero completion counts preserve decode/reasoning and remote wait; unrelated metrics do not alter phase",
-    "installer": "PASS: extracted bundle deep/strict signature, Universal app/helpers, version/build, both HTML guides, release notes, retained identity/migration guards",
-    "tool_call_wrappers": "PASS Intel/M1: every streaming character prefix of open/closed/fenced wrappers, commentary and original archive retained, literal code/inline examples retained, multiple/unsupported actions rejected",
-    "outer_object_tolerance": "PASS Intel/M1: strict default parser; only coordinator after complete normal stop allows sole missing outer brace with unchanged complete action/arguments; one exact Unicode Markdown file/artifact without model repair; incomplete strings/inner objects, multiple documents and length truncation not executed",
-    "context_threshold": "PASS Intel/M1 full context suite: 98.99% does not trigger, 99% triggers; 87.1% with high requested output does not compact, output capped to room; server counts override larger byte estimates, manual/auto compact, FIFO, rollback, cancellation, routines, plugin policy"
   },
   "engine": {
     "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
@@ -40,6 +27,26 @@
     "Conservative IT/EN text heuristic, not a universal task-completion guarantee.",
     "No live model or installed-app GUI end-to-end test; streamed fixture responses exercise real harness/tools and file artifacts.",
     "No execution of commands or production of documents from the inspected user sessions; live archives untouched.",
-    "No automatic installation or publication beyond the requested public-repository sync."
-  ]
+    "No automatic installation or publication beyond the requested public-repository sync.",
+    "UI fixture uses accessibility actions; no pointer-driven test in the installed app. Backend/protocol/context regression results under previous_build_41_regression_tests were measured in build 41, not rerun for UI-only build 42."
+  ],
+  "previous_build_41_regression_tests": {
+    "intel_and_native_m1_ultra": "PASS: same streaming HTTP fixture suite with isolated archives/workspaces",
+    "continuation": "PASS: IT/EN promises to real file read, final/question/no-tools exclusions, FIFO and per-user-turn reset",
+    "repair_limits": "PASS: two shared attempts, action budget, persistent and mixed malformed/promise output stopped without guessed execution",
+    "markdown": "PASS Intel/M1: truly invalid token corrected by model to one file/artifact; sole missing outer delimiter normalized without changing content; persistent/mixed invalid output stays bounded",
+    "approvals_and_stop": "PASS: manual approval required after feedback; Stop prevents action and pauses queued turn",
+    "truncation": "PASS: finish_reason length not automatically retried",
+    "phase": "PASS: absent/zero completion counts preserve decode/reasoning and remote wait; unrelated metrics do not alter phase",
+    "installer": "PASS: extracted bundle deep/strict signature, Universal app/helpers, version/build, both HTML guides, release notes, retained identity/migration guards",
+    "tool_call_wrappers": "PASS Intel/M1: every streaming character prefix of open/closed/fenced wrappers, commentary and original archive retained, literal code/inline examples retained, multiple/unsupported actions rejected",
+    "outer_object_tolerance": "PASS Intel/M1: strict default parser; only coordinator after complete normal stop allows sole missing outer brace with unchanged complete action/arguments; one exact Unicode Markdown file/artifact without model repair; incomplete strings/inner objects, multiple documents and length truncation not executed",
+    "context_threshold": "PASS Intel/M1 full context suite: 98.99% does not trigger, 99% triggers; 87.1% with high requested output does not compact, output capped to room; server counts override larger byte estimates, manual/auto compact, FIFO, rollback, cancellation, routines, plugin policy"
+  },
+  "tests": {
+    "universal_build": "PASS: arm64 and x86_64 compilation; Universal app and helpers verified",
+    "installer": "PASS: Universal build and release identity/migration guards; final package extraction/signature/checksum verified at delivery",
+    "command_disclosure": "PASS Intel/native M1 Ultra: actual NSHostingView fixture, accessible button width >=580 and height >=36; repeated accessibility presses toggle exactly once",
+    "action_log": "PASS Intel/native M1 Ultra: actual WorkspaceSettingsView with active-work state; log and >=60pt rows enabled, expand/collapse, archive and runtime state preserved"
+  }
 }

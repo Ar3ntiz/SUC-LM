@@ -117,7 +117,9 @@ struct CommandDisclosure:View {
     let action:WorkspaceAction
     @State private var expanded=false
     var body:some View {
-        DisclosureGroup(isExpanded:$expanded) {
+        VStack(alignment:.leading,spacing:0) {
+            CommandDisclosureHeader(title:action.name=="run_interactive" ? L("Comando interattivo"):L("Comando"),expanded:$expanded)
+            if expanded {
             VStack(alignment:.leading,spacing:8) {
                 Text(action.arguments["command"] ?? L("Comando non disponibile"))
                     .font(StudioTypography.chat(pointOffset:-1).monospaced())
@@ -126,10 +128,24 @@ struct CommandDisclosure:View {
                     Text(L("L’eventuale input riservato viene richiesto nella scheda terminale."))
                         .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 }
-            }.padding(.top,6)
-        } label: {
-            Label(action.name=="run_interactive" ? L("Comando interattivo"):L("Comando"),systemImage:"terminal")
-                .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-        }.padding(10).background(Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
+            }.padding(.horizontal,10).padding(.bottom,10)
+            }
+        }.frame(maxWidth:.infinity,alignment:.leading).background(Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
+    }
+}
+
+struct CommandDisclosureHeader:View {
+    let title:String
+    @Binding var expanded:Bool
+    var body:some View {
+        Button {expanded.toggle()} label:{
+            HStack(spacing:8) {
+                Image(systemName:expanded ? "chevron.down":"chevron.right").frame(width:10)
+                Label(title,systemImage:"terminal")
+                Spacer(minLength:0)
+            }.font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                .padding(10).frame(maxWidth:.infinity,minHeight:36,alignment:.leading).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier("toggle-command-details")
+            .accessibilityValue(expanded ? L("Espanso"):L("Compresso"))
     }
 }

@@ -19,3 +19,14 @@ Collaudo completo superato su Intel e M1 Ultra. Installer estratto, firme, archi
 - [x] Tolleranza strutturale limitata alla sola chiusura esterna dopo stop normale; contenuto sempre integro.
 - [x] Regressioni complete UI/protocollo, file/artifact, contesto/compattazione e collaudo nativo M1.
 - [x] Installer Universal build 41 e sincronizzazione sorgenti/Mac Studio/pubblico.
+
+## Interfaccia build 42
+
+- [x] Rimozione del pannello fisso dal fondo della chat, preservando processi e registro azioni.
+- [x] Toggle del comando su tutta la riga con area minima di 36 punti e stato accessibile.
+- [x] Avvisi di errore indirizzati al registro azioni e guida IT/EN aggiornata.
+- [x] Verifica UI di dimensioni, pulsante accessibile e toggle ripetuto nella finestra fixture; registro consultabile con configurazione bloccata.
+- [x] Build Universal 42, installer verificato e sincronizzazione sorgenti/Mac Studio/pubblico.
+
+- [x] Registro azioni a schede leggibili, più alto, con richiesta/risultato separati, copia/apertura integrale e preview limitate.
+- [x] Consultazione del registro separata dal blocco delle impostazioni durante l’esecuzione.

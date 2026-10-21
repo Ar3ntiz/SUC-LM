@@ -69,3 +69,7 @@ Conservative IT/EN recovery for promises without tool actions and malformed acti
 ### Studio 1.4.9.03 · build 41
 
 Tool-call wire markers stay hidden across all streaming prefixes while commentary, original history and code examples remain intact. Automatic compaction uses 99% of projected input without output reservation or overriding valid server counts with larger byte estimates. A sole missing outer object delimiter is tolerated only after normal stop with unchanged complete action/arguments and full validation. Protocol/file/artifact and full context suites passed on Intel and M1 Ultra; Universal installer verified. Engine and memory policy unchanged.
+
+### SUC Studio 1.4.9.03 · build 42
+
+Rimosso il pannello fisso Comandi della sessione e resi espandibili i riquadri cliccando tutta l’intestazione. Registro azioni con schede più grandi, stato/ora/anteprima e dettagli richiesta/risultato separati; consultabile durante l’esecuzione. Collaudo UI isolato superato su Intel e M1 Ultra, installer Universal verificato. Motore, memory policy e Android invariati.

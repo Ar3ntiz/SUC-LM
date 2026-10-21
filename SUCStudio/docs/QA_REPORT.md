@@ -156,3 +156,7 @@ Fixture HTTP in streaming e archivi temporanei: recupero di promesse IT/EN verso
 ### 1.4.9.03 · build 41
 
 Regressioni su ogni prefisso dei marcatori tool_call aperti/chiusi/con JSON recintato, commenti, testo originale ed esempi di codice. Chiusura esterna mancante accettata solo per azioni complete a stop normale, con un solo file/artifact e contenuto Unicode identico; stringhe/argomenti incompleti, richieste multiple e troncamenti length non eseguiti. Contesto: soglie 98,99%/99%, input a 87,1% con output elevato senza compattazione, conteggi server preservati contro stime integrali maggiori, budget output residuo. Suite completa compattazione, rollback, code, routine e plugin. Dettagli finali in RELEASE_1.4.9.03_QA.json.
+
+### 1.4.9.03 · build 42
+
+Collaudo UI superato su Intel e M1 Ultra: intestazioni comando larghe almeno 580 punti e alte almeno 36: pulsante accessibile a tutta larghezza, con alternanza singola dello stato a pressioni ripetute. Il collaudo automatico usa le azioni di accessibilità nella finestra fixture, non click del mouse nell’app installata. Registro azioni con schede spaziose e dettaglio apribile anche durante il blocco dei controlli di configurazione; record e stato runtime conservati. Nessuna modifica alla gestione dei processi o al motore. Esiti effettivi nel report QA della release.

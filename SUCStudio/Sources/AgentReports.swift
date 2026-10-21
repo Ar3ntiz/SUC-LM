@@ -46,7 +46,7 @@ extension StudioStore {
         mutateSession(sessionID){$0.actions=($0.actions ?? [])+[record]}
         var notice=String(record.result.prefix(1200))
         if CommandJobTools.names.contains(record.name),let payload=try? JSONSerialization.jsonObject(with:Data(record.result.utf8)) as? [String:Any],payload["job_id"] != nil {
-            notice=L("Comando terminato con errore. Apri il pannello comandi per dettagli e output.")
+            notice=L("Comando terminato con errore. Apri il registro azioni della sessione per dettagli e output.")
         }
         if record.state != "completed" && record.state != "running" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(notice)") }
     }

@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.03 — build 42
+
+Rimosso il pannello fisso Session commands. Comandi espandibili cliccando tutta la riga, con area minima di 36 punti. Registro azioni ridisegnato con schede spaziose, stati chiari, richiesta e risultato separati, copia/apertura integrale e anteprime limitate. Consultabile durante l’esecuzione; output attivo aggiornato nelle voci aperte. Stop, processi e terminale invariati.
+
 ## 1.4.9.03 — build 41
 
 Nascosti i marcatori tool_call durante lo streaming e nello storico, preservando commenti e codice. Auto-compattazione al 99% dell’input effettivo, senza riservare in anticipo l’output né sostituire i conteggi server con stime maggiori. Tollerata solo la chiusura esterna mancante di azioni già complete e terminate normalmente; nessun contenuto incompleto viene ricostruito.

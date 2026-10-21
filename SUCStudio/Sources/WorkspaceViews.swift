@@ -3,6 +3,7 @@ struct WorkspaceSettingsView: View {
     @EnvironmentObject var store: StudioStore
     var body: some View {
         VStack(alignment:.leading,spacing:12) {
+            VStack(alignment:.leading,spacing:12) {
             HStack { Text(L("Directory di lavoro")).font(StudioTypography.ui(.headline));Spacer();Button(L("Scegli…")){store.pickWorkspace()} }
             Text(store.selected?.workspacePath ?? L("Nessuna directory selezionata")).font(StudioTypography.ui(.caption)).textSelection(.enabled).lineLimit(3)
             Toggle(L("Consenti azioni del modello"),isOn:Binding(get:{store.selected?.agentEnabled ?? false},set:{value in store.mutateSelected{$0.agentEnabled=value}})).disabled((store.selected?.workspacePath ?? "").isEmpty)
@@ -22,10 +23,11 @@ struct WorkspaceSettingsView: View {
             Toggle(L("Consenti strumenti web (web_search, visit_page)"),isOn:Binding(get:{store.selected?.allowWeb ?? true},set:{value in store.mutateSelected{$0.allowWeb=value}}))
             Text(L("Gli strumenti web funzionano anche senza directory di lavoro; ogni azione segue la modalità di approvazione.")).font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
             Text(L("File limitati alla directory; i comandi shell operano con i permessi del tuo account e possono accedere anche all’esterno. In automatico le azioni abilitate non chiedono conferma.")).font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
+            }.disabled(store.selected.map { session in store.commandJobs.running(session.id) || store.agentRuns.contains(session.id) || store.requests.values.contains(where: { $0.session == session.id }) } == true)
             if let actions=store.selected?.actions, !actions.isEmpty {
-                DisclosureGroup(L("Registro azioni (\(actions.count))")) { ScrollView {VStack(alignment:.leading,spacing:10){ForEach(actions.suffix(30)){item in Text("\(item.name) · \(item.state)\n\(item.result)").font(StudioTypography.ui(.caption)).textSelection(.enabled)}}}.frame(maxHeight:160) }
+                ActionLogView(actions:actions)
             }
-        }.disabled(store.selected.map { session in store.commandJobs.running(session.id) || store.agentRuns.contains(session.id) || store.requests.values.contains(where: { $0.session == session.id }) } == true)
+        }
     }
 }
 struct ActionApprovalView: View {

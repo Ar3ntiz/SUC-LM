@@ -1,4 +1,4 @@
-# SUC Studio 1.4.9.03 · build 41
+# SUC Studio 1.4.9.03 · build 42
 
 ## Continuità dell’agente
 
@@ -23,3 +23,11 @@ Contesto predefinito 16000 token e valori salvati preservati. Interfaccia IT/EN,
 - I marcatori di protocollo `<tool_call>` su una riga propria appartengono all’involucro tecnico: non vengono mostrati nella chat, neanche durante la ricezione parziale. Sono supportati involucro aperto, chiuso e JSON recintato al suo interno. Commenti precedenti, ragionamento separato, archivio originale ed esempi espliciti in blocchi codice restano conservati. Il payload deve comunque essere un’unica azione SUC valida: nessuna conversione implicita di protocolli nativi diversi.
 - La soglia di auto-compattazione usa l’input corrente/proiettato al 99%, senza aggiungere una riserva di output. Si usa la stessa base dell’indicatore, con l’ancora dei conteggi del server quando valida, più nuovo input e istruzioni aggiuntive. Non si preferisce una stima integrale in byte più alta del conteggio reale. Prima della soglia si riduce il budget della risposta allo spazio residuo; input nuovi o risultati di tool che raggiungono il 99% fanno partire la compattazione con un avviso del conteggio proiettato. `/compact` resta manuale.
 - Solo dopo `finish_reason=stop` e risposta completa si tollera una singola `}` esterna mancante, quando tutti gli oggetti interni, stringhe e argomenti sono già completi e la validazione JSON/azione riesce. Non si modificano contenuti, non si completano stringhe, array o argomenti, non si accettano più documenti e non si applica la tolleranza a risposte in streaming o troncate per lunghezza. L’azione segue le normali approvazioni/validazioni. Questo caso strutturale evita di chiedere inutilmente al modello lo stesso documento già completo. Gli altri errori restano nel recupero limitato della build 40.
+
+## Interfaccia build 42
+
+Il pannello fisso «Comandi della sessione» è stato rimosso dal fondo della chat. I comandi restano nei riquadri della conversazione; la riga di intestazione è un singolo pulsante largo quanto il riquadro, con altezza minima di 36 punti e stato espanso/compresso accessibile. Si può cliccare sulla freccia, sul testo o nello spazio vuoto, senza doppie attivazioni. Il corpo del comando resta selezionabile e non viene usato come area di toggle.
+
+La gestione dei processi non cambia: la rimozione del pannello non ferma comandi attivi, non cancella record e non modifica code, permessi o Stop. Gli output conclusi restano nel registro azioni della sessione; gli avvisi di errore indirizzano a quel registro. I terminali interattivi inline restano disponibili.
+
+Il registro azioni ora usa schede con nome leggibile, icona/stato, ora e anteprima della richiesta; le ultime 30 azioni sono mostrate dalla più recente. La superficie scrollabile cresce a 240–380 punti, con testo del corpo e riquadri monospaziati selezionabili per richiesta e risultato. Ogni intestazione è cliccabile per intero. Per i job, i metadati JSON vengono resi come codice di uscita, durata e output. Le anteprime sono limitate a 16000 caratteri; copia e apertura integrale conservano il risultato completo archiviato. Le voci attive aperte mostrano un aggiornamento periodico dell’output. Il registro resta consultabile mentre i controlli di configurazione sono disabilitati durante il lavoro.

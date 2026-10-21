@@ -90,7 +90,6 @@ struct ChatView: View {
                 }.buttonStyle(.plain).padding(18)
                 Divider()
                 transcript
-                if let sessionID=store.archive.selected {CommandJobsView(jobs:store.commandJobs,sessionID:sessionID)}
                 composer
             }
             .dropDestination(for: URL.self) { urls, _ in

@@ -1,1 +1,1 @@
-0bf533f5ad0510c9b0a7a6af60b0917adde96e755dabe1813a0230548792d5bf  SUC-Studio-1.4.9.03-universal.pkg
+171a1dde7781279e8ea8072beee81f5919c869293c26c0dfcf344585e673a98e  SUC-Studio-1.4.9.03-universal.pkg
