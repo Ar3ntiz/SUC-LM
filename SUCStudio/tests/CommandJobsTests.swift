@@ -1,6 +1,16 @@
 import Foundation
 @main struct CommandJobsTests {
  @MainActor static func main() async throws {
+  let numericWire=#"{"suc_action":{"name":"run_command","arguments":{"command":"printf fixture","wait_seconds":60,"timeout_seconds":3600}}}"#
+  let parsed=WorkspaceAction.parse(numericWire)!
+  precondition(parsed.arguments==["command":"printf fixture","wait_seconds":"60","timeout_seconds":"3600"])
+  precondition(WorkspaceAction.parse("Commentary\n```bash\nprintf example\n```\n\n"+numericWire)==parsed)
+  precondition(WorkspaceAction.parse(#"{"suc_action":{"name":"wait_command","arguments":{"job_id":"fixture","wait_seconds":60}}}"#)?.arguments["wait_seconds"]=="60")
+  for bad in ["true","false","null","[]","{}"] {
+   precondition(WorkspaceAction.parse("{\"suc_action\":{\"name\":\"run_command\",\"arguments\":{\"wait_seconds\":"+bad+"}}}")==nil)
+  }
+  precondition(WorkspaceAction.parse(numericWire+"\n"+numericWire)==nil)
+  print("PASS: numeric JSON action arguments normalize; ambiguous and non-scalar actions stay rejected")
   let helper=URL(fileURLWithPath:CommandLine.arguments[1]),root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
   defer{try? FileManager.default.removeItem(at:root)}
@@ -64,13 +74,13 @@ import Foundation
   var remote=RemoteConfiguration();remote.model="fixture";remote.endpoint="http://127.0.0.1:1/v1";store.archive.settings.remote=remote
   store.mutateSelected{$0.workspacePath=root.path;$0.agentEnabled=true;$0.allowCommands=true;$0.approvalMode="manual"}
   let sid=store.selected!.id
-  let start=ChatMessage(role:"assistant",text:#"{"suc_action":{"name":"run_command","arguments":{"command":"sleep 60","wait_seconds":"0"}}}"#)
+  let start=ChatMessage(role:"assistant",text:#"{"suc_action":{"name":"run_command","arguments":{"command":"sleep 60","wait_seconds":0,"timeout_seconds":3600}}}"#)
   store.mutateSelected{$0.messages.append(start)};store.handleAgentResponse(sessionID:sid,messageID:start.id)
   for _ in 0..<100 where store.approvals.isEmpty {try await Task.sleep(nanoseconds:10_000_000)}
   precondition(store.approvals.count==1);store.resolveApproval(store.approvals[0].id,allowed:true);await store.agentTasks[sid]?.value
   let active=store.commandJobs.jobs.first!;precondition(active.running && store.agentIterations[sid]==1)
   for _ in 0..<2 {
-   let check=ChatMessage(role:"assistant",text:#"{"suc_action":{"name":"command_status","arguments":{"job_id":""#+active.id.uuidString+#""}}}"#)
+   let check=ChatMessage(role:"assistant",text:#"{"suc_action":{"name":"command_status","arguments":{"job_id":""#+active.id.uuidString+#"","output_offset":0}}}"#)
    store.mutateSelected{$0.messages.append(check)};store.handleAgentResponse(sessionID:sid,messageID:check.id);await store.agentTasks[sid]?.value
    precondition(store.approvals.isEmpty && store.agentIterations[sid]==1)
    precondition(store.selected?.actions?.last?.name=="command_status")

@@ -144,3 +144,7 @@ Verificati: catalogo e interpolazioni IT/EN, migrazione e salvataggio lingua con
 ## 1.4.9.02 · build 38
 
 Verificati con processi reali: superamento dei 30 secondi, attese indipendenti dall’esecuzione, output incrementale/coda limitata, exit code, timeout esplicito e cancellazione dei figli. Testati isolamento per sessione, approvazione iniziale, polling oltre il limite azioni, coda e Stop, recupero archivio e continuazione dopo una risposta prematura. Contesto 16000 e precedenza dei limiti verificati. Regressioni coda, compattazione e IT/EN superate. I controlli del bundle, dell’installer e i checksum definitivi sono nel rapporto `RELEASE_1.4.9.02_QA.json`. Motore e memory policy invariati.
+
+### 1.4.9.02 · build 39
+
+Regressione sulle richieste di strumento con argomenti numerici, riprodotta dal formato osservato nella sessione attiva usando comandi fixture innocui. Normalizzazione di attese, scadenze e offset, con rifiuto di booleani/null/oggetti e azioni multiple. Nessuna esecuzione dei comandi dell’utente durante la diagnosi.

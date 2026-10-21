@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
@@ -103,8 +104,18 @@ struct WorkspaceAction: Codable, Equatable {
         else if candidates.isEmpty {payload=unfenced(value)}
         else {return nil} // Never choose arbitrarily between multiple requested actions.
         guard let object=try? JSONSerialization.jsonObject(with:Data(payload.utf8)) as? [String:Any],object.count==1,
-              let action=object["suc_action"],let data=try? JSONSerialization.data(withJSONObject:action) else{return nil}
-        return try? JSONDecoder().decode(Self.self,from:data)
+              let action=object["suc_action"] as? [String:Any],let name=action["name"] as? String,
+              let supplied=action["arguments"] as? [String:Any] else{return nil}
+        // Remote models commonly emit numeric arguments as JSON numbers even when
+        // the wire prompt asks for strings. Normalize scalars without coercing
+        // booleans, null or nested objects (MCP input remains a JSON string).
+        var arguments=[String:String]()
+        for (key,value) in supplied {
+            if let text=value as? String {arguments[key]=text}
+            else if let number=value as? NSNumber,CFGetTypeID(number) != CFBooleanGetTypeID() {arguments[key]=number.stringValue}
+            else {return nil}
+        }
+        return Self(name:name,arguments:arguments)
     }
     /// Accept a terminal wire envelope on its own line, optionally after model commentary.
     /// Ordinary fenced code and inline quoted/examples are never searched for actions.

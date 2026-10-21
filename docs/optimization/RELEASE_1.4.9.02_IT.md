@@ -1,4 +1,4 @@
-# SUC Studio 1.4.9.02 · build 38
+# SUC Studio 1.4.9.02 · build 39
 
 ## Comandi prolungati
 
@@ -26,3 +26,7 @@ Nuove configurazioni locali: 16000 token. I valori già salvati restano invariat
 ## Ambito e verifiche
 
 Interfaccia IT/EN conservata. Motore C++/Metal e memory policy invariati. Nessuna modifica all’APK Android 0.1.5. I test, i checksum e le verifiche dei pacchetti sono registrati in `RELEASE_1.4.9.02_QA.json` e nel piano `PROGRESS_1.4.9.02_IT.md` al completamento.
+
+## Correzione build 39
+
+Il parser accetta anche argomenti numerici JSON e li normalizza in stringhe prima dei controlli dello strumento. Risolve il rifiuto di `wait_seconds: 60`, `timeout_seconds: 3600` e offset numerici emessi dai server remoti. Non modifica limiti, approvazioni o dati delle sessioni. Booleani, null, array, oggetti annidati e richieste multiple non vengono convertiti in comandi. Il JSON interno resta nascosto nella chat.

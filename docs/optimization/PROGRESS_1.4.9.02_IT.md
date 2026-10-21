@@ -24,3 +24,12 @@ Motore C++/Metal, memory policy e APK Android invariati. Nessuna installazione a
 Controllo aggiuntivo dell’output UTF-8: caratteri multibyte tra letture e ai bordi della coda, senza spezzare le sequenze complete.
 
 Collaudo nativo sul Mac Studio M1 Ultra superato: stessa suite di processi reali, compreso il comando di 31 secondi. Bundle della dist aggiornati senza installazione.
+
+## Correzione build 39
+
+- [x] Diagnosi in sola lettura della sessione attiva: JSON completo con argomenti numerici rifiutato dal decoder di stringhe.
+- [x] Normalizzazione dei numeri JSON nel parser comune; validazioni e approvazioni invariate.
+- [x] Regressione Intel: formato osservato, parametri attesa/scadenza/offset, rifiuto di booleani/null/oggetti e azioni multiple; esecuzione reale fixture e approvazione.
+- [x] Collaudo M1, installer Universal build 39 e sincronizzazione sorgenti/pubblico.
+
+Non sono stati modificati gli archivi o rilanciati i comandi della sessione dell’utente.

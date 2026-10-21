@@ -1,14 +1,14 @@
 {
   "macos": {
     "version": "1.4.9.02",
-    "build": 38,
+    "build": 39,
     "app_architectures": [
       "arm64",
       "x86_64"
     ],
     "engine_architecture": "arm64",
     "installer": "SUCStudio/dist/SUC-Studio-1.4.9.02-universal.pkg",
-    "sha256": "adb986bada7f60807f2a183ee9b52bae1f9919b562b670c4c3d54faa8c301f0f",
+    "sha256": "b65880d8cafe6a2c58a26ccd576258e6f9da973769c917b9d5955bead3d551e7",
     "signing": "ad-hoc; installer unsigned; not notarized"
   },
   "tests": {
@@ -18,7 +18,8 @@
     "context_compaction": "PASS",
     "release_identity": "PASS",
     "universal_bundle_and_extracted_installer": "PASS: deep strict signature verification, version/build, Universal verification script",
-    "command_jobs_m1_ultra": "PASS: same real-process suite on native arm64, including 31s command, UTF-8, timeout, descendant cancellation, approvals/queue and 16000 defaults"
+    "command_jobs_m1_ultra": "PASS: same real-process suite on native arm64, including 31s command, UTF-8, timeout, descendant cancellation, approvals/queue and 16000 defaults",
+    "numeric_action_arguments": "PASS on Intel and M1 Ultra: run_command waits/timeouts and status offsets as JSON numbers normalize to strings; booleans/null/arrays/objects and ambiguous multiple envelopes rejected; actual launch approval and action-limit management verified"
   },
   "context": {
     "default_tokens": 16000,
@@ -44,5 +45,6 @@
   "limits": [
     "No automatic installation or changes to live user settings/sessions.",
     "No new end-to-end test with a real LLM; command tests use real shell subprocesses and isolated fixture archives."
-  ]
+  ],
+  "diagnosis": "Read-only active session: complete run_command/wait_command envelopes ended normally but numeric wait_seconds/timeout_seconds failed the string-only decoder. No user commands replayed, no live archive changes."
 }

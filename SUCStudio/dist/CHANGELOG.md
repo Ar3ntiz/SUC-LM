@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.02 — build 39
+
+Corretto il riconoscimento delle richieste di strumento con parametri numerici JSON, come wait_seconds e timeout_seconds. I numeri vengono normalizzati nel protocollo interno; limiti, approvazioni e isolamento restano applicati. Oggetti annidati, booleani e richieste ambigue restano rifiutati. Sessioni e motore invariati.
+
 ## 1.4.9.02 — build 38
 
 Comandi shell come job con stato, attesa, output incrementale e interruzione gestibili dal modello. Rimossa la scadenza fissa di 30 secondi; durata totale facoltativa. Pannello comandi in chat, isolamento per sessione e integrazione con coda e Stop. Contesto predefinito 16000 token, mantenendo limiti salvati e rilevati. IT/EN preservati; motore e APK invariati.

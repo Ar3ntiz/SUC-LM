@@ -57,3 +57,7 @@ Interfacce IT/EN con inglese predefinito e lingua salvata negli archivi esistent
 ## Studio 1.4.9.02 · managed shell commands
 
 Universal build 38 adds per-session command jobs, incremental bounded output and status/wait/stop tools. Waiting no longer kills a command at 30 seconds. Real subprocess tests passed on Intel and M1 Ultra, together with queue, context and localization regressions. Default context is 16000 tokens; saved limits remain intact. Engine, memory policy and Android 0.1.5 unchanged. See `RELEASE_1.4.9.02_QA.json`.
+
+### Studio 1.4.9.02 · build 39
+
+Fixed complete tool envelopes rejected when a remote model emits numeric wait/timeout/offset arguments. Numeric normalization preserves tool validation and approvals; booleans, null, nested structures and multiple envelopes remain rejected. Real subprocess regression passed on Intel and M1 Ultra; Universal installer verified. User sessions and engine unchanged.
