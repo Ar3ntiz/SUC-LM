@@ -39,3 +39,7 @@ Verifiche 0.1.3: 13 test JVM e tre script DOM superati; compilazione APK riuscit
 - [x] Verifica sostituisce un ID obsoleto con quello disponibile e seleziona il modello se unico. Fra più modelli mantiene una selezione ancora valida. Una lista vuota non cancella il campo.
 - [x] Rigenerato asset ES2017; suite UI, web challenge e scrolling superate.
 - [x] APK debug 0.1.4 generato in dist; build Gradle riuscita.
+
+## 0.1.5 · interfaccia bilingue
+
+Avvio in inglese; selezione English/Italiano nelle impostazioni, salvata in `settings.language` nello stesso archivio locale e riletta al caricamento. Gli archivi precedenti senza preferenza usano EN. Il cambio non traduce chat, codice o titoli salvati. APK: `dist/SUC-Studio-Android-0.1.5.apk`; codice versione 6. La distribuzione locale conserva la firma debug precedente.

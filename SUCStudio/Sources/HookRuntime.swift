@@ -227,7 +227,7 @@ extension StudioStore {
         archive.settings.hooks=items;scheduleSave()
     }
     func importHooks() {
-        let panel=NSOpenPanel();panel.message="Scegli hooks.json (importato disattivato, da revisionare)"
+        let panel=NSOpenPanel();panel.message=L("Scegli hooks.json (importato disattivato, da revisionare)")
         guard panel.runModal() == .OK,let url=panel.url else{return}
         do {let hooks=try HookDefinition.decode(Data(try ExtensionFiles.read(url,limit:1024*1024).utf8));archive.settings.hooks=(archive.settings.hooks ?? [])+hooks;scheduleSave()}catch{self.error=error.localizedDescription}
     }

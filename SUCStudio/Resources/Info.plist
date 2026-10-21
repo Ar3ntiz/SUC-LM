@@ -15,9 +15,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.4.8.03</string>
+	<string>1.4.9</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array><string>en</string><string>it</string></array>
 	<key>CFBundleVersion</key>
-	<string>36</string>
+	<string>37</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>NSAppTransportSecurity</key>
@@ -28,7 +32,7 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Collega la chat a server di inferenza e MCP nella rete locale, oppure esponi il motore ai client autorizzati.</string>
+	<string>Connect chat to inference and MCP servers on your local network, or expose the engine to authorized clients.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

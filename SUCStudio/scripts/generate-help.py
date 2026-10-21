@@ -2,9 +2,12 @@
 """Generate an offline, escaped HTML guide from the bundled Markdown source."""
 import html
 import re
+import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
+language = "en" if len(sys.argv)>1 and sys.argv[1]=="en" else "it"
+source = "USAGE-EN.md" if language=="en" else "USAGE-IT.md"
 
 def inline(text):
     text = html.escape(text)
@@ -31,7 +34,7 @@ def close_list():
         parts.append(f'</{listing}>')
         listing = None
 
-for line in (root / 'USAGE.md').read_text().splitlines():
+for line in (root / source).read_text().splitlines():
     if line.startswith('|'):
         flush(); close_list()
         cells = line.strip('|').split('|')
@@ -71,5 +74,6 @@ if code is not None: raise SystemExit('Unclosed Markdown code block')
 css = ''' :root {color-scheme:light dark;--bg:#f6f7fb;--card:#fff;--fg:#232438;--muted:#60657b;--accent:#5554ce}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,BlinkMacSystemFont,sans-serif}nav{position:fixed;width:260px;height:100vh;overflow:auto;padding:30px 22px;border-right:1px solid #8883}nav strong{display:block;font-size:23px;margin-bottom:22px}nav a{display:block;font-size:13px;margin:10px 0;color:var(--muted);text-decoration:none}main{margin-left:260px;padding:42px 6vw 100px;max-width:1200px}h1{font-size:36px;line-height:1.2;letter-spacing:-1px}h2{font-size:25px;margin-top:48px;scroll-margin-top:25px}h3{margin-top:30px}a{color:var(--accent)}pre{background:var(--card);border:1px solid #8883;border-radius:12px;padding:20px;overflow:auto;font-size:13px}code{font-family:ui-monospace,monospace;font-size:.88em;overflow-wrap:anywhere}li{margin:8px 0}.table{overflow:auto}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:12px;border-bottom:1px solid #8883}p{max-width:850px}@media(prefers-color-scheme:dark){:root{--bg:#171820;--card:#22232d;--fg:#ececf3;--muted:#b1b3c7;--accent:#b3acff}}@media(max-width:800px){nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid #8883}nav a{display:inline-block;margin:4px 12px 4px 0}main{margin:0;padding:25px}h1{font-size:30px}}'''
 nav = ''.join(f'<a href="#{anchor}">{html.escape(title)}</a>' for anchor,title in toc[1:])
 page = '<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SUC Studio · Setup e utilizzo</title><style>' + css + '</style><body><nav><strong>SUC Studio</strong>' + nav + '</nav><main>' + '\n'.join(parts) + '</main></body></html>\n'
-(root / 'Resources/USAGE.html').write_text(page)
+if language == 'en': page=page.replace('lang="it"','lang="en"').replace('Setup e utilizzo','Setup and usage')
+(root / ('Resources/USAGE-en.html' if language=='en' else 'Resources/USAGE.html')).write_text(page)
 print('Offline HTML guide generated')

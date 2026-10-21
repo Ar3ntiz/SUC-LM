@@ -1,0 +1,12 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
+const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8'),commands=[];
+const dom=new JSDOM(html,{url:'https://studio.invalid/',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.HTMLElement.prototype.scrollIntoView=function(){};w.Studio={command:s=>commands.push(JSON.parse(s))};w.matchMedia=()=>({matches:false});w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.document.execCommand=()=>true}});
+const w=dom.window,doc=w.document;
+function snapshot(language){const settings={server:{model:'demo'},skills:[],plugins:[],mcp:[],maxTokens:4000};if(language)settings.language=language;w.nativeEvent('state',{selected:'one',sessions:[{id:'one',title:'Impostazioni'}],settings,messages:[{id:'user',role:'user',text:'Salva impostazioni'},{id:'model',role:'assistant',text:'Ragionamento\n\n```sh\necho "Chiudi"\n```',reasoning:'Contenuto originale'}],attachments:[]})}
+snapshot();assert.equal(doc.documentElement.lang,'en');assert(doc.querySelector('[data-tab=settings]').textContent.includes('Settings'));
+assert.equal(doc.getElementById('chatTitle').textContent,'Impostazioni');assert(doc.getElementById('m-user').textContent.includes('Salva impostazioni'));assert(doc.getElementById('m-model').textContent.includes('Contenuto originale'));assert(doc.getElementById('m-model').textContent.includes('echo "Chiudi"'));
+w.tab('settings');assert.equal(doc.getElementById('appLanguage').value,'en');assert(doc.getElementById('settingsContent').textContent.includes('Save settings'));
+doc.getElementById('appLanguage').value='it';w.saveSettings();assert.equal(commands.at(-1).type,'settings');assert.equal(commands.at(-1).value.language,'it');snapshot('it');assert.equal(doc.documentElement.lang,'it');assert(doc.getElementById('settingsContent').textContent.includes('Salva impostazioni'));assert.equal(doc.getElementById('appLanguage').value,'it');
+doc.getElementById('appLanguage').value='en';w.saveSettings();snapshot('en');assert(doc.getElementById('settingsContent').textContent.includes('Save settings'));assert.equal(doc.getElementById('chatTitle').textContent,'Impostazioni');
+w.mcpEditor();assert(doc.getElementById('modalBody').textContent.includes('Remote HTTP MCP'));
+console.log('Android localization: EN default, IT/EN switching, settings bridge, native-state reload and unmodified chat/code/title PASS');dom.window.close();

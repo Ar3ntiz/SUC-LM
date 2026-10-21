@@ -8,7 +8,7 @@ struct GlobalActivityView:View {
                 ModelLoadingActivity(phase:store.loadPhase,memory:store.loadMemory,path:store.archive.settings.modelPath)
             }
             if let item=store.approvals.first(where:{$0.sessionID != store.archive.selected || store.tab != "chat"}) {
-                HStack { Label("Approvazione richiesta · "+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button("Apri chat") {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
+                HStack { Label(L("Approvazione richiesta · ")+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button(L("Apri chat")) {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
             }
         }.font(StudioTypography.ui(.callout))
     }
@@ -20,10 +20,10 @@ private struct ModelLoadingActivity:View {
     var body:some View {
         HStack(spacing:10) {
             VStack(alignment:.leading,spacing:2) {
-                Text("Caricamento del modello…").fontWeight(.medium)
-                Text(phase).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Text(L("Caricamento del modello…")).fontWeight(.medium)
+                Text(LT(phase)).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 ProgressView().progressViewStyle(.linear).frame(maxWidth:400)
-                    .accessibilityLabel("Caricamento in corso")
+                    .accessibilityLabel(L("Caricamento in corso"))
                 memoryReadout
                 Text(URL(fileURLWithPath:path).lastPathComponent).font(StudioTypography.ui(.caption)).lineLimit(1)
             }
@@ -33,8 +33,8 @@ private struct ModelLoadingActivity:View {
     }
     @ViewBuilder private var memoryReadout:some View {
         if let memory {
-            Text(memory.label).monospacedDigit().font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                .help(memory.detail+". La residenza può aumentare o diminuire durante il caricamento. Non misura il completamento: il modello è pronto solo quando il motore lo conferma.")
+            Text(LT(memory.label)).monospacedDigit().font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                .help(memory.detail+L(". La residenza può aumentare o diminuire durante il caricamento. Non misura il completamento: il modello è pronto solo quando il motore lo conferma."))
             if let metal=memory.metalLabel {Text(metal).font(StudioTypography.ui(.caption)).foregroundStyle(.tertiary)}
         }
     }
@@ -52,7 +52,7 @@ struct GenerationActivity:View {
         return session.messages[..<index].contains { $0.role=="assistant" && (!$0.text.isEmpty || !($0.reasoning ?? "").isEmpty) }
     }
     var decoding:Bool{state=="generating"}
-    var label:String{decoding ? "Generazione della risposta":state=="queued" ? "In attesa del modello":state=="remote_wait" ? "Attesa remota · prefill non segnalato":"Lettura del contesto · prefill"}
+    var label:String{decoding ? L("Generazione della risposta"):state=="queued" ? L("In attesa del modello"):state=="remote_wait" ? L("Attesa remota · prefill non segnalato"):L("Lettura del contesto · prefill")}
     var body:some View {
         HStack(spacing:10) {
             if reduceMotion {Image(systemName:decoding ? "waveform":"sparkle").foregroundStyle(studioAccent)}
@@ -71,11 +71,11 @@ struct GenerationActivity:View {
                 if state=="prefill" || state=="remote_wait" {
                     if let progress {
                         ProgressView(value:progress.fraction).progressViewStyle(.linear)
-                        Text(progress.detail).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).monospacedDigit()
-                        if rereading { Label("Cache non riutilizzata: rilettura completa della sessione.",systemImage:"arrow.clockwise").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }
+                        Text(LT(progress.detail)).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).monospacedDigit()
+                        if rereading { Label(L("Cache non riutilizzata: rilettura completa della sessione."),systemImage:"arrow.clockwise").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }
                     } else {
                         ProgressView().progressViewStyle(.linear)
-                        Text("Avanzamento non ancora disponibile dal motore.").font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary)
+                        Text(L("Avanzamento non ancora disponibile dal motore.")).font(StudioTypography.ui(.caption2)).foregroundStyle(.tertiary)
                     }
                 }
             }.frame(maxWidth:420,alignment:.leading)

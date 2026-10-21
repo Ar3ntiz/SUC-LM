@@ -1,0 +1,47 @@
+{
+  "macos": {
+    "version": "1.4.9",
+    "build": 37,
+    "app_architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "minimum_os": "15.0",
+    "engine_architecture": "arm64",
+    "source_sha256": "88480e81ad6b95338c26ca81f546a3ee765aa560d380810afd9f89415181ab68",
+    "installer": "SUCStudio/dist/SUC-Studio-1.4.9-universal.pkg",
+    "sha256": "d323b3925206c07f1469d3b4df4c5d450f9fbc11dbace00c182679511067d361",
+    "signing": "ad-hoc; installer unsigned; not notarized"
+  },
+  "android": {
+    "version": "0.1.5",
+    "version_code": 6,
+    "minimum_sdk": 26,
+    "target_sdk": 34,
+    "apk": "SUCStudioAndroid/dist/SUC-Studio-Android-0.1.5.apk",
+    "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e",
+    "signing": "same Android Debug certificate as 0.1.4",
+    "certificate_sha256": "1da444517e96356b8c1df512a24a72e6368cd51b39cadeae206d1e08a43754f9",
+    "unit_tests": 14
+  },
+  "tests": {
+    "swift_localization": "PASS: EN default, legacy archive, IT persistence, interpolation, composite status without translating model ID, catalog placeholders, shell prerequisites",
+    "swift_real_store": "PASS: setLanguage, ArchiveDisk write/reload, UI language restoration, existing font preferences",
+    "android_ui": "PASS: language selection/persistence bridge, unchanged chat/code/title, Markdown/XSS, inline approvals, CAPTCHA, scrolling",
+    "android_kotlin": "PASS: 14 tests, no failures/errors, including language archive migration/roundtrip",
+    "universal_bundle": "PASS: codesign deep/strict, app/helpers arm64+x86_64, engine arm64, both HTML guides and localized metadata",
+    "installer_identity": "PASS: retained identity, version/build and installer migration guards"
+  },
+  "engine": {
+    "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+    "byte_identical_to_previous_build": true,
+    "memory_policy_changed": false,
+    "new_gpu_or_kl_benchmarks": false
+  },
+  "limits": [
+    "No new physical-device test on Apple Silicon or Android in this release; arm64 app cross-compiled, engine unchanged.",
+    "OS dialogs and third-party/server/tool content keep their original language.",
+    "No automatic installation or user-session/settings edits."
+  ]
+}

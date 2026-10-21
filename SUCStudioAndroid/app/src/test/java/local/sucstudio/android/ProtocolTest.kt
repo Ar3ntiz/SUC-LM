@@ -13,6 +13,16 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 class ProtocolTest {
+    @Test fun languageDefaultsAndArchiveRoundTrip() {
+        val fresh=ArchiveStore.normalize(JSONObject())
+        assertEquals("en", fresh.getJSONObject("settings").getString("language"))
+        fresh.getJSONObject("settings").put("language", "it")
+        val restored=ArchiveStore.normalize(JSONObject(fresh.toString()))
+        assertEquals("it",restored.getJSONObject("settings").getString("language"))
+        restored.getJSONObject("settings").put("language", "fr")
+        assertEquals("en",ArchiveStore.normalize(restored).getJSONObject("settings").getString("language"))
+    }
+
     @Test fun challengeNeverBecomesToolResultAndDynamicResolutionResumes() {
         val challenge=JSONObject().put("challenge",true).put("ready",true).put("text","CAPTCHA verification " .repeat(20))
         assertFalse(WebPagePolicy.canRead(challenge,true));assertFalse(WebPagePolicy.canRead(challenge,false))

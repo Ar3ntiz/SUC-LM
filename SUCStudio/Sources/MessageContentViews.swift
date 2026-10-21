@@ -30,7 +30,7 @@ struct ReasoningBody:View {
         DisclosureGroup(isExpanded:$expanded) {
             BoundedMessageBody(text:text,pointOffset:-1).padding(.top,8)
         } label:{
-            Label(active && generating ? "Ragionamento in corso":"Ragionamento",systemImage:"brain")
+            Label(active && generating ? L("Ragionamento in corso"):L("Ragionamento"),systemImage:"brain")
                 .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
         }
         .padding(14).frame(maxWidth:.infinity,alignment:.leading)
@@ -48,8 +48,8 @@ struct BoundedMessageBody:View {
             // Keep the same Markdown view and preview height across the long-text threshold.
             MarkdownBody(text:text,pointOffset:pointOffset)
             if MessagePresentation.isLong(text){
-                Button("Apri testo completo · \(ByteCountFormatter.string(fromByteCount:Int64(text.utf8.count),countStyle:.file))"){full=true}.buttonStyle(.link)
-                Text("Anteprima fino a 8000 caratteri; il testo integrale resta disponibile.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Button(L("Apri testo completo · \(ByteCountFormatter.string(fromByteCount:Int64(text.utf8.count),countStyle:.file))")){full=true}.buttonStyle(.link)
+                Text(L("Anteprima fino a 8000 caratteri; il testo integrale resta disponibile.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
         }.sheet(isPresented:$full){FullMessageView(text:text)}
     }
@@ -59,7 +59,7 @@ struct FullMessageView:View {
     @Environment(\.dismiss) private var dismiss
     var body:some View {
         VStack(spacing:12){
-            HStack{Text("Testo completo").font(StudioTypography.ui(.headline));Spacer();Button("Copia"){copyText(text)};Button("Chiudi"){dismiss()}.keyboardShortcut(.cancelAction)}
+            HStack{Text(L("Testo completo")).font(StudioTypography.ui(.headline));Spacer();Button(L("Copia")){copyText(text)};Button(L("Chiudi")){dismiss()}.keyboardShortcut(.cancelAction)}
             PlainTextEditor(text:.constant(text),editable:false)
         }.padding(20).frame(minWidth:600,idealWidth:800,minHeight:420,idealHeight:650)
     }
@@ -72,10 +72,10 @@ struct CodeInsertSheet:View {
     var insert:(String)->Void
     var body:some View {
         VStack(alignment:.leading,spacing:12){
-            HStack{Label("Incolla codice",systemImage:"chevron.left.forwardslash.chevron.right").font(StudioTypography.ui(.headline));Spacer();Button("Annulla"){dismiss()}.keyboardShortcut(.cancelAction)}
-            TextField("Linguaggio (facoltativo: html, python, swift…)",text:$language).textFieldStyle(.roundedBorder)
+            HStack{Label(L("Incolla codice"),systemImage:"chevron.left.forwardslash.chevron.right").font(StudioTypography.ui(.headline));Spacer();Button(L("Annulla")){dismiss()}.keyboardShortcut(.cancelAction)}
+            TextField(L("Linguaggio (facoltativo: html, python, swift…)"),text:$language).textFieldStyle(.roundedBorder)
             PlainTextEditor(text:$code)
-            HStack{Text("Invio qui aggiunge una riga. Il codice verrà inserito nel messaggio, pronto da inviare.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);Spacer();Button("Inserisci codice"){insert(MessagePresentation.codeFence(code,language:language));dismiss()}.buttonStyle(.borderedProminent).disabled(code.isEmpty)}
+            HStack{Text(L("Invio qui aggiunge una riga. Il codice verrà inserito nel messaggio, pronto da inviare.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);Spacer();Button(L("Inserisci codice")){insert(MessagePresentation.codeFence(code,language:language));dismiss()}.buttonStyle(.borderedProminent).disabled(code.isEmpty)}
         }.padding(20).frame(minWidth:600,idealWidth:780,minHeight:420,idealHeight:600)
     }
 }
@@ -101,14 +101,14 @@ struct ActivityMessageBox: View {
     var body: some View {
         HStack(alignment:.top,spacing:7) {
             Image(systemName:message.kind=="action_notice" ? "exclamationmark.circle":"checklist")
-            Text(message.kind=="command_help" ? message.text:message.compactActivityText).textSelection(.enabled)
+            Text(StudioL10n.report(message.kind=="command_help" ? message.text:message.compactActivityText)).textSelection(.enabled)
         }
         .font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
         .padding(.horizontal,10).padding(.vertical,7)
         .frame(maxWidth:.infinity,alignment:.leading)
         .background(Color.secondary.opacity(0.07),in:RoundedRectangle(cornerRadius:8))
-        .contextMenu {Button("Copia"){copyText(message.compactActivityText)}}
-        .accessibilityLabel(message.kind=="action_notice" ? "Avviso attività":"Riepilogo attività")
+        .contextMenu {Button(L("Copia")){copyText(message.compactActivityText)}}
+        .accessibilityLabel(message.kind=="action_notice" ? L("Avviso attività"):L("Riepilogo attività"))
     }
 }
 
@@ -119,16 +119,16 @@ struct CommandDisclosure:View {
     var body:some View {
         DisclosureGroup(isExpanded:$expanded) {
             VStack(alignment:.leading,spacing:8) {
-                Text(action.arguments["command"] ?? "Comando non disponibile")
+                Text(action.arguments["command"] ?? L("Comando non disponibile"))
                     .font(StudioTypography.chat(pointOffset:-1).monospaced())
                     .textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading)
                 if action.name=="run_interactive" {
-                    Text("L’eventuale input riservato viene richiesto nella scheda terminale.")
+                    Text(L("L’eventuale input riservato viene richiesto nella scheda terminale."))
                         .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                 }
             }.padding(.top,6)
         } label: {
-            Label(action.name=="run_interactive" ? "Comando interattivo":"Comando",systemImage:"terminal")
+            Label(action.name=="run_interactive" ? L("Comando interattivo"):L("Comando"),systemImage:"terminal")
                 .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
         }.padding(10).background(Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
     }

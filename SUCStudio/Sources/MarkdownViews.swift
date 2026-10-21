@@ -19,7 +19,7 @@ struct MarkdownBody: View {
                 case .rule: Divider()
                 case .code(let language):
                     VStack(alignment:.leading,spacing:0) {
-                        HStack { Text(language.isEmpty ? "codice":language);Spacer();Button("Copia") { copyText(block.text) }.buttonStyle(.plain) }.font(StudioTypography.ui(.caption)).padding(10).background(.quaternary)
+                        HStack { Text(language.isEmpty ? L("codice"):language);Spacer();Button(L("Copia")) { copyText(block.text) }.buttonStyle(.plain) }.font(StudioTypography.ui(.caption)).padding(10).background(.quaternary)
                         ScrollView(.horizontal) { Text(highlight(block.text)).font(StudioTypography.code(pointOffset:pointOffset)).textSelection(.enabled).padding(12) }
                     }.background(Color(nsColor:.controlBackgroundColor),in:RoundedRectangle(cornerRadius:10)).clipShape(RoundedRectangle(cornerRadius:10))
                 case .table(let headers,let alignments):

@@ -36,7 +36,7 @@ import CryptoKit
 }
 extension StudioStore {
     func importPlugin() {
-        let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=true;panel.allowsMultipleSelection=false;panel.message="Scegli plugin.json o la cartella che lo contiene"
+        let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=true;panel.allowsMultipleSelection=false;panel.message=L("Scegli plugin.json o la cartella che lo contiene")
         guard panel.runModal() == .OK,let selected=panel.url else{return}
         do {
             let directory=try selected.resourceValues(forKeys:[.isDirectoryKey]).isDirectory==true
@@ -56,9 +56,9 @@ extension StudioStore {
     func setPlugin(_ plugin: InstalledPlugin, enabled: Bool, review: Bool = true) {
         guard let index=archive.settings.plugins?.firstIndex(where:{$0.id==plugin.id}) else{return}
         if enabled && review {
-            let alert=NSAlert();alert.messageText="Attivare \(plugin.manifest.name)?"
-            alert.informativeText="\(plugin.skills.count) skill, \(plugin.servers.count) MCP e \(plugin.hooks.count) hook. Gli MCP locali verranno avviati. Gli hook restano disattivati fino alla revisione esplicita della loro definizione nella sezione Hook. Consulta Dettagli prima di attivare."
-            alert.addButton(withTitle:"Attiva");alert.addButton(withTitle:"Annulla");guard alert.runModal() == .alertFirstButtonReturn else{return}
+            let alert=NSAlert();alert.messageText=L("Attivare \(plugin.manifest.name)?")
+            alert.informativeText=L("\(plugin.skills.count) skill, \(plugin.servers.count) MCP e \(plugin.hooks.count) hook. Gli MCP locali verranno avviati. Gli hook restano disattivati fino alla revisione esplicita della loro definizione nella sezione Hook. Consulta Dettagli prima di attivare.")
+            alert.addButton(withTitle:L("Attiva"));alert.addButton(withTitle:L("Annulla"));guard alert.runModal() == .alertFirstButtonReturn else{return}
         }
         var plugin=archive.settings.plugins![index]
         if plugin.enabled {

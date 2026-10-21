@@ -3,7 +3,7 @@ import Foundation
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
     static let name = "SUC Studio"
-    static let version = "1.4.8.03"
+    static let version = "1.4.9"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -277,6 +277,7 @@ struct ChatSession: Codable, Identifiable {
     var webToolsEnabled: Bool { allowWeb != false }
     /// Model actions on a work directory; otherwise only the web tools (when allowed) are offered.
     var fullAgent: Bool { agentEnabled == true && !(workspacePath ?? "").isEmpty }
+    var shellCommandsEnabled: Bool { fullAgent && allowCommands == true }
     var actions: [ActionRecord]?
     var id = UUID()
     var title = "Nuova chat"
@@ -361,6 +362,8 @@ struct RemoteConfiguration: Codable, Equatable {
 }
 
 struct AppSettings: Codable {
+    var language: String?
+    var effectiveLanguage: String { language == "it" ? "it":"en" }
     var modelIOLogEnabled: Bool?
     var ioLogEnabled: Bool { modelIOLogEnabled ?? false }
     var maxConsecutiveActions: Int?

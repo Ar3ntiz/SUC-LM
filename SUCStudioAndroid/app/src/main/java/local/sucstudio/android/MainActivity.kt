@@ -69,7 +69,7 @@ class MainActivity : Activity() {
         io.execute {
             try {
                 val loaded = ArchiveStore.normalize(archiveStore.load())
-                ui { archive = loaded; loaded.optJSONArray("unread")?.let { a -> (0 until a.length()).forEach { unread.add(a.getString(it)) } }; loading = false; if (sessions().length() == 0) newSession(); snapshot() }
+                ui { AndroidL10n.configure(this, loaded.getJSONObject("settings").optString("language")); archive = loaded; loaded.optJSONArray("unread")?.let { a -> (0 until a.length()).forEach { unread.add(a.getString(it)) } }; loading = false; if (sessions().length() == 0) newSession(); snapshot() }
             } catch (e: Exception) { ui { loading = false; event("fatal", JSONObject().put("text", "Archivio non leggibile; non è stato sovrascritto. ${e.message}")) } }
         }
     }
@@ -101,7 +101,7 @@ class MainActivity : Activity() {
     private fun event(type: String, data: JSONObject = JSONObject()) {
         if (!destroyed) web.evaluateJavascript("window.nativeEvent(${JSONObject.quote(type)},${data});", null)
     }
-    private fun error(e: Throwable) { event("error", JSONObject().put("text", e.message ?: "Operazione non riuscita.")) }
+    private fun error(e: Throwable) { event("error", JSONObject().put("text", tr(e.message ?: "Operazione non riuscita."))) }
     private fun snapshot() {
         if (loading || !archive.has("settings")) return
         val selected = selected()
@@ -122,7 +122,7 @@ class MainActivity : Activity() {
             .put("attachments", drafts[archive.optString("selected")] ?: JSONArray()).put("version", BuildConfig.VERSION_NAME))
     }
     private fun newSession() {
-        val s = JSONObject().put("id", id()).put("title", "Nuova chat").put("messages", JSONArray()).put("created", System.currentTimeMillis()).put("systemPrompt", "")
+        val s = JSONObject().put("id", id()).put("title", tr("Nuova chat")).put("messages", JSONArray()).put("created", System.currentTimeMillis()).put("systemPrompt", "")
         val result = JSONArray().put(s); sessions().objects().forEach { result.put(it) }; archive.put("sessions", result).put("selected", s.getString("id")); persist(); snapshot()
     }
     private fun dispatch(command: JSONObject) {
@@ -139,7 +139,9 @@ class MainActivity : Activity() {
             "approve" -> { val accepted = command.optBoolean("allow"); approval?.invoke(accepted); approval = null; pending = null; snapshot() }
             "settings" -> {
                 val update = command.getJSONObject("value")
-                for (key in listOf("systemPrompt", "maxTokens", "temperature", "theme", "chatFont", "chatSize", "uiSize", "webEnabled", "manualApproval", "maxActions", "top_p", "top_k", "min_p", "seed")) if (update.has(key)) settings().put(key, update.get(key))
+                for (key in listOf("language", "systemPrompt", "maxTokens", "temperature", "theme", "chatFont", "chatSize", "uiSize", "webEnabled", "manualApproval", "maxActions", "top_p", "top_k", "min_p", "seed")) if (update.has(key)) settings().put(key, update.get(key))
+                settings().put("language", if (settings().optString("language") == "it") "it" else "en")
+                AndroidL10n.configure(this, settings().optString("language"))
                 require(settings().optInt("maxTokens", 4000) in 1..131072) { "Output max non valido." }; persist(); snapshot()
             }
             "server" -> {
@@ -219,7 +221,7 @@ class MainActivity : Activity() {
             else -> {
                 val files = drafts.remove(s.getString("id")) ?: JSONArray(); require(text.isNotBlank() || files.length() > 0) { "Scrivi un messaggio o aggiungi un allegato." }
                 messages = messages + JSONObject().put("id", id()).put("role", "user").put("text", text).put("attachments", files)
-                if (s.optString("title") == "Nuova chat") s.put("title", text.take(60).ifBlank { files.optJSONObject(0)?.optString("name") ?: "Allegati" })
+                if (s.optString("title") in listOf("Nuova chat", "New chat")) s.put("title", text.take(60).ifBlank { files.optJSONObject(0)?.optString("name") ?: "Allegati" })
             }
         }
         s.put("messages", JSONArray(messages)); val config = settings().copyJson()
@@ -429,8 +431,8 @@ class MainActivity : Activity() {
         ui { sessions().put(clean); archive.put("selected", clean.getString("id")); persist(); snapshot() }
     }
     private fun confirmPlugin(plugin: JSONObject) {
-        AlertDialog.Builder(this).setTitle("Installa ${plugin.optString("name")}").setMessage("${plugin.optString("description")}\n\n${plugin.getJSONArray("skills").length()} skill · ${plugin.getJSONArray("mcp").length()} MCP HTTP\n\nInstallazione disattivata. Potrai abilitarlo dopo la revisione nelle Impostazioni.")
-            .setNegativeButton("Annulla", null).setPositiveButton("Installa") { _, _ -> settings().getJSONArray("plugins").put(plugin); persist(); snapshot() }.show()
+        AlertDialog.Builder(this).setTitle(tr("Installa") + " " + plugin.optString("name")).setMessage("${plugin.optString("description")}\n\n${plugin.getJSONArray("skills").length()} skill · ${plugin.getJSONArray("mcp").length()} MCP HTTP\n\n" + tr("Installazione disattivata. Potrai abilitarlo dopo la revisione nelle Impostazioni."))
+            .setNegativeButton(tr("Annulla"), null).setPositiveButton(tr("Installa")) { _, _ -> settings().getJSONArray("plugins").put(plugin); persist(); snapshot() }.show()
     }
     private fun marketplace(url: String) {
         io.execute { try {

@@ -49,3 +49,7 @@ separately from client rendering costs. See [release](RELEASE_1.4.8.03.md) and
 ### SUC Studio 1.4.8.03 — build 36
 
 Completata la risoluzione dei nomi e degli alias MCP non ambigui: le chiamate usano il server connesso corretto. L’avvio del browser per la ricerca web rispetta l’approvazione automatica della sessione; le approvazioni manuali restano attive quando selezionate. Verificati catalogo MCP, limiti degli schemi e dei risultati, ricerca web e installer Universal. Motore e memory policy invariati.
+
+### SUC Studio 1.4.9 · build 37 / Android 0.1.5 · codice 6
+
+Interfacce IT/EN con inglese predefinito e lingua salvata negli archivi esistenti. Prerequisiti shell espliciti su macOS: directory e azioni del modello necessarie; controllo disabilitato quando mancano. Guide, menu, dialoghi e suggerimenti localizzati. Verificati archivio macOS reale, catalogo, 14 test Kotlin, suite UI Android e pacchetti. Motore, memory policy e metriche dei modelli invariati. Dettagli in `RELEASE_1.4.9_IT.md` e `RELEASE_1.4.9_QA.json`.

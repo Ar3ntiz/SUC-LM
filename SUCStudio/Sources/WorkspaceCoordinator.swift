@@ -12,7 +12,7 @@ extension StudioStore {
     func pickWorkspace() {
         guard let session = selected, !agentRuns.contains(session.id), !requests.values.contains(where:{$0.session == session.id}) else { return }
         let panel=NSOpenPanel();panel.canChooseDirectories=true;panel.canChooseFiles=false;panel.allowsMultipleSelection=false
-        panel.message="Directory in cui il modello può leggere e modificare file con gli strumenti dell’harness."
+        panel.message=L("Directory in cui il modello può leggere e modificare file con gli strumenti dell’harness.")
         guard panel.runModal() == .OK, let url=panel.url else{return}
         do { let bookmark=try url.bookmarkData(options:[],includingResourceValuesForKeys:nil,relativeTo:nil)
             mutateSession(session.id){$0.workspacePath=url.path;$0.workspaceBookmark=bookmark;$0.agentEnabled=true;if $0.approvalMode == nil{$0.approvalMode="manual"}}

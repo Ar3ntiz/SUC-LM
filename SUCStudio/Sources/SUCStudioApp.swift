@@ -27,20 +27,20 @@ import AppKit
     @Environment(\.openWindow) private var openWindow
     var body: some Scene {
         Window(StudioPlatform.name, id: "main") {
-            StudioRoot().environmentObject(store).onAppear { delegate.store = store }
+            StudioRoot().id(store.archive.settings.effectiveLanguage).environment(\.locale,Locale(identifier:store.archive.settings.effectiveLanguage)).environmentObject(store).onAppear { delegate.store = store }
         }.defaultSize(width: 1180, height: 780).windowResizability(.contentMinSize)
         .commands {
-            CommandGroup(replacing: .newItem) { Button("Nuova sessione") { store.newSession(); show() }.keyboardShortcut("n"); Button("Importa sessione…") { store.importSession() } }
-            CommandGroup(replacing: .appSettings) { Button("Settings…") { store.tab = "settings"; show() }.keyboardShortcut(",") }
-            CommandMenu("Navigazione") {
+            CommandGroup(replacing: .newItem) { Button(L("Nuova sessione")) { store.newSession(); show() }.keyboardShortcut("n"); Button(L("Importa sessione…")) { store.importSession() } }
+            CommandGroup(replacing: .appSettings) { Button(L("Settings…")) { store.tab = "settings"; show() }.keyboardShortcut(",") }
+            CommandMenu(L("Navigazione")) {
                 Button("Chat") { store.tab = "chat"; show() }.keyboardShortcut("1")
                 Button("Server") { store.tab = "server"; show() }.keyboardShortcut("2")
-                Button("Settings") { store.tab = "settings"; show() }.keyboardShortcut("3")
-                Button("Cerca sessioni") { store.tab = "chat"; show(); NotificationCenter.default.post(name: .init("SUCStudioSearch"), object: nil) }.keyboardShortcut("f")
-                Button("Interrompi risposta") { store.cancelSelected() }.keyboardShortcut(.escape, modifiers: [])
+                Button(L("Settings")) { store.tab = "settings"; show() }.keyboardShortcut("3")
+                Button(L("Cerca sessioni")) { store.tab = "chat"; show(); NotificationCenter.default.post(name: .init("SUCStudioSearch"), object: nil) }.keyboardShortcut("f")
+                Button(L("Interrompi risposta")) { store.cancelSelected() }.keyboardShortcut(.escape, modifiers: [])
             }
         }
-        MenuBarExtra(StudioPlatform.name, systemImage: store.serverRunning ? "server.rack" : "sparkles.rectangle.stack") { MenuBarView(show: show).environmentObject(store) }.menuBarExtraStyle(.window)
+        MenuBarExtra(StudioPlatform.name, systemImage: store.serverRunning ? "server.rack" : "sparkles.rectangle.stack") { MenuBarView(show: show).id(store.archive.settings.effectiveLanguage).environment(\.locale,Locale(identifier:store.archive.settings.effectiveLanguage)).environmentObject(store) }.menuBarExtraStyle(.window)
     }
     private func show() { openWindow(id: "main"); NSApplication.shared.activate(ignoringOtherApps: true); NSApplication.shared.windows.first { $0.title == StudioPlatform.name }?.deminiaturize(nil) }
 }

@@ -16,7 +16,7 @@ struct PrefillStatus:Equatable {
         return total>base ? Double(processed-base)/Double(total-base):1
     }
     var detail:String {
-        if let cached { return "\(processed-cached) / \(total-cached) token nuovi · \(cached) riusati" }
-        return "\(processed) / \(total) token"
+        if let cached { return L("\(processed-cached) / \(total-cached) token nuovi · \(cached) riusati") }
+        return L("\(processed) / \(total) token")
     }
 }

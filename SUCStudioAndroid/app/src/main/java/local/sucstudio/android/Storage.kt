@@ -48,6 +48,7 @@ class ArchiveStore(context: Context) {
             root.put("formatVersion", 1)
             if (!root.has("settings")) root.put("settings", JSONObject())
             val settings = root.getJSONObject("settings")
+            settings.put("language", if (settings.optString("language") == "it") "it" else "en")
             if (!settings.has("server")) settings.put("server", JSONObject().put("url", "").put("model", "").put("allowHttp", false))
             if (!settings.has("maxTokens")) settings.put("maxTokens", 4000)
             for (name in listOf("skills", "mcp", "plugins")) if (!settings.has(name)) settings.put(name, JSONArray())

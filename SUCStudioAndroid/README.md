@@ -36,3 +36,7 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 Il Gradle plugin 7.4.2 e Gradle 7.6.3 sono scelti per l’ambiente JDK 11 disponibile; sono strumenti di build, non dipendenze richieste sul telefono. Per importare in Android Studio apri questa cartella e seleziona JDK 11 per Gradle.
 
 Per una release con una chiave propria configura le variabili `SUC_ANDROID_KEYSTORE`, `SUC_ANDROID_STORE_PASSWORD`, `SUC_ANDROID_KEY_ALIAS` e `SUC_ANDROID_KEY_PASSWORD`; `package.sh` compilerà la variante release. La chiave non va inclusa nel repository. Usa la stessa firma per gli aggiornamenti.
+
+## 0.1.5 · interfaccia bilingue
+
+Avvio in inglese; selezione English/Italiano nelle impostazioni, salvata in `settings.language` nello stesso archivio locale e riletta al caricamento. Gli archivi precedenti senza preferenza usano EN. Il cambio non traduce chat, codice o titoli salvati. APK: `dist/SUC-Studio-Android-0.1.5.apk`; codice versione 6. La distribuzione locale conserva la firma debug precedente.

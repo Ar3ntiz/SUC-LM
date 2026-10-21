@@ -3,7 +3,7 @@ import AppKit
 
 extension StudioStore {
     func openHelp() {
-        guard let page = Bundle.main.url(forResource: "USAGE", withExtension: "html") else { error = "Guida HTML assente: ricompila l’app."; return }
+        guard let page = Bundle.main.url(forResource: archive.settings.effectiveLanguage == "en" ? "USAGE-en":"USAGE", withExtension: "html") else { error = "Guida HTML assente: ricompila l’app."; return }
         let browser = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://example.com")!) ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari")
         guard let browser else { error = "Nessun browser disponibile per la guida HTML."; return }
         NSWorkspace.shared.open([page], withApplicationAt: browser, configuration: NSWorkspace.OpenConfiguration()) { _, failure in
@@ -18,7 +18,7 @@ extension StudioStore {
     }
     func importSkill() {
         let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=true;panel.allowsMultipleSelection=false
-        panel.message="Scegli SKILL.md o una cartella skill con risorse"
+        panel.message=L("Scegli SKILL.md o una cartella skill con risorse")
         guard panel.runModal() == .OK,let url=panel.url else{return}
         do {
             let directory=(try url.resourceValues(forKeys:[.isDirectoryKey]).isDirectory)==true

@@ -4,11 +4,11 @@ struct OperationLogView:View {
     @State private var expanded:Bool
     init(initiallyExpanded:Bool=false){_expanded=State(initialValue:initiallyExpanded)}
     var body:some View {
-        DisclosureGroup(store.archive.settings.ioLogEnabled ? "Registro log (\(store.modelIOLog.entries.count))":"Registro log · disattivato",isExpanded:$expanded) {
+        DisclosureGroup(store.archive.settings.ioLogEnabled ? L("Registro log (\(store.modelIOLog.entries.count))"):L("Registro log · disattivato"),isExpanded:$expanded) {
             VStack(alignment:.leading,spacing:10) {
-                Toggle("Abilita Registro log I/O",isOn:Binding(get:{store.archive.settings.ioLogEnabled},set:{store.setModelIOLogEnabled($0)}))
-                HStack {Text(store.archive.settings.ioLogEnabled ? "Tail in tempo reale degli input e output del modello. Solo memoria, massimo 256 KiB.":"Disattivato: l’app e il motore C++ non raccolgono né inviano eventi I/O.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);Spacer();Button("Svuota"){store.modelIOLog.clear()}.disabled(store.modelIOLog.entries.isEmpty)}
-                if store.modelIOLog.entries.isEmpty {Text(store.archive.settings.ioLogEnabled ? "Nessun input/output registrato.":"Attivalo solo quando serve diagnosticare una richiesta.").foregroundStyle(.secondary)}
+                Toggle(L("Abilita Registro log I/O"),isOn:Binding(get:{store.archive.settings.ioLogEnabled},set:{store.setModelIOLogEnabled($0)}))
+                HStack {Text(store.archive.settings.ioLogEnabled ? L("Tail in tempo reale degli input e output del modello. Solo memoria, massimo 256 KiB."):L("Disattivato: l’app e il motore C++ non raccolgono né inviano eventi I/O.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary);Spacer();Button(L("Svuota")){store.modelIOLog.clear()}.disabled(store.modelIOLog.entries.isEmpty)}
+                if store.modelIOLog.entries.isEmpty {Text(store.archive.settings.ioLogEnabled ? L("Nessun input/output registrato."):L("Attivalo solo quando serve diagnosticare una richiesta.")).foregroundStyle(.secondary)}
                 else {
                     ScrollViewReader {reader in ScrollView {
                         LazyVStack(alignment:.leading,spacing:10) {

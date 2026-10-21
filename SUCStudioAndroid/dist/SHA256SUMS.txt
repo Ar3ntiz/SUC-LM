@@ -1,1 +1,1 @@
-d94015ffdc71a491844c69420d563f24dada11e02b76988b6d656e07be76d503  SUC-Studio-Android-0.1.4.apk
+56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e  SUC-Studio-Android-0.1.5.apk

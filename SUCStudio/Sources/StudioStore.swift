@@ -102,12 +102,12 @@ import UniformTypeIdentifiers
             archive = Archive(); saveError = true
             self.error = "Archivio non leggibile. I dati originali sono preservati. Usa Ripristina backup in Settings. \(error.localizedDescription)"
         }
-        if archive.sessions.isEmpty { let s = ChatSession(); archive.sessions = [s]; archive.selected = s.id }
+        if archive.sessions.isEmpty { var s = ChatSession();s.title=archive.settings.effectiveLanguage == "it" ? "Nuova chat":"New chat"; archive.sessions = [s]; archive.selected = s.id }
         if !archive.sessions.contains(where: { $0.id == archive.selected }) { archive.selected = archive.sessions.first?.id }
         if !StudioPlatform.localInferenceAvailable { archive.settings.chatBackend = "remote" }
         // Restored queues require explicit consent to resume after relaunch.
         for i in archive.sessions.indices where !(archive.sessions[i].queuedMessages ?? []).isEmpty { archive.sessions[i].queuePaused = true }
-        StudioTypography.apply(archive.settings)
+        StudioL10n.language=archive.settings.effectiveLanguage; StudioTypography.apply(archive.settings)
         if storageURL == nil { refreshLoginStatus(); if archive.settings.keepAwake == true { setAwake(true) } }
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.engine.send(["command": "status"]); self?.tickRoutines() }
@@ -133,6 +133,11 @@ import UniformTypeIdentifiers
     private func appendModelIO(_ id:String,_ direction:String,_ text:String,coalesce:Bool=false) {
         guard archive.settings.ioLogEnabled else{return}
         modelIOLog.append(requestID:id,direction:direction,text:text,coalesce:coalesce)
+    }
+    func setLanguage(_ value:String) {
+        StudioL10n.language=value
+        archive.settings.language=StudioL10n.language
+        scheduleSave()
     }
     func scheduleSave() {
         guard !saveError && !quitting else { return }
@@ -172,16 +177,16 @@ import UniformTypeIdentifiers
         if tab=="chat" {markSessionRead(id)}
         scheduleSave()
     }
-    func newSession() { let s = ChatSession(); archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; search = ""; tab = "chat"; scheduleSave() }
+    func newSession() { var s = ChatSession(); s.title=L("Nuova chat"); archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; search = ""; tab = "chat"; scheduleSave() }
     func duplicate(_ session: ChatSession, through index: Int? = nil) {
-        var s = session; s.contextSummary=nil; s.contextThroughID=nil; s.compactRequested=nil; s.queuedMessages=nil; s.queuePaused=nil; s.id = UUID(); s.title += " · copia"; s.created = Date(); s.updated = Date(); s.archived = false
+        var s = session; s.contextSummary=nil; s.contextThroughID=nil; s.compactRequested=nil; s.queuedMessages=nil; s.queuePaused=nil; s.id = UUID(); s.title += L(" · copia"); s.created = Date(); s.updated = Date(); s.archived = false
         if let index { s.messages = Array(s.messages.prefix(index)) }
         s.messages = s.messages.map { var m = $0; m.id = UUID(); if m.state != "complete" { m.state = "interrupted" }; return m }
         archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; scheduleSave()
     }
     func deleteSession(_ s: ChatSession) {
         guard !compacting.contains(s.id), terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
-        let alert = NSAlert(); alert.messageText = "Eliminare “\(s.title)”?"; alert.informativeText = "Questa azione elimina la sessione e i suoi messaggi."; alert.addButton(withTitle: "Elimina"); alert.addButton(withTitle: "Annulla")
+        let alert = NSAlert(); alert.messageText = L("Eliminare “\(s.title)”?"); alert.informativeText = L("Questa azione elimina la sessione e i suoi messaggi."); alert.addButton(withTitle: L("Elimina")); alert.addButton(withTitle: L("Annulla"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Task{_ = await invokeHooks("SessionEnd",session:s,extra:["reason":"other"])}
         for task in backgroundHooks.removeValue(forKey:s.id)?.values ?? [:].values {task.cancel()}
@@ -225,7 +230,7 @@ import UniformTypeIdentifiers
     func pickAttachments() {
         guard let sessionID = archive.selected else { return }
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = true
-        panel.message = "Testo con qualsiasi estensione, Word, OpenDocument e PDF · massimo 5 file, 10 MiB per file"
+        panel.message = L("Testo con qualsiasi estensione, Word, OpenDocument e PDF · massimo 5 file, 10 MiB per file")
         guard panel.runModal() == .OK else { return }
         attachFiles(panel.urls, to: sessionID)
     }
@@ -264,7 +269,7 @@ import UniformTypeIdentifiers
         if userTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0 }
         guard !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { return }
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
-            let a = NSAlert(); a.messageText = "Modello diverso per questa risposta"; a.informativeText = "La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."; a.addButton(withTitle: "Continua"); a.addButton(withTitle: "Annulla"); guard a.runModal() == .alertFirstButtonReturn else { return }
+            let a = NSAlert(); a.messageText = L("Modello diverso per questa risposta"); a.informativeText = L("La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."); a.addButton(withTitle: L("Continua")); a.addButton(withTitle: L("Annulla")); guard a.runModal() == .alertFirstButtonReturn else { return }
         }
         let text = toolResult ?? queuedInput?.text ?? s.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         // Tool results include a small harness header; keep the user-input limit unchanged.
@@ -527,10 +532,10 @@ import UniformTypeIdentifiers
         } catch { self.error = error.localizedDescription }
     }
     func restoreBackup() {
-        do { guard FileManager.default.fileExists(atPath: archiveURL.appendingPathExtension("backup").path) else { throw NSError(domain: "Backup", code: 1, userInfo: [NSLocalizedDescriptionKey: "Nessun backup disponibile."]) }; var value = try ArchiveDisk.load(archiveURL.appendingPathExtension("backup")); for i in value.sessions.indices where !(value.sessions[i].queuedMessages ?? []).isEmpty {value.sessions[i].queuePaused=true}; for id in Array(mcpConnections.keys) { disconnectMCP(id) }; archive = value; StudioTypography.apply(archive.settings); setAwake(archive.settings.keepAwake ?? false); saveError = false; scheduleSave(); Task { for configuration in archive.settings.mcpServers ?? [] where configuration.enabled { await connectMCP(configuration) } } } catch { self.error = error.localizedDescription }
+        do { guard FileManager.default.fileExists(atPath: archiveURL.appendingPathExtension("backup").path) else { throw NSError(domain: "Backup", code: 1, userInfo: [NSLocalizedDescriptionKey: "Nessun backup disponibile."]) }; var value = try ArchiveDisk.load(archiveURL.appendingPathExtension("backup")); for i in value.sessions.indices where !(value.sessions[i].queuedMessages ?? []).isEmpty {value.sessions[i].queuePaused=true}; for id in Array(mcpConnections.keys) { disconnectMCP(id) }; archive = value; StudioL10n.language=archive.settings.effectiveLanguage; StudioTypography.apply(archive.settings); setAwake(archive.settings.keepAwake ?? false); saveError = false; scheduleSave(); Task { for configuration in archive.settings.mcpServers ?? [] where configuration.enabled { await connectMCP(configuration) } } } catch { self.error = error.localizedDescription }
     }
     func quit(completion: @escaping (Bool) -> Void) {
-        if hasWork { let alert = NSAlert(); alert.messageText = "Interrompere il lavoro e uscire?"; alert.addButton(withTitle: "Interrompi ed esci"); alert.addButton(withTitle: "Annulla"); guard alert.runModal() == .alertFirstButtonReturn else { completion(false); return } }
+        if hasWork { let alert = NSAlert(); alert.messageText = L("Interrompere il lavoro e uscire?"); alert.addButton(withTitle: L("Interrompi ed esci")); alert.addButton(withTitle: L("Annulla")); guard alert.runModal() == .alertFirstButtonReturn else { completion(false); return } }
         quitting = true; for task in compactionTasks.values{task.cancel()};for client in compactionClients.values{client.stop()}; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
         Task {
             for tasks in backgroundHooks.values {for task in tasks.values{task.cancel()}}

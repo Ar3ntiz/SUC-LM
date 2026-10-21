@@ -134,3 +134,9 @@ Diagnosi diretta LM Studio: 269 token input → primo frammento 1,775 s, ricezio
 Test identità MCP superati: nomi canonici senza distinzione di maiuscole/spazi esterni, alias senza suffisso MCP, separatori, UUID, precedenza del nome esatto, rifiuto delle ambiguità e indicazione dei server disponibili per nomi sconosciuti. Fixture stdio/HTTP conservano i limiti di schema 3 MiB e risultati 4 MiB. La catena catalogo→schema→echo da 4 MiB funziona usando `fixture` per un server configurato come `Fixture MCP`; nessun tool reale REA viene eseguito.
 
 Su Intel e M1, la chat interattiva automatica avvia il browser a freddo, esegue web_search su localhost e riceve la risposta finale senza approvazioni; il web disabilitato resta bloccato. Approvazioni MCP e web manuali e web schedulato conservano il comportamento atteso. Versione 1.4.8.03 invariata, build 36; misure grafiche e prestazionali precedenti restano riferite alla build 35.
+
+## 1.4.9 · build 37
+
+Localizzazione IT/EN e prerequisiti shell. Piano e verifiche definitive: `docs/optimization/PROGRESS_1.4.9_IT.md` e `RELEASE_1.4.9_QA.json`. Nessun nuovo benchmark del motore.
+
+Verificati: catalogo e interpolazioni IT/EN, migrazione e salvataggio lingua con store reale, prerequisiti shell, identità installer, guide IT/EN. Android: 14 test Kotlin e suite UI, codice 6 e certificato invariato. Hash del motore padre e binario helper identici alla build precedente. Nessuna nuova misura GPU/KL né collaudo fisico su Apple Silicon o Android. Le verifiche definitive di bundle e installer sono nel rapporto JSON della release.

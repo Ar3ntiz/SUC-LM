@@ -94,3 +94,7 @@ Installa `dist/SUC-Studio-Android-0.1.3.apk` come aggiornamento, senza disinstal
 ## Android 0.1.4
 
 Verifica / modelli sostituisce il modello salvato se non è più disponibile e seleziona automaticamente l'unico modello esposto dal server. Fra più modelli mantiene una selezione ancora valida. Premi Salva server per confermare la configurazione.
+
+## 0.1.5 · interfaccia bilingue
+
+Avvio in inglese; selezione English/Italiano nelle impostazioni, salvata in `settings.language` nello stesso archivio locale e riletta al caricamento. Gli archivi precedenti senza preferenza usano EN. Il cambio non traduce chat, codice o titoli salvati. APK: `dist/SUC-Studio-Android-0.1.5.apk`; codice versione 6. La distribuzione locale conserva la firma debug precedente.

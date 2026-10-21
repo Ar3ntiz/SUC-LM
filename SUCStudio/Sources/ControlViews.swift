@@ -11,34 +11,34 @@ struct ServerView: View {
                 if !store.usesRemote {
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Il tuo motore. La tua API.").font(StudioTypography.ui(size: 28, weight: .semibold, design: .rounded))
-                        Text("Chat e client condividono un solo modello in memoria.").foregroundStyle(.secondary)
+                        Text(L("Il tuo motore. La tua API.")).font(StudioTypography.ui(size: 28, weight: .semibold, design: .rounded))
+                        Text(L("Chat e client condividono un solo modello in memoria.")).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Label(store.serverRunning ? "Online" : "Spento", systemImage: "circle.fill").font(StudioTypography.ui(.caption)).foregroundStyle(store.serverRunning ? .green : .secondary).padding(10).background(.quaternary, in: Capsule())
+                    Label(store.serverRunning ? "Online" : L("Spento"), systemImage: "circle.fill").font(StudioTypography.ui(.caption)).foregroundStyle(store.serverRunning ? .green : .secondary).padding(10).background(.quaternary, in: Capsule())
                 }
                 GroupBox {
                     VStack(alignment: .leading, spacing: 18) {
-                        LabeledContent("Modello", value: store.loadedModel.isEmpty ? "Nessuno" : store.loadedModel)
-                        Picker("Accesso", selection: $store.archive.settings.lan) { Text("Questo Mac").tag(false); Text("Rete locale").tag(true) }.pickerStyle(.segmented).disabled(store.serverRunning)
-                        HStack { Text("Porta"); TextField("8080", value: $store.archive.settings.port, format: .number.grouping(.never)).frame(width: 100).textFieldStyle(.roundedBorder).disabled(store.serverRunning); Spacer(); Button(store.serverRunning ? "Arresta server" : "Avvia server") { store.serverRunning ? store.stopServer() : store.startServer() }.buttonStyle(.borderedProminent).disabled(!store.modelReady || store.serverBusy) }
-                        if store.archive.settings.lan { Label("HTTP locale non cifrato: usa solo una rete fidata. API key obbligatoria.", systemImage: "network").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }
-                        if store.serverRunning { HStack { Text(store.apiAddress).font(StudioTypography.ui(.body, design: .monospaced)).textSelection(.enabled); Button { copyText(store.apiAddress) } label: { Image(systemName: "doc.on.doc") } }; if store.archive.settings.lan { Text("Da un altro dispositivo sostituisci 0.0.0.0 con l’indirizzo IPv4 di questo Mac.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) } }
+                        LabeledContent(L("Modello"), value: store.loadedModel.isEmpty ? L("Nessuno") : store.loadedModel)
+                        Picker(L("Accesso"), selection: $store.archive.settings.lan) { Text(L("Questo Mac")).tag(false); Text(L("Rete locale")).tag(true) }.pickerStyle(.segmented).disabled(store.serverRunning)
+                        HStack { Text(L("Porta")); TextField("8080", value: $store.archive.settings.port, format: .number.grouping(.never)).frame(width: 100).textFieldStyle(.roundedBorder).disabled(store.serverRunning); Spacer(); Button(store.serverRunning ? L("Arresta server") : L("Avvia server")) { store.serverRunning ? store.stopServer() : store.startServer() }.buttonStyle(.borderedProminent).disabled(!store.modelReady || store.serverBusy) }
+                        if store.archive.settings.lan { Label(L("HTTP locale non cifrato: usa solo una rete fidata. API key obbligatoria."), systemImage: "network").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) }
+                        if store.serverRunning { HStack { Text(store.apiAddress).font(StudioTypography.ui(.body, design: .monospaced)).textSelection(.enabled); Button { copyText(store.apiAddress) } label: { Image(systemName: "doc.on.doc") } }; if store.archive.settings.lan { Text(L("Da un altro dispositivo sostituisci 0.0.0.0 con l’indirizzo IPv4 di questo Mac.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary) } }
                     }.padding(12)
                 }
-                HStack(spacing: 18) { StatTile(title: "Richieste API", value: "\(store.apiRequests.count)"); StatTile(title: "Completate", value: "\(store.completed)"); StatTile(title: "Prefill", value: rate(store.latestMetrics?.prefillRate)); StatTile(title: store.latestMetrics?.decodeCaption ?? "Decode", value: rate(store.latestMetrics?.decodeRate)) }
-                Text(store.latestIsCurrent ? "Misure della richiesta corrente, disponibili a fine fase." : "Velocità dell’ultima richiesta; decode = media dei passi successivi al primo token.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                GroupBox("API key") { HStack { Text("Salvata nel Keychain. Mai inclusa negli export.").foregroundStyle(.secondary); Spacer(); Button("Copia chiave") { store.copyKey() }; Button("Ruota chiave") { store.rotateKey() }.disabled(store.serverRunning) }.padding(12) }
-                GroupBox("Client compatibili OpenAI") {
+                HStack(spacing: 18) { StatTile(title: L("Richieste API"), value: "\(store.apiRequests.count)"); StatTile(title: L("Completate"), value: "\(store.completed)"); StatTile(title: "Prefill", value: rate(store.latestMetrics?.prefillRate)); StatTile(title: store.latestMetrics?.decodeCaption ?? "Decode", value: rate(store.latestMetrics?.decodeRate)) }
+                Text(store.latestIsCurrent ? L("Misure della richiesta corrente, disponibili a fine fase.") : L("Velocità dell’ultima richiesta; decode = media dei passi successivi al primo token.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                GroupBox("API key") { HStack { Text(L("Salvata nel Keychain. Mai inclusa negli export.")).foregroundStyle(.secondary); Spacer(); Button(L("Copia chiave")) { store.copyKey() }; Button(L("Ruota chiave")) { store.rotateKey() }.disabled(store.serverRunning) }.padding(12) }
+                GroupBox(L("Client compatibili OpenAI")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("POST /v1/chat/completions · POST /v1/completions\nGET /v1/models · GET /health").font(StudioTypography.ui(.caption, design: .monospaced)).textSelection(.enabled)
-                        Text("Streaming SSE e usage supportati. Tools, embeddings e Responses non sono implementati.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                        Button("Copia esempio curl") { copyText("curl http://127.0.0.1:\(store.archive.settings.port)/v1/chat/completions -H 'Authorization: Bearer YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"model\":\"\(store.loadedModel)\",\"messages\":[{\"role\":\"user\",\"content\":\"Ciao\"}],\"max_tokens\":128,\"stream\":true}'") }
+                        Text(L("Streaming SSE e usage supportati. Tools, embeddings e Responses non sono implementati.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                        Button(L("Copia esempio curl")) { copyText("curl http://127.0.0.1:\(store.archive.settings.port)/v1/chat/completions -H 'Authorization: Bearer YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"model\":\"\(store.loadedModel)\",\"messages\":[{\"role\":\"user\",\"content\":\"Ciao\"}],\"max_tokens\":128,\"stream\":true}'") }
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
                 }
                 }
                 OperationLogView()
-                DisclosureGroup("Registro eventi (ultimi 150)") { VStack(alignment: .leading, spacing: 5) { ForEach(Array(store.logs.enumerated()), id: \.offset) { _, text in Text(text).font(StudioTypography.ui(.caption, design: .monospaced)).textSelection(.enabled) } }.frame(maxWidth: .infinity, alignment: .leading) }
+                DisclosureGroup(L("Registro eventi (ultimi 150)")) { VStack(alignment: .leading, spacing: 5) { ForEach(Array(store.logs.enumerated()), id: \.offset) { _, text in Text(text).font(StudioTypography.ui(.caption, design: .monospaced)).textSelection(.enabled) } }.frame(maxWidth: .infinity, alignment: .leading) }
             }.padding(30).frame(maxWidth: 1050).frame(maxWidth: .infinity)
         }.onChange(of: store.archive.settings.lan) { _, _ in store.scheduleSave() }.onChange(of: store.archive.settings.port) { _, _ in store.scheduleSave() }
     }
@@ -55,62 +55,69 @@ struct SettingsView: View {
     @EnvironmentObject var store: StudioStore
     var body: some View {
         Form {
-            if StudioPlatform.localInferenceAvailable {
-            Section("Modello locale") {
-                HStack { VStack(alignment: .leading, spacing: 5) { Text("Modello SUC1").fontWeight(.medium); Text(store.archive.settings.modelPath.isEmpty ? "Nessun file selezionato" : store.archive.settings.modelPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button("Scegli…") { store.pickFile(model: true) } }
-                HStack { VStack(alignment: .leading, spacing: 5) { Text("Tokenizer JSON").fontWeight(.medium); Text(store.archive.settings.tokenizerPath.isEmpty ? "Seleziona tokenizer.json del modello" : store.archive.settings.tokenizerPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button("Scegli…") { store.pickFile(model: false) } }
-                HStack { Label(store.stateLabel, systemImage: store.modelReady ? "checkmark.circle.fill" : "cube"); Spacer(); if store.modelState == "loading" { ProgressView().controlSize(.small) }; Button("Scarica dalla memoria") { store.unload() }.disabled(!store.modelReady || store.hasWork || store.serverRunning); Button(store.modelReady ? "Ricarica selezione" : "Carica modello") { store.loadModel() }.buttonStyle(.borderedProminent).disabled(store.hasWork || store.serverRunning) }
-                Text("I file restano nella loro posizione originale. Il tokenizer viene verificato contro l’hash del modello, quando presente. Nessun download automatico.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Section(L("Lingua")) {
+                Picker(L("Lingua dell’app"), selection:Binding(get:{store.archive.settings.effectiveLanguage},set:{store.setLanguage($0)})) {
+                    Text("English").tag("en")
+                    Text("Italiano").tag("it")
+                }.accessibilityIdentifier("app-language")
+                Text(L("La lingua viene salvata su questo Mac. Non modifica i messaggi, le skill o la lingua delle risposte del modello.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
-            Section("Memoria e prestazioni · applicate al prossimo caricamento") {
-                TextField("Contesto massimo (token)", value: $store.archive.settings.context, format: .number.grouping(.never))
-                Picker("Prefill", selection: $store.archive.settings.prefill) { Text("Automatico (1024 / 64)").tag("adaptive"); Text("Batch prudente").tag("batch"); Text("Exact (se supportato)").tag("exact"); Text("Token").tag("token") }
-                Text("Automatico usa blocchi grandi per il contesto e piccoli per la coda. Cambiare profilo richiede di ricaricare il modello e può modificare gli arrotondamenti numerici.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                Picker("Gestione memoria", selection: Binding(get: { store.archive.settings.effectiveMemoryMode }, set: { store.archive.settings.memoryMode = $0; store.scheduleSave() })) {
-                    Text("Automatico").tag("auto")
-                    Text("Residente").tag("resident")
-                    Text("Streaming expert · budget manuale").tag("manual")
+            if StudioPlatform.localInferenceAvailable {
+            Section(L("Modello locale")) {
+                HStack { VStack(alignment: .leading, spacing: 5) { Text(L("Modello SUC1")).fontWeight(.medium); Text(store.archive.settings.modelPath.isEmpty ? L("Nessun file selezionato") : store.archive.settings.modelPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button(L("Scegli…")) { store.pickFile(model: true) } }
+                HStack { VStack(alignment: .leading, spacing: 5) { Text("Tokenizer JSON").fontWeight(.medium); Text(store.archive.settings.tokenizerPath.isEmpty ? L("Seleziona tokenizer.json del modello") : store.archive.settings.tokenizerPath).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).textSelection(.enabled) }; Spacer(); Button(L("Scegli…")) { store.pickFile(model: false) } }
+                HStack { Label(LT(store.stateLabel), systemImage: store.modelReady ? "checkmark.circle.fill" : "cube"); Spacer(); if store.modelState == "loading" { ProgressView().controlSize(.small) }; Button(L("Scarica dalla memoria")) { store.unload() }.disabled(!store.modelReady || store.hasWork || store.serverRunning); Button(store.modelReady ? L("Ricarica selezione") : L("Carica modello")) { store.loadModel() }.buttonStyle(.borderedProminent).disabled(store.hasWork || store.serverRunning) }
+                Text(L("I file restano nella loro posizione originale. Il tokenizer viene verificato contro l’hash del modello, quando presente. Nessun download automatico.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            }
+            Section(L("Memoria e prestazioni · applicate al prossimo caricamento")) {
+                TextField(L("Contesto massimo (token)"), value: $store.archive.settings.context, format: .number.grouping(.never))
+                Picker("Prefill", selection: $store.archive.settings.prefill) { Text(L("Automatico (1024 / 64)")).tag("adaptive"); Text(L("Batch prudente")).tag("batch"); Text(L("Exact (se supportato)")).tag("exact"); Text("Token").tag("token") }
+                Text(L("Automatico usa blocchi grandi per il contesto e piccoli per la coda. Cambiare profilo richiede di ricaricare il modello e può modificare gli arrotondamenti numerici.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Picker(L("Gestione memoria"), selection: Binding(get: { store.archive.settings.effectiveMemoryMode }, set: { store.archive.settings.memoryMode = $0; store.scheduleSave() })) {
+                    Text(L("Automatico")).tag("auto")
+                    Text(L("Residente")).tag("resident")
+                    Text(L("Streaming expert · budget manuale")).tag("manual")
                 }
-                if store.archive.settings.effectiveMemoryMode == "manual" { TextField("Cache expert, es. 8G", text: $store.archive.settings.expertBudget) }
-                if !store.memoryPlan.isEmpty { Text("Ultimo piano di caricamento\n" + store.memoryPlan).font(StudioTypography.ui(.caption)).textSelection(.enabled) }
+                if store.archive.settings.effectiveMemoryMode == "manual" { TextField(L("Cache expert, es. 8G"), text: $store.archive.settings.expertBudget) }
+                if !store.memoryPlan.isEmpty { Text(L("Ultimo piano di caricamento\n") + store.memoryPlan).font(StudioTypography.ui(.caption)).textSelection(.enabled) }
                 if !store.expertStats.isEmpty { Text(store.expertStats).font(StudioTypography.ui(.caption)).textSelection(.enabled) }
-                Text("Automatico sceglie residente o streaming SSD per gli expert MoE. I modelli densi sono supportati se rientrano nella memoria stimata; lo streaming dei loro pesi non è disponibile. La stima include contesto e margine, ma non garantisce memoria libera durante l’uso.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                Text("Il contesto e gli expert consumano memoria oltre ai pesi. Prefill batch può differire numericamente dal percorso exact. Il modello deve rientrare nelle risorse del Mac.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Text(L("Automatico sceglie residente o streaming SSD per gli expert MoE. I modelli densi sono supportati se rientrano nella memoria stimata; lo streaming dei loro pesi non è disponibile. La stima include contesto e margine, ma non garantisce memoria libera durante l’uso.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Text(L("Il contesto e gli expert consumano memoria oltre ai pesi. Prefill batch può differire numericamente dal percorso exact. Il modello deve rientrare nelle risorse del Mac.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
             } else {
-                Section("Inferenza") {
-                    Label("Client remoto · Mac Intel", systemImage: "network")
-                    Text(StudioPlatform.localUnavailableMessage).foregroundStyle(.secondary)
-                    Button("Configura server remoto") { store.tab = "server" }
+                Section(L("Inferenza")) {
+                    Label(L("Client remoto · Mac Intel"), systemImage: "network")
+                    Text(LT(StudioPlatform.localUnavailableMessage)).foregroundStyle(.secondary)
+                    Button(L("Configura server remoto")) { store.tab = "server" }
                 }
             }
-            Section("System prompt generale") {
+            Section(L("System prompt generale")) {
                 TextEditor(text: Binding(get: { store.archive.settings.globalSystemPrompt ?? "" }, set: { store.archive.settings.globalSystemPrompt = $0; store.scheduleSave() })).frame(minHeight: 110)
-                Text("Usato in tutte le chat dell’app, insieme alle skill attive e al prompt extra di ogni sessione. Le modifiche si applicano dal prossimo messaggio.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Text(L("Usato in tutte le chat dell’app, insieme alle skill attive e al prompt extra di ogni sessione. Le modifiche si applicano dal prossimo messaggio.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
             ExtensionSettingsView()
-            Section("Plugin e routine") { Button("Gestisci plugin…") { showPlugins = true }.sheet(isPresented:$showPlugins) { PluginManagerView().environmentObject(store) }; Button("Gestisci routine…") { showRoutines = true }.sheet(isPresented:$showRoutines) { RoutinesView().environmentObject(store) } }
-            Section("Azioni del modello") {
-                Stepper("Azioni consecutive: \(store.archive.settings.actionLimit)",value:Binding(get:{store.archive.settings.actionLimit},set:{store.archive.settings.maxConsecutiveActions=$0;store.scheduleSave()}),in:1...100)
-                Text("Massimo per turno e per subagent, da 1 a 100; predefinito 12. Le modifiche si applicano dalla prossima azione. Le approvazioni restano indipendenti da questo limite.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Section(L("Plugin e routine")) { Button(L("Gestisci plugin…")) { showPlugins = true }.sheet(isPresented:$showPlugins) { PluginManagerView().environmentObject(store) }; Button(L("Gestisci routine…")) { showRoutines = true }.sheet(isPresented:$showRoutines) { RoutinesView().environmentObject(store) } }
+            Section(L("Azioni del modello")) {
+                Stepper(L("Azioni consecutive: \(store.archive.settings.actionLimit)"),value:Binding(get:{store.archive.settings.actionLimit},set:{store.archive.settings.maxConsecutiveActions=$0;store.scheduleSave()}),in:1...100)
+                Text(L("Massimo per turno e per subagent, da 1 a 100; predefinito 12. Le modifiche si applicano dalla prossima azione. Le approvazioni restano indipendenti da questo limite.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
-            Section("Automazione e hook") { Button("Gestisci hook…") { showHooks = true }.sheet(isPresented:$showHooks) { HooksSettingsView().environmentObject(store) } }
+            Section(L("Automazione e hook")) { Button(L("Gestisci hook…")) { showHooks = true }.sheet(isPresented:$showHooks) { HooksSettingsView().environmentObject(store) } }
             LifecycleSettingsView()
-            Section("Aspetto") {
+            Section(L("Aspetto")) {
                 TypographySettingsView()
-                Picker("Tema", selection: $store.archive.settings.appearance) { Text("Sistema").tag("system"); Text("Chiaro").tag("light"); Text("Scuro").tag("dark") } }
-            Section("Sessioni e dati") {
-                LabeledContent("Sessioni salvate", value: "\(store.archive.sessions.count)")
-                HStack { Button("Importa sessione…") { store.importSession() }; Button("Apri cartella dati") { NSWorkspace.shared.open(store.archiveURL.deletingLastPathComponent()) }; Button("Ripristina backup…") { let a = NSAlert(); a.messageText = "Ripristinare l’ultimo backup?"; a.informativeText = "Sostituisce le sessioni attualmente aperte."; a.addButton(withTitle: "Ripristina"); a.addButton(withTitle: "Annulla"); if a.runModal() == .alertFirstButtonReturn { store.restoreBackup() } }.disabled(store.hasWork) }
-                Text("Salvataggio locale automatico con backup. Una chiusura interrotta conserva il testo parziale; le richieste non vengono reinviate da sole.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Picker(L("Tema"), selection: $store.archive.settings.appearance) { Text(L("Sistema")).tag("system"); Text(L("Chiaro")).tag("light"); Text(L("Scuro")).tag("dark") } }
+            Section(L("Sessioni e dati")) {
+                LabeledContent(L("Sessioni salvate"), value: "\(store.archive.sessions.count)")
+                HStack { Button(L("Importa sessione…")) { store.importSession() }; Button(L("Apri cartella dati")) { NSWorkspace.shared.open(store.archiveURL.deletingLastPathComponent()) }; Button(L("Ripristina backup…")) { let a = NSAlert(); a.messageText = L("Ripristinare l’ultimo backup?"); a.informativeText = L("Sostituisce le sessioni attualmente aperte."); a.addButton(withTitle: L("Ripristina")); a.addButton(withTitle: L("Annulla")); if a.runModal() == .alertFirstButtonReturn { store.restoreBackup() } }.disabled(store.hasWork) }
+                Text(L("Salvataggio locale automatico con backup. Una chiusura interrotta conserva il testo parziale; le richieste non vengono reinviate da sole.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
-            Section("Ricerca web") {
-                Button("Cancella dati del browser web") { Task { await store.clearWebData() } }.disabled(!store.agentRuns.isEmpty)
-                Text("web_search e visit_page usano un browser integrato nascosto (visibile dal pulsante globo nella barra della chat) con un profilo dedicato e persistente, separato da Safari. Il pulsante chiude il browser e cancella cookie, consenso e cache.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Section(L("Ricerca web")) {
+                Button(L("Cancella dati del browser web")) { Task { await store.clearWebData() } }.disabled(!store.agentRuns.isEmpty)
+                Text(L("web_search e visit_page usano un browser integrato nascosto (visibile dal pulsante globo nella barra della chat) con un profilo dedicato e persistente, separato da Safari. Il pulsante chiude il browser e cancella cookie, consenso e cache.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             }
             Section("\(StudioPlatform.name) \(StudioPlatform.version)") {
-                Text("Universal arm64 + x86_64 · macOS 15+ · motore locale su Apple Silicon, client remoto su Intel\nDistribuzione locale, senza Developer ID o notarizzazione.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                Button("Guida setup e utilizzo") { store.openHelp() }
+                Text(L("Universal arm64 + x86_64 · macOS 15+ · motore locale su Apple Silicon, client remoto su Intel\nDistribuzione locale, senza Developer ID o notarizzazione.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+                Button(L("Guida setup e utilizzo")) { store.openHelp() }
             }
         }.formStyle(.grouped).onDrop(of: [UTType.fileURL], isTargeted: nil) { providers in
             guard StudioPlatform.localInferenceAvailable, let provider = providers.first else { return false }
@@ -128,19 +135,19 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack { Text(StudioPlatform.name).font(StudioTypography.ui(.headline)); Spacer(); Circle().fill(store.serverRunning ? .green : .secondary).frame(width: 8, height: 8) }
-            Text(store.usesRemote ? "Chat · Server remoto" : (store.serverRunning ? (store.archive.settings.lan ? "API · Rete locale" : "API · Questo Mac") : "API spenta")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-            Text(store.chatModel.isEmpty ? "Nessun modello selezionato" : store.chatModel).font(StudioTypography.ui(.callout)).lineLimit(2)
-            if store.hasWork { HStack { ProgressView().controlSize(.small); Text(store.activePhase).font(StudioTypography.ui(.caption)) } }
+            Text(store.usesRemote ? L("Chat · Server remoto") : (store.serverRunning ? (store.archive.settings.lan ? L("API · Rete locale") : L("API · Questo Mac")) : L("API spenta"))).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            Text(store.chatModel.isEmpty ? L("Nessun modello selezionato") : store.chatModel).font(StudioTypography.ui(.callout)).lineLimit(2)
+            if store.hasWork { HStack { ProgressView().controlSize(.small); Text(LT(store.activePhase)).font(StudioTypography.ui(.caption)) } }
             Divider()
             LabeledContent("Prefill", value: rate(store.latestMetrics?.prefillRate))
-            LabeledContent(store.latestMetrics?.decodeCaption ?? "Decode", value: rate(store.latestMetrics?.decodeRate))
-            Text(store.latestIsCurrent ? "Metriche richiesta in corso" : "Ultima richiesta").font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
-            if let memory = store.engineFootprint { LabeledContent("Memoria motore", value: String(format: "%.2f GB", memory)) }
+            LabeledContent(LT(store.latestMetrics?.decodeCaption ?? "Decode"), value: rate(store.latestMetrics?.decodeRate))
+            Text(store.latestIsCurrent ? L("Metriche richiesta in corso") : L("Ultima richiesta")).font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)
+            if let memory = store.engineFootprint { LabeledContent(L("Memoria motore"), value: String(format: "%.2f GB", memory)) }
             if !store.expertStats.isEmpty { Text(store.expertStats).font(StudioTypography.ui(.caption2)) }
             Divider()
-            Button("Apri SUC Studio Universal", action: show).keyboardShortcut("o")
-            if StudioPlatform.localInferenceAvailable { Button(store.serverRunning ? "Arresta API" : "Avvia API") { store.serverRunning ? store.stopServer() : store.startServer() }.disabled(!store.modelReady || store.serverBusy) }
-            Button("Esci") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
+            Button(L("Apri SUC Studio Universal"), action: show).keyboardShortcut("o")
+            if StudioPlatform.localInferenceAvailable { Button(store.serverRunning ? L("Arresta API") : L("Avvia API")) { store.serverRunning ? store.stopServer() : store.startServer() }.disabled(!store.modelReady || store.serverBusy) }
+            Button(L("Esci")) { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
         }.padding(18).frame(width: 300)
     }
 }

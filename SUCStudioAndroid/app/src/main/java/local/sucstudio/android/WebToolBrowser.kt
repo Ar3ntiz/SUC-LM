@@ -38,9 +38,9 @@ class WebToolBrowser(
     private var navigationVersion = 0
     private var pasteDialog: AlertDialog? = null
     private val root = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.rgb(23,24,34)) }
-    private val title = TextView(activity).apply { text = if(search) "Ricerca web" else "Lettura pagina"; textSize=20f; setTextColor(Color.WHITE);setPadding(16,16,16,4) }
+    private val title = TextView(activity).apply { text = if(search) tr("Ricerca web") else tr("Lettura pagina"); textSize=20f; setTextColor(Color.WHITE);setPadding(16,16,16,4) }
     private val address = TextView(activity).apply { text=initialUrl; textSize=12f;maxLines=2;setTextColor(Color.LTGRAY);setPadding(16,0,16,8) }
-    private val message = TextView(activity).apply { text="Caricamento della pagina…";textSize=14f;setTextColor(Color.rgb(210,204,255));setPadding(16,8,16,8) }
+    private val message = TextView(activity).apply { text=tr("Caricamento della pagina…");textSize=14f;setTextColor(Color.rgb(210,204,255));setPadding(16,8,16,8) }
     private val browser = WebView(activity).apply {
         settings.javaScriptEnabled=true; settings.domStorageEnabled=true; settings.allowFileAccess=false;settings.allowContentAccess=false
         settings.setSupportMultipleWindows(false);settings.builtInZoomControls=true;settings.displayZoomControls=false
@@ -50,7 +50,7 @@ class WebToolBrowser(
         // Challenge widgets can use cross-site frames; confined to this browser, never the chat renderer.
         CookieManager.getInstance().setAcceptThirdPartyCookies(this,true)
     }
-    private val readButton=Button(activity).apply { text="Usa questa pagina";setOnClickListener{extract(false)} }
+    private val readButton=Button(activity).apply { text=tr("Usa questa pagina");setOnClickListener{extract(false)} }
     private val dialog = object:Dialog(activity,android.R.style.Theme_DeviceDefault_NoActionBar) {
         @Deprecated("Native back button controls the browser, not the underlying chat")
         override fun onBackPressed() { if(browser.canGoBack())browser.goBack() else hide() }
@@ -59,24 +59,24 @@ class WebToolBrowser(
     init {
         root.addView(title);root.addView(address)
         fun row(vararg buttons:Button){ val row=LinearLayout(activity).apply { orientation=LinearLayout.HORIZONTAL };buttons.forEach{row.addView(it,LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f))};root.addView(row) }
-        row(Button(activity).apply{text="Torna alla chat";setOnClickListener{hide()}},Button(activity).apply{text="Browser esterno";setOnClickListener{openExternal()}})
+        row(Button(activity).apply{text=tr("Torna alla chat");setOnClickListener{hide()}},Button(activity).apply{text=tr("Browser esterno");setOnClickListener{openExternal()}})
         root.addView(message)
         root.addView(browser,LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1f))
-        row(readButton,Button(activity).apply{text="Ricarica";setOnClickListener{external=false;verification=false;browser.reload()}},Button(activity).apply{text="Incolla testo";setOnClickListener{pasteText()}})
-        root.addView(Button(activity).apply{text="Annulla ricerca";setOnClickListener{complete(null)}})
+        row(readButton,Button(activity).apply{text=tr("Ricarica");setOnClickListener{external=false;verification=false;browser.reload()}},Button(activity).apply{text=tr("Incolla testo");setOnClickListener{pasteText()}})
+        root.addView(Button(activity).apply{text=tr("Annulla ricerca");setOnClickListener{complete(null)}})
         dialog.setContentView(root,ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT))
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        browser.webChromeClient=object:WebChromeClient(){override fun onProgressChanged(view:WebView,progress:Int){if(!verification&&!external)message.text="Caricamento pagina $progress%"}}
+        browser.webChromeClient=object:WebChromeClient(){override fun onProgressChanged(view:WebView,progress:Int){if(!verification&&!external)message.text=tr("Caricamento pagina $progress%")}}
         browser.webViewClient=object:WebViewClient(){
             override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean=request.url.scheme !in listOf("https","http")
-            override fun onPageStarted(view:WebView,url:String,favicon:android.graphics.Bitmap?){if(closed)return;navigationVersion++;address.text=url;publish("Caricamento pagina")}
-            override fun onReceivedError(view:WebView,request:WebResourceRequest,error:android.webkit.WebResourceError){if(!closed&&request.isForMainFrame){message.text="Pagina non caricata: usa Ricarica o il browser esterno.";publish("Errore pagina: apri il browser per riprovare")}}
+            override fun onPageStarted(view:WebView,url:String,favicon:android.graphics.Bitmap?){if(closed)return;navigationVersion++;address.text=url;publish(tr("Caricamento pagina"))}
+            override fun onReceivedError(view:WebView,request:WebResourceRequest,error:android.webkit.WebResourceError){if(!closed&&request.isForMainFrame){message.text=tr("Pagina non caricata: usa Ricarica o il browser esterno.");publish(tr("Errore pagina: apri il browser per riprovare"))}}
             override fun onPageFinished(view:WebView,url:String){if(closed)return;address.text=url;CookieManager.getInstance().flush();extract(true)}
         }
         show();browser.loadUrl(initialUrl);handler.postDelayed(poll,1000)
     }
-    fun show(){if(closed)return;dialog.show();dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);publish(if(verification)"Verifica CAPTCHA richiesta" else "Lettura web in corso")}
-    private fun hide(){if(closed)return;dialog.hide();publish(if(verification)"Verifica CAPTCHA richiesta: apri la pagina" else "Ricerca in corso: apri la pagina")}
+    fun show(){if(closed)return;dialog.show();dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);publish(if(verification)"Verifica CAPTCHA richiesta" else tr("Lettura web in corso"))}
+    private fun hide(){if(closed)return;dialog.hide();publish(if(verification)tr("Verifica CAPTCHA richiesta: apri la pagina") else "Ricerca in corso: apri la pagina")}
     fun payload():JSONObject=JSONObject().put("session",sessionId).put("url",browser.url?:initialUrl).put("verification",verification).put("external",external)
     private fun publish(text:String){if(closed)return;status(payload().put("text",text))}
     private fun extract(automatic:Boolean){
@@ -86,23 +86,23 @@ class WebToolBrowser(
             extracting=false;if(closed||version!=navigationVersion)return@evaluateJavascript
             try{
                 val page=JSONObject(raw);val before=verification;verification=WebPagePolicy.challenge(page)
-                if(verification){message.text="Completa la verifica qui sotto. La ricerca attende senza scadenza. Se il sito non accetta questo browser, aprilo nel browser esterno e incolla il testo.";readButton.isEnabled=false;if(!before)publish("Verifica CAPTCHA richiesta: apri la pagina");return@evaluateJavascript}
+                if(verification){message.text=tr("Completa la verifica qui sotto. La ricerca attende senza scadenza. Se il sito non accetta questo browser, aprilo nel browser esterno e incolla il testo.");readButton.isEnabled=false;if(!before)publish(tr("Verifica CAPTCHA richiesta: apri la pagina"));return@evaluateJavascript}
                 readButton.isEnabled=true
                 if(WebPagePolicy.canRead(page,automatic))complete(page)
-                else if(!automatic)message.text="Pagina non ancora leggibile: completa il caricamento o incolla il testo letto nel browser."
-            }catch(_:Exception){if(!automatic)message.text="Impossibile leggere questa pagina. Puoi usare il browser esterno e incollare il testo."}
+                else if(!automatic)message.text=tr("Pagina non ancora leggibile: completa il caricamento o incolla il testo letto nel browser.")
+            }catch(_:Exception){if(!automatic)message.text=tr("Impossibile leggere questa pagina. Puoi usare il browser esterno e incollare il testo.")}
         }
     }
     private fun openExternal(){
         val url=browser.url?:initialUrl
         try{Protocol.resource(url,true);activity.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)));external=true
-            message.text="Risolvi la verifica nel browser esterno, poi copia il testo utile. Torna qui e scegli Incolla testo: i cookie del browser esterno non vengono importati automaticamente."
+            message.text=tr("Risolvi la verifica nel browser esterno, poi copia il testo utile. Torna qui e scegli Incolla testo: i cookie del browser esterno non vengono importati automaticamente.")
             publish("Browser esterno aperto: torna e incolla il testo")
-        }catch(_:Exception){message.text="Nessun browser esterno disponibile. Usa la pagina integrata."}
+        }catch(_:Exception){message.text=tr("Nessun browser esterno disponibile. Usa la pagina integrata.")}
     }
     private fun pasteText(){
-        val editor=EditText(activity).apply{hint="Incolla il testo della pagina dopo la verifica";minLines=6;gravity=android.view.Gravity.TOP;setTextColor(Color.BLACK);setBackgroundColor(Color.WHITE)}
-        val popup=AlertDialog.Builder(activity).setTitle("Testo letto nel browser").setMessage("Incolla il contenuto utile della pagina, non il testo del CAPTCHA. Verrà inviato al modello.").setView(editor).setNegativeButton("Indietro",null).setPositiveButton("Usa testo",null).create()
+        val editor=EditText(activity).apply{hint=tr("Incolla il testo della pagina dopo la verifica");minLines=6;gravity=android.view.Gravity.TOP;setTextColor(Color.BLACK);setBackgroundColor(Color.WHITE)}
+        val popup=AlertDialog.Builder(activity).setTitle(tr("Testo letto nel browser")).setMessage(tr("Incolla il contenuto utile della pagina, non il testo del CAPTCHA. Verrà inviato al modello.")).setView(editor).setNegativeButton(tr("Indietro"),null).setPositiveButton(tr("Usa testo"),null).create()
         pasteDialog=popup
         popup.setOnShowListener{editor.requestFocus();popup.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
             val text=editor.text.toString().trim()

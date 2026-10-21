@@ -19,3 +19,7 @@ Corretta la gestione CAPTCHA: browser integrato a schermo intero e riapribile da
 ## 0.1.0
 
 Prima versione Android per smartphone e tablet: chat e sessioni locali, server OpenAI compatibili, streaming, thinking, Markdown, immagini e documenti. Prompt, skill, MCP HTTP, plugin compatibili, ricerca web con conferme inline e artifact salvabili. Metriche reali o stimate, temi e font. Esclusi motore locale, stdio, hook shell, terminale, routine e notifiche.
+
+## 0.1.5 · codice 6
+
+Interfaccia italiana e inglese con inglese predefinito, selettore nelle impostazioni e lingua salvata nell’archivio del dispositivo. Localizzati schermate, suggerimenti, guida e controlli del browser web. Messaggi, codice, nomi delle chat e protocolli non vengono tradotti. Nessuna modifica al motore remoto o ai permessi degli strumenti.

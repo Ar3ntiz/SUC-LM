@@ -1,4 +1,4 @@
-# SUC Studio 1.4.8.02
+# SUC Studio 1.4.9
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -462,3 +462,11 @@ Lo storico grafico usa pagine limitate con pulsanti per messaggi precedenti/succ
 Le azioni MCP accettano il nome configurato, il suo UUID e un alias univoco senza il suffisso MCP: ad esempio `rea` riconosce `REA mcp`. In presenza di ambiguità viene richiesto il nome esatto o l’UUID; non viene scelto un server arbitrario. Un nome sconosciuto mostra i server disponibili e non viene più descritto come una disconnessione.
 
 Se gli strumenti web sono abilitati e le approvazioni sono automatiche, anche il primo avvio del browser segue la stessa impostazione, sia nelle chat interattive sia nelle routine. La modalità manuale conserva le conferme; gli strumenti web disabilitati restano bloccati.
+
+## Lingua dell’interfaccia · 1.4.9
+
+Il primo avvio usa l’inglese, anche con macOS in italiano. Da Settings → Language scegli English o Italiano; la preferenza è salvata nell’archivio delle sessioni e riletta al caricamento. Anche gli archivi precedenti senza preferenza usano l’inglese. Il cambio aggiorna l’interfaccia senza tradurre conversazioni, nomi, codice, skill o risultati degli strumenti e senza imporre la lingua delle risposte del modello. I dialoghi di sistema e i messaggi provenienti dai server possono seguire la propria lingua. La guida HTML segue la lingua selezionata.
+
+Il controllo «Consenti comandi shell» è disabilitato finché non sono selezionati una directory di lavoro e «Consenti azioni del modello». La modalità di approvazione automatica non abilita da sola gli strumenti. Il fix 1.4.8.04 è incluso senza una build intermedia.
+
+Android 0.1.5 offre la stessa scelta IT/EN, con inglese predefinito e preferenza salvata nell’archivio del dispositivo. Nessuna sincronizzazione automatica con il Mac.

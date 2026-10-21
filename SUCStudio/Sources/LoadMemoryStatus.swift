@@ -19,7 +19,7 @@ struct LoadMemoryStatus {
         initialMetal=(payload["initial_metal_bytes"] as? Double).flatMap{$0.isFinite && $0>=0 ? $0:nil}
     }
     var fraction:Double{resident/total}
-    var label:String{String(format:"Pagine del modello in memoria: %.2f / %.2f GiB",resident/1_073_741_824,total/1_073_741_824)}
-    var metalLabel:String?{metal.map{String(format:"Metal allocata: %.2f GiB · iniziale %.2f GiB",$0/1_073_741_824,(initialMetal ?? 0)/1_073_741_824)}}
-    var detail:String{String(format:"Già residenti all’avvio: %.2f GiB",initial/1_073_741_824)}
+    var label:String{String(format:L("Pagine del modello in memoria: %.2f / %.2f GiB"),resident/1_073_741_824,total/1_073_741_824)}
+    var metalLabel:String?{metal.map{String(format:L("Metal allocata: %.2f GiB · iniziale %.2f GiB"),$0/1_073_741_824,(initialMetal ?? 0)/1_073_741_824)}}
+    var detail:String{String(format:L("Già residenti all’avvio: %.2f GiB"),initial/1_073_741_824)}
 }

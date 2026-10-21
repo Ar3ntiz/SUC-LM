@@ -1,5 +1,13 @@
 # Changelog SUC Studio
 
+## 1.4.9 — build 37
+
+Interfaccia IT/EN, inglese predefinito e lingua salvata nell’archivio delle sessioni. Localizzati menu, pannelli, dialoghi, suggerimenti e guida HTML. Integrato il fix shell 1.4.8.04 senza build intermedia. Android 0.1.5 offre la stessa selezione persistente. Contenuti delle chat, protocolli, motore e memory policy preservati.
+
+## 1.4.8.04 — solo sorgenti, senza build
+
+Controllo dei comandi shell disabilitato finché non sono presenti una directory di lavoro e l’abilitazione delle azioni del modello. L’interfaccia spiega entrambi i prerequisiti e non mostra la shell come utilizzabile quando non lo è. Incluso nella successiva 1.4.9.
+
 ## 1.4.8.03 — build 36
 
 Compattazione con budget dinamico e rollback delle sintesi troncate. Routine con riserva output e verifica del risultato. Chat lunghe alleggerite con paginazione, ragionamenti richiudibili e metriche limitate. Build 36: alias MCP univoci, errori di identità distinti dalle disconnessioni e avvio browser coerente con le approvazioni automatiche. Motore e memory policy invariati.
