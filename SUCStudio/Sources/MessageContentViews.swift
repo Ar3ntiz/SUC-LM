@@ -12,15 +12,31 @@ struct ResponseBody:View {
         let parts=prepared ?? (assistant ? ThinkingParts.split(text,separate:reasoning,implicit:implicit):ThinkingParts(reasoning:"",answer:text,active:false))
         VStack(alignment:.leading,spacing:14){
             if !parts.reasoning.isEmpty || parts.active {
-                VStack(alignment:.leading,spacing:8){
-                    Label(parts.active && generating ? "Ragionamento in corso":"Ragionamento",systemImage:"brain").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
-                    BoundedMessageBody(text:parts.reasoning,pointOffset:-1)
-                }.padding(14).frame(maxWidth:.infinity,alignment:.leading)
-                .background(studioAccent.opacity(0.045),in:RoundedRectangle(cornerRadius:12))
-                .overlay(RoundedRectangle(cornerRadius:12).stroke(studioAccent.opacity(0.18),lineWidth:1))
+                ReasoningBody(text:parts.reasoning,generating:generating,active:parts.active)
+
             }
             if !parts.answer.isEmpty {BoundedMessageBody(text:parts.answer)}
         }
+    }
+}
+/// Historical reasoning starts collapsed; a live block opens and never auto-collapses
+/// on completion, avoiding height jumps. Users can toggle it at any time.
+struct ReasoningBody:View {
+    let text:String
+    let generating:Bool
+    let active:Bool
+    @State private var expanded=false
+    var body:some View {
+        DisclosureGroup(isExpanded:$expanded) {
+            BoundedMessageBody(text:text,pointOffset:-1).padding(.top,8)
+        } label:{
+            Label(active && generating ? "Ragionamento in corso":"Ragionamento",systemImage:"brain")
+                .font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+        }
+        .padding(14).frame(maxWidth:.infinity,alignment:.leading)
+        .background(studioAccent.opacity(0.045),in:RoundedRectangle(cornerRadius:12))
+        .overlay(RoundedRectangle(cornerRadius:12).stroke(studioAccent.opacity(0.18),lineWidth:1))
+        .onAppear{if generating{expanded=true}}
     }
 }
 struct BoundedMessageBody:View {

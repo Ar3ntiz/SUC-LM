@@ -3,7 +3,7 @@ import Foundation
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
     static let name = "SUC Studio"
-    static let version = "1.4.8.02"
+    static let version = "1.4.8.03"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -56,6 +56,7 @@ struct ChatAttachment: Codable, Identifiable, Equatable, Sendable {
 }
 
 struct ChatMessage: Codable, Identifiable, Equatable {
+    var finishReason:String?
     var executedAction:WorkspaceAction?
     var reasoning:String?
     var implicitThinking:Bool?

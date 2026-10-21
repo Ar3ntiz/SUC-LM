@@ -157,7 +157,17 @@ struct ChatView: View {
         if alert.runModal() == .alertFirstButtonReturn { change(session) { $0.title = String(field.stringValue.prefix(200)) } }
     }
     var latestConversationMessage:ChatMessage? {store.selected?.messages.last(where:{!$0.isUIReport})}
-    var visibleTranscriptMessages:[ChatMessage] {(store.selected?.messages ?? []).filter{$0.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true)}}
+    var visibleTranscriptMessages:[ChatMessage] {
+        (store.selected?.messages ?? []).filter{message in
+            if message.kind=="tool_result" {return false}
+            // Visibility of ordinary/history reasoning rows does not require parsing
+            // their whole body on every streamed token, including rows outside the page.
+            if message.role != "assistant" || message.isUIReport || !(message.reasoning ?? "").isEmpty {return true}
+            let head=message.text.prefix(64).trimmingCharacters(in:.whitespacesAndNewlines)
+            if let first=head.first,first != "{",first != "`",first != "<" {return true}
+            return message.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true)
+        }
+    }
     var transcriptFirst:Int {transcriptSession==store.archive.selected ? min(transcriptStart,visibleTranscriptMessages.count):TranscriptWindow.initial(visibleTranscriptMessages.count)}
     var transcript: some View {
         ScrollViewReader { reader in
@@ -178,8 +188,14 @@ struct ChatView: View {
                             Text("Conversazioni locali, con il tuo modello.\nInizia un messaggio o scegli il modello nei Settings.").multilineTextAlignment(.center).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity).padding(.top, 80).padding(.bottom, 50)
                     }
-                    ForEach(Array(visibleTranscriptMessages.dropFirst(transcriptFirst))) { message in
-                        MessageCard(message: message, edit: { edit(message) }, regenerate: { regenerate(message) })
+                    ForEach(Array(visibleTranscriptMessages.dropFirst(transcriptFirst).prefix(40))) { message in
+                        MessageCard(message: message, typographyKey: "\(store.archive.settings.uiFont ?? "")|\(store.archive.settings.uiFontSize ?? 13)|\(store.archive.settings.chatFont ?? "")|\(store.archive.settings.chatFontSize ?? 14.5)", edit: { edit(message) }, regenerate: { regenerate(message) }).equatable()
+                    }
+                    if transcriptFirst+40<visibleTranscriptMessages.count {
+                        Button("Messaggi successivi") {
+                            scrollPolicy.userScrolled();transcriptStart=min(visibleTranscriptMessages.count-1,transcriptFirst+20)
+                            if let first=visibleTranscriptMessages.dropFirst(transcriptStart).first?.id {reader.scrollTo(first,anchor:.top)}
+                        }.buttonStyle(.bordered)
                     }
                     if let last=latestConversationMessage,!last.visibleInChat(agent:store.selected?.agentEnabled==true,web:store.selected?.webToolsEnabled==true),["queued","prefill","remote_wait","generating"].contains(last.state) { GenerationActivity(state:last.state, messageID:last.id) }
                     ForEach(store.approvals.filter{$0.sessionID==store.archive.selected}) { approval in ActionApprovalView(approval:approval) }
@@ -207,7 +223,7 @@ struct ChatView: View {
             .onChange(of:store.approvals.map(\.id)) { _,_ in requestBottom(reader) }
             .onChange(of:store.archive.selected.flatMap{store.terminals[$0]?.output}) { _,_ in requestBottom(reader) }
             .onChange(of:store.archive.selected) { _,id in if let id {store.markSessionRead(id)};transcriptSession=id;transcriptStart=TranscriptWindow.initial(visibleTranscriptMessages.count);scrollPolicy.resume();requestBottom(reader) }
-            .onChange(of:follow) { _,value in if value {requestBottom(reader)} }
+            .onChange(of:follow) { _,value in if value {transcriptStart=TranscriptWindow.initial(visibleTranscriptMessages.count);requestBottom(reader)} }
             .onAppear {if transcriptSession != store.archive.selected {transcriptSession=store.archive.selected;transcriptStart=TranscriptWindow.initial(visibleTranscriptMessages.count)};if let id=store.archive.selected {store.markSessionRead(id)};requestBottom(reader) }
             .onDisappear {bottomTask?.cancel()}
             .overlay(alignment:.bottomTrailing) { if !follow {
@@ -318,10 +334,11 @@ struct ChatView: View {
         }
     }
 }
-struct MessageCard: View {
-    @EnvironmentObject var store: StudioStore
+struct MessageCard: View, Equatable {
+    static func ==(lhs:Self,rhs:Self)->Bool {lhs.message==rhs.message && lhs.typographyKey==rhs.typographyKey}
     @State private var preview: ChatAttachment?
     let message: ChatMessage
+    var typographyKey=""
     var edit: () -> Void
     var regenerate: () -> Void
     var body: some View {

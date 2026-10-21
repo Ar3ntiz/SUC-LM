@@ -33,3 +33,15 @@ Universal packaging and Intel/M1 context regressions passed. No new GPU/KL
 measurements or real-model summary-quality qualification are implied.
 See [1.4.8](RELEASE_1.4.8.md), [1.4.8.02](RELEASE_1.4.8.02.md) and
 [verification evidence](RELEASE_1.4.8.02_QA.json).
+
+## Studio 1.4.8.03
+
+Compaction uses a dynamic output budget and rejects truncated or reasoning-only
+summaries, with one bounded retry and original history preserved. Scheduled
+routines reserve output headroom, require a final answer and remain running
+during preflight compaction. Long-chat rendering uses bounded pages, collapsible
+historical reasoning, background context sampling and throttled live metrics.
+Intel UI/functional tests and native M1 context/helper checks passed. The engine
+and memory policy are unchanged; external LM Studio latency is documented
+separately from client rendering costs. See [release](RELEASE_1.4.8.03.md) and
+[verification evidence](RELEASE_1.4.8.03_QA.json).

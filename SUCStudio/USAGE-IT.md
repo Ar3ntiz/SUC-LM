@@ -448,3 +448,11 @@ Il menu / e `/help` mostrano i comandi: `/status`, `/new`, `/clear`, `/stop`, `/
 Per richiamare un plugin attivo puoi usare anche `@plugin:identificatore richiesta` o il menu delle skill. Il modello può selezionarlo tramite il catalogo e `load_plugin`; skill solo esplicite, MCP e hook conservano le rispettive impostazioni e approvazioni. Il richiamo non attiva plugin disabilitati.
 
 Le chat lunghe caricano inizialmente gli ultimi 80 messaggi; Carica messaggi precedenti mostra il resto. Durante lo scroll manuale i messaggi visibili restano montati. Oltre 8000 caratteri l’anteprima non collassa più a 12 righe: Apri testo completo mantiene accessibile tutto il contenuto.
+
+### Correzioni 1.4.8.03
+
+La compattazione adatta il budget allo storico: da 2048 a 16384 token di output, ridotti se la finestra è piccola; un solo secondo tentativo può arrivare a 32768 token, se c’è spazio. Il budget comprende l’eventuale thinking del backend e viene mostrato durante la sintesi. Sintesi vuote o troncate non sostituiscono la memoria precedente. Alcuni backend possono ignorare la richiesta di disattivare il thinking.
+
+Le routine riservano almeno 4000 token di output, entro il contesto disponibile. Una risposta contenente solo thinking non è un risultato completato: la chat mostra il motivo e la routine registra l’errore. L’indicatore del contesto si aggiorna circa ogni secondo; i conteggi prima dell’invio vengono calcolati al momento dell’invio. La velocità reale dei server esterni dipende anche dal loro modello e dal contesto.
+
+Lo storico grafico usa pagine limitate con pulsanti per messaggi precedenti/successivi; tutti i messaggi rimangono salvati. I ragionamenti storici partono richiusi e sono espandibili. Il ragionamento in streaming si apre e non si richiude automaticamente a fine risposta, evitando salti di altezza.

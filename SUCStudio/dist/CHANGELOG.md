@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.8.03 — build 35
+
+Compattazione con budget dinamico, secondo tentativo limitato e rollback delle sintesi troncate. Parametri thinking preservati attraverso il router. Routine con riserva minima di output e verifica del risultato finale. Ridotti gli overhead delle chat lunghe: contesto campionato, pagine limitate, ragionamenti richiudibili e metriche streaming limitate. Motore e memory policy invariati.
+
 ## 1.4.8.02 — build 34
 
 Indicatore circolare del contesto, /compact e auto-compact al 99%, con storico originale conservato e limite remoto rilevabile o impostabile. Comandi della chat, richiamo esplicito dei plugin e caricamento autonomo dal modello. Corrette sparizioni e salti nelle chat lunghe: anteprima stabile oltre 8000 caratteri e cronologia caricata progressivamente. Coda, permessi e memory policy preservati.

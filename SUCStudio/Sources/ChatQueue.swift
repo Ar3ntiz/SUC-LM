@@ -2,7 +2,7 @@ import Foundation
 
 extension StudioStore {
     func sessionTurnBusy(_ id: UUID) -> Bool {
-        compacting.contains(id) || requests.values.contains{$0.session==id} || agentRuns.contains(id) || mcpRuns.contains(id)
+        pendingContextTools[id] != nil || compacting.contains(id) || requests.values.contains{$0.session==id} || agentRuns.contains(id) || mcpRuns.contains(id)
             || agentTurnStarts[id] != nil || editingSessions.contains(id)
     }
     var selectedTurnBusy: Bool { archive.selected.map{sessionTurnBusy($0)} ?? false }

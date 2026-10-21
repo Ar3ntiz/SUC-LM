@@ -120,3 +120,11 @@ Suite Universal su M1 superata, compresi modalità remota, regressioni dei tool 
 Helper finale: fasi load, progressione IPC/SSE e metriche decode live verificate sul Qwen3-8B locale selezionato; testo greedy identico alla 1.4.7.03. Verificati fallback cache zero, annullamento durante prefill e successivo replay identico. Nessun test hard/KL completo o nuovo benchmark di throughput attribuito a questa modifica; memory policy e kernel invariati. Prova reale: `docs/optimization/PROGRESS_HELPER_1.4.7.04.json`. Collaudo visuale dell'interfaccia dopo installazione resta manuale.
 
 Installer 1.4.7.04 estratto e verificato senza installazione: versione/build, firma, architetture, guide e motore identico al collaudo. Manifest degli input C++ coerente con i sorgenti. Evidenza: `docs/optimization/PACKAGE_1.4.7.04.json`.
+
+## Release 1.4.8.03 — build 35
+
+Regressioni Intel e M1 del contesto superate: budget dinamico, secondo tentativo dopo thinking-only o sintesi troncata, rollback, coda, protocollo locale e cancellazione. Verificati thinking-only come errore, routine con risultato di strumento e routine in compattazione prima dell’invio senza falso fallimento. Suite chat/skill/MCP fino a 4 MiB/web schedulato/approvazioni/coda superate.
+
+Test SSE: 1500 frammenti con usage per token integri in 0,128 s; 3 eventi metriche, 5 delta alla UI. Test grafico Intel con 100 messaggi e 1,67 MB: 150 aggiornamenti integri in 7,48 s, intervallo UI massimo 1,60 s sotto carico sintetico. Cache di presentazione: 0,154 s senza cache e 0,00052 s con cache per lo stesso ciclo di lettura; non misura la velocità complessiva dell’app. La soglia 8000 caratteri mantiene l’altezza (1514 → 1560 pt). Ragionamenti storici richiusi e paginazione limitata evitano di renderizzare l’intero storico a ogni aggiornamento.
+
+Diagnosi diretta LM Studio: 269 token input → primo frammento 1,775 s, ricezione 42,19 tok/s; 78.341 token input → primo frammento 453,484 s, ricezione 19,90 tok/s, confermati dai tempi server. Singola prova sintetica, senza UI, non valutazione della qualità o benchmark ripetuto. Motore SUC e memory policy invariati. Verifica degli artefatti e checksum in docs/optimization/RELEASE_1.4.8.03_QA.json del progetto padre.

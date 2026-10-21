@@ -29,3 +29,11 @@ Initial code findings are hypotheses: RemoteInference runs its per-byte SSE loop
 The inference C++/Metal graph, official chat template, model files and memory policy are unchanged. This client release fixes stream-drain overhead and metric reporting; it does not claim to remove the measured full-prefill cost of templated Qwen chat or complete natural-chat cache reuse.
 
 Final validation: the complete Universal suite passed on Intel and M1 Ultra (native ARM and simulated remote-only guards; auth/SSE/cancel/EOF/UTF-8/limits/cache metrics; real scheduled WebKit tools; skill/hook/plugin/MCP HTTP regressions). The M1 burst probe additionally verified the corrected ARM client. The rebuilt bundled inference helper has SHA256 fa3dc9e896261203b66bb21189a05c3e2925b4a99983d97a0879d2f42226d6e4, identical to the installed 1.4.7 helper; parent source content SHA256 remains f6bb844d6d5d03e35e2cffc673a500b3a1c68bacbd41abd58037feebc3af577f. No model-quality rerun is attributed to the client-only correction. Physical GUI acceptance of the new build remains manual.
+
+## Studio 1.4.8.03 — overhead del client e backend esterni
+
+L’indicatore del contesto introdotto nella 1.4.8.02 ricalcolava lo storico più volte per ogni aggiornamento SwiftUI. Ora usa snapshot in background circa ogni secondo; righe storiche, presentazioni e anteprime Markdown invarianti vengono riutilizzate. Le metriche per token non forzano più un flush UI a ogni evento (massimo circa 5 Hz per le metriche, con testo finale integro).
+
+La compattazione dispone ora di un budget dinamico separato dall’Output max della chat; una risposta troncata o contenente solo thinking non diventa memoria della sessione. Nei server che ignorano enable_thinking, il budget deve coprire anche il ragionamento.
+
+Una prova sintetica diretta con Qwen 27B su LM Studio via router ha misurato 453,48 s al primo frammento con 78.341 token input e circa 19,90 tok/s durante la successiva ricezione; il log server conferma il prefill e il decode. Questo costo resta anche senza UI e non è risolto dalle ottimizzazioni della cache del motore SUC. Ridurre lo storico attivo con /compact evita di reinviare tutto il contesto originale nelle richieste successive. Dettagli e limiti in [release 1.4.8.03](RELEASE_1.4.8.03.md).

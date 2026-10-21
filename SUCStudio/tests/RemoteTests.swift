@@ -74,6 +74,22 @@ import Foundation
    if profile=="lmstudio"{precondition(payload["decode_tps"] as? Double==42.5)}
    if profile=="custom"{precondition(payload["decode_tps"] as? Double==45)}
   }
+  var burstConfig=config;burstConfig.model="burst"
+  let burst=RemoteInference(burstConfig,key:"test");defer{burst.stop()}
+  var burstText="",burstMetrics=0,burstDeltas=0,burstUsage=0,finishReason=""
+  let burstStart=Date()
+  try await burst.generate(body){event in
+   let payload=event["payload"] as? [String:Any] ?? [:]
+   switch event["event"] as? String {
+   case "delta":burstText+=payload["text"] as? String ?? "";burstDeltas+=1
+   case "metrics":burstMetrics+=1;burstUsage=payload["completion_tokens"] as? Int ?? 0
+   case "finish_reason":finishReason=payload["reason"] as? String ?? ""
+   default:break
+   }
+  }
+  precondition(burstText==String(repeating:"x",count:1500) && burstUsage==1500 && finishReason=="stop")
+  precondition(burstMetrics<100 && burstDeltas<200)
+  print("Burst SSE: 1500 chunks/usage preserved; \(burstMetrics) metric events, \(burstDeltas) UI deltas, \(Date().timeIntervalSince(burstStart)) seconds")
   var quietOptions=config;quietOptions.liveTelemetry=false
   let quiet=RemoteInference(quietOptions,key:"test");defer{quiet.stop()};var quietMetrics=0
   try await quiet.generate(body){if $0["event"] as? String=="metrics"{quietMetrics+=1}}

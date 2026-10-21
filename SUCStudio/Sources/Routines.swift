@@ -1,18 +1,21 @@
 import Foundation
 extension StudioStore {
+    func effectiveOutputBudget(_ session:ChatSession)->Int {
+        activeRoutines.values.contains(session.id) ? max(4000,session.maxTokens):session.maxTokens
+    }
     func routineStatus(_ id: UUID, _ value: String) {
         guard let i=archive.settings.routines?.firstIndex(where:{$0.id==id}),archive.settings.routines?[i].status != value else{return}
         archive.settings.routines?[i].status=value;scheduleSave()
     }
     func tickRoutines(now: Date = Date()) {
         for (id,sessionID) in activeRoutines {
-            guard !requests.values.contains(where:{$0.session==sessionID}),!agentRuns.contains(sessionID) else{continue}
+            guard !requests.values.contains(where:{$0.session==sessionID}),!sessionTurnBusy(sessionID) else{continue}
             let session=archive.sessions.first{$0.id==sessionID}
             let last=session?.messages.last(where:{!$0.isUIReport})
-            let success=last?.role=="assistant" && last?.state=="complete" && WorkspaceAction.parse(last?.protocolText ?? "")==nil && !WorkspaceAction.isActionEnvelope(last?.protocolText ?? "")
+            let success=last?.role=="assistant" && last?.state=="complete" && !(last?.protocolText.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty ?? true) && last?.finishReason != "length" && WorkspaceAction.parse(last?.protocolText ?? "")==nil && !WorkspaceAction.isActionEnvelope(last?.protocolText ?? "")
             if let i=archive.settings.routines?.firstIndex(where:{$0.id==id}) {
                 archive.settings.routines?[i].status=success ? "Completata":"Interrotta o errore"
-                archive.settings.routines?[i].history.append(RoutineRun(state:success ? "completed":"error",detail:String((last?.text ?? "Sessione non disponibile").prefix(2000))))
+                archive.settings.routines?[i].history.append(RoutineRun(state:success ? "completed":"error",detail:String(((last?.protocolText.isEmpty == false ? last?.protocolText:session?.messages.last(where:{$0.kind=="action_notice"})?.text) ?? "Nessun risultato finale").prefix(2000))))
                 archive.settings.routines?[i].history=Array((archive.settings.routines?[i].history ?? []).suffix(50));scheduleSave()
             }
             activeRoutines.removeValue(forKey:id)
@@ -28,7 +31,7 @@ extension StudioStore {
             agentIterations[sessionID]=0;subtaskCounts[sessionID]=0
             activeRoutines[routine.id]=sessionID // mark unattended before any tool response
             sendMessage(sessionID:sessionID,toolResult:routine.prompt,isToolResult:false)
-            if requests.values.contains(where:{$0.session==sessionID}) {activeRoutines[routine.id]=sessionID}
+            if requests.values.contains(where:{$0.session==sessionID}) || sessionTurnBusy(sessionID) {activeRoutines[routine.id]=sessionID}
             else{activeRoutines.removeValue(forKey:routine.id);routineStatus(routine.id,"Invio non riuscito");actionNotice(sessionID,"Routine non inviata: verifica il server e le impostazioni della sessione.")}
             scheduleSave();break
         }

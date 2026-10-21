@@ -99,7 +99,7 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         var body = input
         body["model"] = configuration.model; body["stream"] = true; body["stream_options"] = ["include_usage":true]
         if configuration.telemetryProfile=="llama",configuration.liveTelemetry != false {body["timings_per_token"]=true;body["return_progress"]=true}
-        if configuration.telemetryProfile=="ds4",configuration.sendExtensions,let thinking=(body["chat_template_kwargs"] as? [String:Any])?["enable_thinking"] as? Bool {body["think"]=thinking;body.removeValue(forKey:"chat_template_kwargs")}
+        if configuration.telemetryProfile=="ds4",configuration.sendExtensions,let thinking=(body["chat_template_kwargs"] as? [String:Any])?["enable_thinking"] as? Bool {body["think"]=thinking}
         if !configuration.sendExtensions { body.removeValue(forKey:"top_k"); body.removeValue(forKey:"min_p"); body.removeValue(forKey:"chat_template_kwargs") }
         if (body["seed"] as? Int ?? -1) < 0 { body.removeValue(forKey:"seed") }
         var request = try request("chat/completions"); request.httpMethod = "POST"
@@ -128,14 +128,14 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
                 let delta = choice[full ? "message" : "delta"] as? [String:Any] ?? [:]
                 if let thought=(delta["reasoning_content"] as? String) ?? (delta["reasoning"] as? String){telemetry.observeText(thought);reasoningBuffer+=thought}
                 if let text = delta["content"] as? String { telemetry.observeText(text);buffer += text }
-                if let reason = choice["finish_reason"] as? String, !reason.isEmpty { finished = true }
+                if let reason = choice["finish_reason"] as? String, !reason.isEmpty { finished = true; event(["event":"finish_reason","payload":["reason":reason]]) }
                 if !emitted || Date().timeIntervalSince(lastFlush) >= 1.0/30 { flush() }
             }
             if let progress=value["prompt_progress"] as? [String:Any] {
                 event(["event":"prefill_progress","payload":progress])
             }
             telemetry.ingest(value)
-            if configuration.liveTelemetry != false && (value["usage"] != nil || value["suc_metrics"] != nil || value["timings"] != nil || value["stats"] != nil || value["prompt_progress"] != nil || Date().timeIntervalSince(lastMetrics)>0.2) {
+            if configuration.liveTelemetry != false && (finished || Date().timeIntervalSince(lastMetrics)>0.2) {
                 flush();event(["event":"metrics","payload":telemetry.payload()]);lastMetrics=Date()
             }
             return full

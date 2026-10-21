@@ -478,3 +478,11 @@ Use `/help` or the / menu for `/status`, `/new`, `/clear`, `/stop`, `/queue`, `/
 Invoke enabled plugins with `/plugin identifier request`, `@plugin:identifier request` or the skill menu. The model can discover them and request `load_plugin`. Explicit-only skills, MCP connections, hook review and tool approvals remain enforced. Disabled plugins are never enabled implicitly.
 
 Long chats initially render the latest 80 messages, with earlier history available on demand. Manual scrolling keeps the visible window stable. Crossing 8000 characters no longer collapses a message to 12 lines; complete text remains accessible.
+
+### 1.4.8.03 fixes
+
+Compaction adapts its output budget to historical material: 2048–16384 tokens, reduced for small context windows; one bounded retry may use up to 32768 tokens when space permits. This budget includes backend reasoning and is shown during compaction. Empty or truncated summaries never replace existing memory. Some backends may ignore requests to disable thinking.
+
+Scheduled routines reserve at least 4000 output tokens within the available context. Reasoning-only responses are reported as failures rather than completed results. The context indicator refreshes roughly once per second; pre-send budget checks remain current. External inference speed also depends on the server model and its active context.
+
+Transcript pages render a bounded number of rows with previous/next controls; every message remains saved. Historical reasoning starts collapsed and can be expanded. Live reasoning opens and does not auto-collapse at the end of a response, avoiding height jumps.

@@ -9,7 +9,8 @@ extension ChatMessage {
               ["run_command","run_interactive"].contains(action.name) else{return nil}
         return action
     }
-    var chatParts:ThinkingParts {
+    var chatParts:ThinkingParts {MessagePresentationCache.parts(self)}
+    var uncachedChatParts:ThinkingParts {
         var parts=ThinkingParts.split(text,separate:reasoning,implicit:implicitThinking==true)
         guard role=="assistant",!isUIReport else{return parts}
         let streaming=["queued","prefill","remote_wait","generating","cancelling"].contains(state)
@@ -63,5 +64,20 @@ extension StudioStore {
         if let reason {parts.append(reason)}
         let text=parts.joined(separator:" · ")
         mutateSession(sessionID){$0.messages.append(ChatMessage(role:"assistant",text:text,kind:"action_report"))}
+    }
+}
+
+/// Stable historical messages are parsed once instead of on every incoming token.
+private enum MessagePresentationCache {
+    final class Entry:NSObject {
+        let message:ChatMessage
+        let parts:ThinkingParts
+        init(_ message:ChatMessage){self.message=message;self.parts=message.uncachedChatParts}
+    }
+    static let cache:NSCache<NSUUID,Entry> = {let c=NSCache<NSUUID,Entry>();c.countLimit=256;c.totalCostLimit=16*1024*1024;return c}()
+    static func parts(_ message:ChatMessage)->ThinkingParts {
+        let key=message.id as NSUUID
+        if let entry=cache.object(forKey:key),entry.message==message {return entry.parts}
+        let entry=Entry(message);cache.setObject(entry,forKey:key,cost:message.text.utf8.count+(message.reasoning?.utf8.count ?? 0));return entry.parts
     }
 }

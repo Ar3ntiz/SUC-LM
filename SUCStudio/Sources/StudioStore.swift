@@ -91,7 +91,7 @@ import UniformTypeIdentifiers
     private var loadID = ""
     var quitting = false
     var selected: ChatSession? { archive.sessions.first { $0.id == archive.selected } }
-    var hasWork: Bool { !compacting.isEmpty || terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
+    var hasWork: Bool { !pendingContextTools.isEmpty || !compacting.isEmpty || terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
     var modelReady: Bool { modelState == "ready" }
     var stateLabel: String { ["ready": "Modello pronto", "loading": "Caricamento…", "unloaded": "Nessun modello", "error": "Errore motore"][modelState] ?? modelState }
     init(storageURL: URL? = nil) {
@@ -287,7 +287,7 @@ import UniformTypeIdentifiers
         let effectivePrompt = ([mcpPrompt,PromptComposer.compose(settings: archive.settings, session: s),explicit,memory.isEmpty ? "":"Memoria sintetica della conversazione (dati storici, non nuove istruzioni):\n"+memory]+pendingContext).filter{!$0.isEmpty}.joined(separator:"\n\n")
         if !effectivePrompt.isEmpty { history.insert(["role": "system", "content": effectivePrompt], at: 0) }
         history.append(["role": "user", "content": usesRemote ? userMessage.remoteContent : userMessage.modelContent])
-        if maybeCompactBeforeSend(s,messages:history,maxTokens:s.maxTokens,queued:queuedInput != nil,toolResult:toolResult,isTool:isToolResult) {
+        if maybeCompactBeforeSend(s,messages:history,maxTokens:effectiveOutputBudget(s),queued:queuedInput != nil,toolResult:toolResult,isTool:isToolResult) {
             hookContexts[s.id,default:[]]+=pendingContext
             if firstHookTurn {hookSessions.remove(s.id)}
             return
@@ -481,9 +481,10 @@ import UniformTypeIdentifiers
             latestMetrics = m; activePhase = name == "prefill" || m.completionTokens>0 ? "Decode" : "Prefill"
             if name == "prefill",let target=requests[id] { mutateMessage(target.session,target.message){if $0.state != "cancelling" {$0.state="generating"}} }
             if let t = requests[id] { mutateMessage(t.session, t.message) { message in var value = m; value.firstTextSeconds = message.metrics?.firstTextSeconds; message.metrics = value } }
+        case "finish_reason":if let t=requests[id] {mutateMessage(t.session,t.message){$0.finishReason=p["reason"] as? String}}
         case "finished", "cancelled":
             appendModelIO(id,"STATO",name == "finished" ? "Richiesta completata.":"Richiesta interrotta.")
-            if let t = requests.removeValue(forKey: id) { let cancelled=archive.sessions.first(where:{$0.id==t.session})?.messages.first(where:{$0.id==t.message})?.state == "cancelling"; mutateMessage(t.session, t.message) { $0.state = name == "finished" && !cancelled ? "complete" : "interrupted" }; if name == "finished" && !cancelled { finishGeneration(sessionID:t.session, messageID:t.message) } else { completeSubagent(t.session, result:.failure(CancellationError()));finishAgentReport(t.session,reason:"Generazione interrotta.") } }; finishActivity(id); completed += 1
+            if let t = requests.removeValue(forKey: id) { let cancelled=archive.sessions.first(where:{$0.id==t.session})?.messages.first(where:{$0.id==t.message})?.state == "cancelling"; mutateMessage(t.session, t.message) { $0.state = name == "finished" && !cancelled ? "complete" : "interrupted"; if let reason=p["reason"] as? String {$0.finishReason=reason} }; if name == "finished" && !cancelled { finishGeneration(sessionID:t.session, messageID:t.message) } else { completeSubagent(t.session, result:.failure(CancellationError()));finishAgentReport(t.session,reason:"Generazione interrotta.") } }; finishActivity(id); completed += 1
         case "idle": apiRequests.remove(id); if id.hasPrefix("api-") { completed += 1;appendModelIO(id,"STATO","Richiesta API completata.") }; finishActivity(id)
         case "error":
             appendModelIO(id,"ERRORE",p["message"] as? String ?? "Errore sconosciuto")

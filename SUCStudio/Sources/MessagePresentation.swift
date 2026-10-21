@@ -58,9 +58,9 @@ struct PreparedMarkdown {
 
 /// A fixed start index keeps older visible rows stable while new tokens/messages arrive.
 enum TranscriptWindow {
-    static func initial(_ count:Int)->Int {max(0,count-80)}
+    static func initial(_ count:Int)->Int {max(0,count-20)}
     static func updated(start:Int,count:Int,following:Bool)->Int {
-        following && count-start>160 ? initial(count):min(start,count)
+        following && count-start>40 ? initial(count):min(start,count)
     }
-    static func earlier(_ start:Int)->Int {max(0,start-40)}
+    static func earlier(_ start:Int)->Int {max(0,start-20)}
 }

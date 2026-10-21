@@ -1,0 +1,141 @@
+{
+  "version": "1.4.8.03",
+  "build": 35,
+  "architectures": {
+    "app": [
+      "x86_64",
+      "arm64"
+    ],
+    "command": [
+      "x86_64",
+      "arm64"
+    ],
+    "terminal": [
+      "x86_64",
+      "arm64"
+    ],
+    "engine": [
+      "arm64"
+    ]
+  },
+  "extracted_signature_valid": true,
+  "guides_and_release_notes_verified": true,
+  "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+  "parent_cpp_unchanged": true,
+  "package_sha256": "69272da6e65a5ad6ee6cb772661b13a3100e91019ac614f8e9982c60608b8f8d",
+  "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+  "compaction": {
+    "dynamic_budget": true,
+    "normal_output_range": [
+      2048,
+      16384
+    ],
+    "small_windows_reduce_budget": true,
+    "retry_ceiling": 32768,
+    "maximum_attempts_per_chunk": 2,
+    "thinking_only_and_truncated_retries_passed": true,
+    "rollback_history_checkpoint_and_queue_passed": true,
+    "local_summary_protocol_passed": true,
+    "native_m1_final_context_tests_passed": true,
+    "plugin_policy_passed": true
+  },
+  "routines": {
+    "minimum_output_reservation": 4000,
+    "bounded_by_available_context": true,
+    "thinking_only_reports_error": true,
+    "nonempty_final_answer_required": true,
+    "scheduled_tool_round_trip_passed": true,
+    "scheduled_web_browser_round_trip_passed": true,
+    "pending_preflight_compaction_keeps_running": true,
+    "preflight_cancellation_passed": true
+  },
+  "chat_regressions": {
+    "mcp_4mib": true,
+    "skills_hooks_plugin_builder_and_http_mcp": true,
+    "queue_fifo_attachments_cancel_pause_resume_persistence": true,
+    "platform_routing_and_release_identity": true,
+    "streaming_crlf_unicode_eof_auth_cancel_limits": true
+  },
+  "long_chat": {
+    "initial_visible_messages": 20,
+    "maximum_rendered_messages": 40,
+    "page_step": 20,
+    "manual_page_start_stable": true,
+    "historical_reasoning_collapsible": true,
+    "live_reasoning_does_not_auto_collapse": true,
+    "context_indicator_sampling_seconds": 1,
+    "live_metrics_frequency_hz": 5,
+    "burst_sse": {
+      "chunks": 1500,
+      "preserved": true,
+      "seconds": 0.127675,
+      "metric_events": 3,
+      "ui_deltas": 5
+    },
+    "ui_stress_intel": {
+      "cached_presentation_seconds": 0.0005189180374145508,
+      "historical_messages": 100,
+      "history_bytes": 1669090,
+      "max_ui_tick_seconds": 1.6047279834747314,
+      "passed": true,
+      "stream_deltas": 150,
+      "stream_seconds": 7.4840840101242065,
+      "uncached_presentation_seconds": 0.15369701385498047
+    },
+    "ui_height_regression": {
+      "characters": 8092,
+      "height_after_8000": 1560,
+      "height_before_8000": 1514,
+      "passed": true
+    }
+  },
+  "external_backend_diagnostic": {
+    "backend": "LM Studio via LLM Router",
+    "model": "Qwen 27B GGUF",
+    "live_summary_probe": {
+      "output_budget": 4096,
+      "finish_reason": "stop",
+      "content_characters": 134,
+      "reasoning_characters": 600,
+      "completion_tokens": 166,
+      "reasoning_tokens": 132,
+      "seconds": 5.602226
+    },
+    "synthetic_direct_streaming": [
+      {
+        "prompt_tokens": 269,
+        "completion_tokens": 44,
+        "ttft_seconds": 1.774871,
+        "receive_seconds": 1.019087,
+        "receive_tps": 42.19463
+      },
+      {
+        "prompt_tokens": 78341,
+        "completion_tokens": 56,
+        "ttft_seconds": 453.483767,
+        "receive_seconds": 2.764146,
+        "receive_tps": 19.89765
+      }
+    ],
+    "long_case_server_log": {
+      "prefill_seconds": 453.32789,
+      "prefill_tps": 172.81,
+      "decode_tps": 19.89
+    },
+    "single_diagnostic_not_repeated_quality_benchmark": true
+  },
+  "packaged_helper_native_m1_smoke": {
+    "passed": true,
+    "ready_hello_status_shutdown": true,
+    "model_loaded": false,
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46"
+  },
+  "memory_policy_unchanged": true,
+  "real_history_modified": false,
+  "real_history_included_in_report": false,
+  "suc_gpu_or_kl_requalification": false,
+  "real_model_long_summary_quality_benchmark": false,
+  "manual_gui_acceptance_on_all_supported_macs": false,
+  "checksums_verified": true,
+  "build_sdk": "MacOSX26.5.sdk"
+}

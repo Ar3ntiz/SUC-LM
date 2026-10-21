@@ -13,6 +13,11 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   if not self.authorized():return
   value=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+  if value['model']=='burst':
+   self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
+   for i in range(1500):
+    self.wfile.write(('data: '+json.dumps({'choices':[{'delta':{'content':'x'}}],'usage':{'prompt_tokens':80000,'completion_tokens':i+1}})+'\n\n').encode())
+   self.wfile.write(b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n');self.wfile.flush();return
   assert value['stream'] and 'top_k' not in value and 'min_p' not in value and 'seed' not in value
   if value['model'] in ('eof','unicode','json','oversized-line','oversized-total','oversized-json'):
    mode=value['model'];kind='text/event-stream'

@@ -2,7 +2,6 @@ import SwiftUI
 import AppKit
 
 struct MarkdownBody: View {
-    @EnvironmentObject var store: StudioStore
     let text:String
     var pointOffset:Double=0
     @State private var prepared=PreparedMarkdown(blocks:[],formatted:[:])
@@ -45,7 +44,9 @@ struct MarkdownBody: View {
         })
     }
     func scheduleRendering(){
-        pendingText=text
+        let source=MessagePresentation.preview(text)
+        guard source != pendingText || prepared.blocks.isEmpty else{return}
+        pendingText=source
         guard renderingTask==nil else{return}
         renderingTask=Task { @MainActor in
             while !Task.isCancelled {

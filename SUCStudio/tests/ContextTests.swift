@@ -15,12 +15,16 @@ import Foundation
         let port=String(decoding:pipe.fileHandleForReading.availableData,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
         func store(_ model:String="context-fixture")->StudioStore {
             let s=StudioStore(storageURL:root.appendingPathComponent(UUID().uuidString+".json"));s.schedulingEnabled=false;s.archive.settings.chatBackend="remote";s.archive.settings.remote=RemoteConfiguration(endpoint:"http://127.0.0.1:\(port)/v1",model:model)
+            s.archive.settings.remote?.sendExtensions=true;s.archive.settings.remote?.telemetryProfile="ds4"
             s.mutateSelected{$0.contextWindow=4096;$0.maxTokens=400};return s
         }
-        check(TranscriptWindow.initial(500)==420)
+        var edited=ChatMessage(role:"assistant",text:"answer A")
+        check(edited.chatParts.answer=="answer A");edited.text="answer B";check(edited.chatParts.answer=="answer B")
+        check(ContextBudget.estimate(ChatMessage(reasoning:String(repeating:"thinking",count:1000),role:"assistant",text:"ok"))==ContextBudget.estimate(ChatMessage(role:"assistant",text:"ok")))
+        check(TranscriptWindow.initial(500)==480)
         check(TranscriptWindow.updated(start:420,count:700,following:false)==420)
-        check(TranscriptWindow.updated(start:420,count:700,following:true)==620)
-        check(TranscriptWindow.earlier(420)==380)
+        check(TranscriptWindow.updated(start:420,count:700,following:true)==680)
+        check(TranscriptWindow.earlier(420)==400)
         let original=String(repeating:"Città 🌍 中文 RAW_HISTORICAL_MARKER ",count:400)
         let pieces=ContextBudget.chunks(original,maxBytes:91);check(pieces.joined()==original && pieces.allSatisfy{$0.utf8.count<=91})
         check(ContextBudget.payload([["type":"image_url"],["type":"text","text":"abc"]])==1025)
@@ -50,6 +54,34 @@ import Foundation
             try await wait("failed/cancelled compaction"){!s.compacting.contains(id)}
             check(s.selected!.contextSummary==nil && s.selected!.messages.first?.text==original && s.selected!.queuePaused==true && s.selected!.queuedMessages?.count==1)
         }
+        check(CompactionPolicy.outputBudget(limit:262144,inputTokens:100000)==16384)
+        check(CompactionPolicy.outputBudget(limit:262144,inputTokens:20000)>CompactionPolicy.outputBudget(limit:262144,inputTokens:1000))
+        check(CompactionPolicy.outputBudget(limit:4096,inputTokens:100000)<=4096/3)
+        for model in ["summary-retry","summary-truncated","summary-only-thinking"] {
+            let value=store(model),id=value.selected!.id
+            value.mutateSelected{$0.contextWindow=32768;$0.messages=[ChatMessage(role:"user",text:"Preserva il file notes.txt e il risultato 42.")]}
+            value.requestCompaction(id)
+            try await wait("summary thinking/truncation retry"){!value.compacting.contains(id)}
+            if model=="summary-only-thinking" {check(value.selected!.contextSummary==nil && value.selected!.messages.contains{$0.text.contains("esaurito i token")})}
+            else {check(value.selected!.contextSummary?.contains("MEMORY:")==true)}
+        }
+        let thinking=store("thinking-only");thinking.mutateSelected{$0.draft="test"};thinking.sendMessage()
+        try await wait("thinking-only is error"){thinking.requests.isEmpty}
+        check(thinking.selected!.messages.contains{$0.role=="assistant" && $0.state=="error" && $0.finishReason=="length"})
+        let background=store("thinking-only"),backgroundID=background.selected!.id,failedRoutineID=UUID()
+        background.archive.settings.routines=[StudioRoutine(id:failedRoutineID,name:"Thinking regression",prompt:"test",sessionID:backgroundID,backend:"remote",nextRun:Date(),enabled:true)]
+        background.schedulingEnabled=true;background.tickRoutines()
+        try await wait("routine failure"){background.requests.isEmpty}
+        background.tickRoutines()
+        check(background.archive.settings.routines?.first?.status=="Interrotta o errore")
+        let preflight=store(),preflightID=preflight.selected!.id,preflightRoutineID=UUID()
+        preflight.mutateSelected{$0.messages=[ChatMessage(role:"user",text:original)];$0.maxTokens=512}
+        preflight.archive.settings.routines=[StudioRoutine(id:preflightRoutineID,name:"Preflight compaction",prompt:"test",sessionID:preflightID,backend:"remote",nextRun:Date(),enabled:true)]
+        preflight.schedulingEnabled=true;preflight.tickRoutines()
+        try await wait("routine pending preflight"){preflight.compacting.contains(preflightID)}
+        check(preflight.compacting.contains(preflightID) && preflight.activeRoutines[preflightRoutineID]==preflightID && preflight.archive.settings.routines?.first?.status=="In esecuzione")
+        preflight.cancelSelected();try await wait("routine preflight cancelled"){!preflight.compacting.contains(preflightID)}
+        preflight.tickRoutines();check(preflight.archive.settings.routines?.first?.status=="Interrotta o errore")
         FileHandle.standardError.write(Data("Context test: commands and explicit/implicit plugin\n".utf8))
         let s=store();let manifest=PluginManifest(formatVersion:1,identifier:"plug.test",name:"Test plugin",version:"1",skills:[PluginSkill(name:"PluginSkill",description:"Check plugin",instructions:"PLUGIN_BODY_SECRET")],description:"Test plugin catalog")
         try s.installPlugin(manifest,source:"fixture");s.setPlugin(s.archive.settings.plugins![0],enabled:true,review:false)
@@ -57,6 +89,13 @@ import Foundation
             s.mutateSelected{$0.draft=prompt};s.sendMessage()
             try await wait("plugin invocation"){s.selected!.messages.contains{$0.text==answer && $0.state=="complete"}}
         }
+        let routineID=UUID(),routineSession=s.selected!.id
+        s.mutateSelected{$0.maxTokens=512;$0.contextWindow=32768}
+        s.archive.settings.routines=[StudioRoutine(id:routineID,name:"Tool regression",prompt:"routine-prompt",sessionID:routineSession,backend:"remote",nextRun:Date(),enabled:true)]
+        s.schedulingEnabled=true;s.tickRoutines()
+        try await wait("scheduled tool result"){s.selected!.messages.contains{$0.text=="ROUTINE_RESULT_OK" && $0.state=="complete"}}
+        s.tickRoutines();check(s.archive.settings.routines?.first?.status=="Completata")
+        s.schedulingEnabled=false
         let count=s.selected!.messages.count
         for command in ["/help","/status","/context 8192","/auto off","/plugins","/skills","/queue"] {s.mutateSelected{$0.draft=command};s.sendMessage()}
         check(s.selected!.contextWindow==8192 && s.selected!.autoCompact==false && s.requests.isEmpty && s.selected!.messages.count==count+7)
@@ -68,7 +107,7 @@ import Foundation
         let requestID=local.summaryWaiters.keys.first!
         check(local.consumeCompactionEvent(["event":"delta","id":requestID,"payload":["text":"LOCAL_SUMMARY"]]))
         check(local.consumeCompactionEvent(["event":"finished","id":requestID,"payload":[:]]))
-        let localText=try await summaryTask.value;check(localText=="LOCAL_SUMMARY" && local.summaryWaiters.isEmpty)
+        let localText=try await summaryTask.value;check(localText.text=="LOCAL_SUMMARY" && local.summaryWaiters.isEmpty)
         let cancelledSummary=Task{try await local.summarizeContext(localID,body:["messages":[]],remote:nil)}
         try await wait("local cancel waiter"){!local.summaryWaiters.isEmpty}
         let cancelledID=local.summaryWaiters.keys.first!;cancelledSummary.cancel()

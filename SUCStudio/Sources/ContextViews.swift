@@ -3,16 +3,24 @@ import SwiftUI
 struct ContextIndicator:View {
     @ObservedObject var store:StudioStore
     @State private var open=false
+    @State private var sampled=ContextUsage(used:0,limit:nil,estimated:true)
     var body:some View {
         if let session=store.selected {
-            let usage=store.contextUsage(session)
+            let usage=sampled
             Button{open.toggle()} label:{
                 ZStack {
                     Circle().stroke(.secondary.opacity(0.2),lineWidth:3)
                     Circle().trim(from:0,to:usage.fraction ?? 0).stroke((usage.fraction ?? 0)<0.9 ? Color.accentColor:Color.orange,style:StrokeStyle(lineWidth:3,lineCap:.round)).rotationEffect(.degrees(-90))
                     Text(usage.fraction.map{(usage.estimated ? "≈":"")+"\(Int($0*100))"} ?? "?").font(.system(size:8,weight:.medium,design:.rounded))
                 }.frame(width:25,height:25)
-            }.buttonStyle(.plain).help(store.contextDescription(session)).accessibilityLabel("Utilizzo del contesto. "+store.contextDescription(session))
+            }.buttonStyle(.plain).help("Contesto: \(usage.estimated ? "≈":"")\(usage.used) / \(usage.limit.map(String.init) ?? "?") token").accessibilityLabel("Utilizzo del contesto")
+                .task(id:session.id) {
+                    sampled=ContextUsage(used:0,limit:store.contextLimit(session),estimated:true)
+                    while !Task.isCancelled {
+                        if let value=await store.sampledContextUsage(session.id),!Task.isCancelled {sampled=value}
+                        do{try await Task.sleep(nanoseconds:1_000_000_000)}catch{return}
+                    }
+                }
                 .popover(isPresented:$open){ContextControls(store:store,sessionID:session.id).padding(16).frame(width:340)}
         }
     }
@@ -21,11 +29,12 @@ struct ContextControls:View {
     @ObservedObject var store:StudioStore
     let sessionID:UUID
     @State private var limit=""
+    @State private var usage=ContextUsage(used:0,limit:nil,estimated:true)
     var body:some View {
         if let session=store.archive.sessions.first(where:{$0.id==sessionID}) {
             VStack(alignment:.leading,spacing:12) {
                 Text("Contesto della sessione").font(.headline)
-                Text(store.contextDescription(session)).font(.caption).textSelection(.enabled)
+                Text("Contesto: \(usage.estimated ? "≈":"")\(usage.used) / \(usage.limit.map(String.init) ?? "limite sconosciuto") token").font(.caption).textSelection(.enabled)
                 Text("≈ indica una stima. I conteggi effettivi del server hanno precedenza. Include istruzioni, storico attivo, strumenti e allegati; le immagini possono avere costi variabili.").font(.caption).foregroundStyle(.secondary)
                 HStack {TextField("Limite (token), 0 = automatico",text:$limit).textFieldStyle(.roundedBorder)
                     Button("Applica") {
@@ -37,6 +46,12 @@ struct ContextControls:View {
                 Text("Una riserva per la risposta può anticipare la compattazione. Il riassunto usa il modello corrente; lo storico originale rimane disponibile.").font(.caption).foregroundStyle(.secondary)
                 Button("Compatta ora (/compact)"){store.requestCompaction(sessionID)}.disabled(store.compacting.contains(sessionID))
             }.onAppear{limit=String(session.contextWindow ?? 0)}
+            .task(id:sessionID){
+                while !Task.isCancelled {
+                    if let value=await store.sampledContextUsage(sessionID),!Task.isCancelled{usage=value}
+                    do{try await Task.sleep(nanoseconds:1_000_000_000)}catch{return}
+                }
+            }
         }
     }
 }
@@ -47,6 +62,7 @@ struct CompactionBanner:View {
             HStack {
                 if let progress=store.compactionProgress[id] {ProgressView(value:Double(progress.done),total:Double(max(1,progress.total))).frame(width:90)} else{ProgressView().controlSize(.small)}
                 Text("Compattazione del contesto…").font(StudioTypography.ui(.caption))
+                if let budget=store.compactionProgress[id]?.outputBudget,budget>0 {Text("Budget: \(budget) token").font(StudioTypography.ui(.caption2)).foregroundStyle(.secondary)}
                 Spacer();Button("Interrompi"){store.cancelSelected()}
             }
         }

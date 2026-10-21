@@ -8,6 +8,17 @@ extension StudioStore {
     }
     func finishGeneration(sessionID: UUID, messageID: UUID) {
         guard let session=archive.sessions.first(where:{$0.id==sessionID}),let message=session.messages.first(where:{$0.id==messageID}) else{return}
+        if message.protocolText.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty {
+            let detail=message.finishReason == "length" ? "Il modello ha esaurito il massimo output durante il thinking. Aumenta Output max o disattiva il thinking sul server.":"Il modello ha restituito solo thinking o una risposta vuota, senza risultato finale."
+            mutateMessage(sessionID,messageID){$0.state="error"}
+            actionNotice(sessionID,detail)
+            finishAgentReport(sessionID,reason:"Nessun risultato finale ricevuto.")
+            completeSubagent(sessionID,result:.failure(MCPConnection.failure(detail)))
+            return
+        }
+        if message.finishReason == "length" {
+            actionNotice(sessionID,"Risposta interrotta al limite Output max: il risultato può essere incompleto.")
+        }
         let final=WorkspaceAction.parse(message.protocolText)==nil && !WorkspaceAction.isActionEnvelope(message.protocolText)
         guard final,(archive.settings.hooks ?? []).contains(where:{$0.enabled && ["Stop","SubagentStop"].contains(HookDefinition.event($0.event))}) else{handleAgentResponse(sessionID:sessionID,messageID:messageID);return}
         agentRuns.insert(sessionID)

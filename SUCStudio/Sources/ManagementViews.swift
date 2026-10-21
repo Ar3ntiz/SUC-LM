@@ -92,6 +92,7 @@ struct RoutineEditor:View {
                 Text("Server remoto").tag("remote")
             }
             TextEditor(text:$value.prompt).frame(height:150)
+            Text("Le routine riservano almeno 4000 token di output, nei limiti del contesto, per completare thinking, strumenti e risposta.").font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
             DatePicker("Prima esecuzione",selection:$value.nextRun)
             Toggle("Ripeti nel tempo",isOn:Binding(get:{value.isRepeating},set:{value.repeatEnabled=$0}))
             if value.isRepeating {
