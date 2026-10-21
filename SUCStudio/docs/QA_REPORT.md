@@ -148,3 +148,7 @@ Verificati con processi reali: superamento dei 30 secondi, attese indipendenti d
 ### 1.4.9.02 · build 39
 
 Regressione sulle richieste di strumento con argomenti numerici, riprodotta dal formato osservato nella sessione attiva usando comandi fixture innocui. Normalizzazione di attese, scadenze e offset, con rifiuto di booleani/null/oggetti e azioni multiple. Nessuna esecuzione dei comandi dell’utente durante la diagnosi.
+
+### 1.4.9.03 · build 40
+
+Fixture HTTP in streaming e archivi temporanei: recupero di promesse IT/EN verso lettura reale, correzione del modello di JSON Markdown malformato verso una sola scrittura con artifact, massimo due tentativi condivisi (anche alternando i problemi), limite azioni, FIFO, approvazione manuale e Stop. Risposte finali/domande e output troncato al limite non vengono ritentati. Metriche senza conteggi finali non riportano decode/ragionamento a prefill; richieste estranee non alterano la fase corrente. Nessun comando o documento reale della sessione utente è stato eseguito/prodotto. Esiti finali nel report `RELEASE_1.4.9.03_QA.json`.

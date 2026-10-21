@@ -1,11 +1,11 @@
-# SUC Studio 1.4.9.02 — Setup and usage
+# SUC Studio 1.4.9.03 — Setup and usage
 
 SUC Studio is a Universal macOS app for Apple Silicon and Intel Macs, requiring macOS 15 or later.
 Apple Silicon supports the SUC C++/Metal engine and remote servers. Intel Macs use remote OpenAI-compatible servers.
 
 ## Installation and updates
 
-Open `SUC-Studio-1.4.9.02-universal.pkg` and follow the installer. The app is installed in Applications. This local distribution uses ad-hoc app signing without Developer ID or notarization. Existing sessions and settings remain in the same data directory; do not delete that directory during an update. The installer does not start the app or load a model automatically.
+Open `SUC-Studio-1.4.9.03-universal.pkg` and follow the installer. The app is installed in Applications. This local distribution uses ad-hoc app signing without Developer ID or notarization. Existing sessions and settings remain in the same data directory; do not delete that directory during an update. The installer does not start the app or load a model automatically.
 
 To build from source, keep `SUCStudio` inside the parent SUC-LM project and run `SUCStudio/scripts/build.sh`, then `SUCStudio/scripts/package.sh`. The app uses the parent `cpp` engine, without a duplicated engine tree. Python can be selected with `PYTHON_BIN`.
 
@@ -74,3 +74,7 @@ Starting requires working-directory, model-action and shell permissions, plus th
 Output is incremental, with a 256 KiB tail per job and 64 KiB per read. Responses explicitly report omitted and remaining bytes; use files for full logs. There is no automatic process adoption after restart. Forced termination may leave effects that must be checked before retrying. Commands needing user input still use the inline terminal.
 
 New local configurations default to 16000 context tokens. Saved limits are preserved. For remote servers, explicit session limits and API-reported windows take precedence; otherwise an assumed, editable 16000-token limit is shown. This does not enlarge the server's actual model window.
+
+## Agent recovery · 1.4.9.03
+
+Short IT/EN promises without actions and malformed tool requests can trigger up to two shared repair attempts per turn, within the action budget. The model must issue a valid authorized action or explain a concrete result/blocker. The harness never executes guessed or reconstructed JSON. Approvals and Stop still apply; exhausted recovery ends in an explicit error and pauses the queue. Normal final replies/questions remain final. Streaming metrics without output counts no longer revert decode to prefill. This conservative heuristic is not a task-completion guarantee.

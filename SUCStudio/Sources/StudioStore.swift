@@ -43,6 +43,8 @@ import UniformTypeIdentifiers
     var activeSkillInstructions:[UUID:String]=[:]
     var agentTurnStarts: [UUID:Int] = [:]
     var agentIterations: [UUID: Int] = [:]
+    var agentRepairs: [UUID:Int] = [:]
+    var agentRepairMessages: [UUID:Set<UUID>] = [:]
     var subtaskCounts: [UUID: Int] = [:]
     var subagentWaiters: [UUID: CheckedContinuation<String, Error>] = [:]
     var activeRoutines: [UUID: UUID] = [:]
@@ -270,7 +272,7 @@ import UniformTypeIdentifiers
         let userTurn=toolResult == nil || !isToolResult
         let firstHookTurn=userTurn && !hookSessions.contains(s.id)
         if userTurn {hookSessions.insert(s.id)}
-        if userTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0 }
+        if userTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0;agentRepairs[s.id]=0;agentRepairMessages[s.id]=[] }
         guard !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { return }
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
             let a = NSAlert(); a.messageText = L("Modello diverso per questa risposta"); a.informativeText = L("La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."); a.addButton(withTitle: L("Continua")); a.addButton(withTitle: L("Annulla")); guard a.runModal() == .alertFirstButtonReturn else { return }
@@ -452,7 +454,7 @@ import UniformTypeIdentifiers
             if let previous=prefillProgress[t.message],previous.total==value.total,previous.processed>value.processed { return }
             prefillProgress[t.message]=value
             mutateMessage(t.session,t.message) { $0.state="prefill" }
-            activePhase="Prefill"; return
+            if id==activeRequestID {activePhase="Prefill"}; return
         case "loaded": loadedContext = p["context"] as? Int ?? archive.settings.context; modelState = "ready"; loadedModel = p["model"] as? String ?? ""; appendLog("Modello pronto: \(loadedModel)")
         case "unloaded": memoryPlan = ""; expertStats = ""; modelState = "unloaded"; loadedModel = ""; if loadAfterStart { loadAfterStart = false; loadModel() }
         case "server": serverRunning = p["running"] as? Bool ?? false; serverBusy = false; if serverRunning { apiAddress = "http://\(p["host"] as? String ?? "127.0.0.1"):\(p["port"] as? Int ?? 8080)/v1" }; appendLog(serverRunning ? "Server avviato: \(apiAddress)" : "Server arrestato")
@@ -475,19 +477,26 @@ import UniformTypeIdentifiers
             mutateMessage(t.session,t.message){message in
                 if message.text.isEmpty && (message.reasoning ?? "").isEmpty {var m=message.metrics ?? Metrics();m.firstTextSeconds=Date().timeIntervalSince(t.start);message.metrics=m}
                 message.reasoning=(message.reasoning ?? "")+(p["text"] as? String ?? "");if message.state != "cancelling" {message.state="generating"}
-            };activePhase="Ragionamento"
+            };if id==activeRequestID {activePhase="Ragionamento"}
         }
         case "delta": if let t = requests[id] { appendModelIO(id,"OUTPUT",p["text"] as? String ?? "",coalesce:true);mutateMessage(t.session, t.message) { message in
             if message.text.isEmpty && (message.reasoning ?? "").isEmpty { var m = message.metrics ?? Metrics(); m.firstTextSeconds = Date().timeIntervalSince(t.start); message.metrics = m }
             message.text += p["text"] as? String ?? ""; if message.state != "cancelling" { message.state = "generating" }
-        }; activePhase = "Decode" }
+        }; if id==activeRequestID {activePhase = "Decode"} }
         case "prefill", "metrics":
             var m = latestMetrics ?? Metrics(); m.promptTokens = p["prompt_tokens"] as? Int ?? 0; m.prefillSeconds = p["prefill_s"] as? Double ?? 0
             m.completionTokens = p["completion_tokens"] as? Int ?? 0; m.decodeSeconds = p["decode_s"] as? Double ?? 0
             m.cachedPromptTokens=RemoteTelemetry.count(p["cached_tokens"]);m.evaluatedPromptTokens=RemoteTelemetry.count(p["prefill_tokens"])
             m.reportedPrefillRate=RemoteTelemetry.positive(p["prefill_tps"]);m.reportedDecodeRate=RemoteTelemetry.positive(p["decode_tps"])
             m.prefillSource=p["prefill_source"] as? String;m.decodeSource=p["decode_source"] as? String;m.remote=p["remote"] as? Bool
-            latestMetrics = m; activePhase = name == "prefill" || m.completionTokens>0 ? "Decode" : "Prefill"
+            latestMetrics = m
+            // Live usage may omit completion_tokens until the final SSE frame.
+            // Metrics cannot move an already streaming request back to prefill.
+            if id==activeRequestID {
+                if name=="prefill" || m.completionTokens>0 {
+                    if activePhase != "Ragionamento" {activePhase="Decode"}
+                } else if !["Decode","Ragionamento"].contains(activePhase),remoteClients[id]==nil {activePhase="Prefill"}
+            }
             if name == "prefill",let target=requests[id] { mutateMessage(target.session,target.message){if $0.state != "cancelling" {$0.state="generating"}} }
             if let t = requests[id] { mutateMessage(t.session, t.message) { message in var value = m; value.firstTextSeconds = message.metrics?.firstTextSeconds; message.metrics = value } }
         case "finish_reason":if let t=requests[id] {mutateMessage(t.session,t.message){$0.finishReason=p["reason"] as? String}}

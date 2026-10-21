@@ -1,0 +1,42 @@
+{
+  "macos": {
+    "version": "1.4.9.03",
+    "build": 40,
+    "app_architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "engine_architecture": "arm64",
+    "installer": "SUCStudio/dist/SUC-Studio-1.4.9.03-universal.pkg",
+    "sha256": "7852adfea5e042482622634a0a5f68250eb07367fd8e5b9d7818f78fd8b02103",
+    "signing": "ad-hoc; installer unsigned; not notarized"
+  },
+  "tests": {
+    "intel_and_native_m1_ultra": "PASS: same streaming HTTP fixture suite with isolated archives/workspaces",
+    "continuation": "PASS: IT/EN promises to real file read, final/question/no-tools exclusions, FIFO and per-user-turn reset",
+    "repair_limits": "PASS: two shared attempts, action budget, persistent and mixed malformed/promise output stopped without guessed execution",
+    "markdown": "PASS: model-corrected missing-brace envelope yields exact Markdown Unicode/quotes/code/backslash content, one real write and one artifact",
+    "approvals_and_stop": "PASS: manual approval required after feedback; Stop prevents action and pauses queued turn",
+    "truncation": "PASS: finish_reason length not automatically retried",
+    "phase": "PASS: absent/zero completion counts preserve decode/reasoning and remote wait; unrelated metrics do not alter phase",
+    "installer": "PASS: extracted bundle deep/strict signature, Universal app/helpers, version/build, both HTML guides, release notes, retained identity/migration guards"
+  },
+  "engine": {
+    "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+    "byte_identical_to_previous_release": true,
+    "memory_policy_changed": false,
+    "new_gpu_or_kl_benchmarks": false
+  },
+  "android": {
+    "version": "0.1.5",
+    "unchanged": true,
+    "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e"
+  },
+  "limits": [
+    "Conservative IT/EN text heuristic, not a universal task-completion guarantee.",
+    "No live model or installed-app GUI end-to-end test; streamed fixture responses exercise real harness/tools and file artifacts.",
+    "No execution of commands or production of documents from the inspected user sessions; live archives untouched.",
+    "No automatic installation or publication beyond the requested public-repository sync."
+  ]
+}

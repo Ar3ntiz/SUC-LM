@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.03 — build 40
+
+Recupero IT/EN di promesse senza azioni e richieste di strumento malformate: massimo due tentativi condivisi per turno, senza eseguire JSON ricostruiti. Permessi, approvazioni, Stop e limite azioni preservati; errore esplicito e coda sospesa al limite. Corretta l’alternanza prefill/decode con metriche streaming incomplete. Nuove richieste ripartono dalla propria fase. Motore e Android invariati.
+
 ## 1.4.9.02 — build 39
 
 Corretto il riconoscimento delle richieste di strumento con parametri numerici JSON, come wait_seconds e timeout_seconds. I numeri vengono normalizzati nel protocollo interno; limiti, approvazioni e isolamento restano applicati. Oggetti annidati, booleani e richieste ambigue restano rifiutati. Sessioni e motore invariati.

@@ -225,3 +225,7 @@ Historical reasoning is collapsed on first display and can be expanded. Live rea
 The coordinator authorizes execution once, keeps management tools scoped to the owning session and exempts observations from the execution action limit. Hooks still run. The store integrates active jobs with FIFO queuing, Stop, normal shutdown, unread state and persisted action records. UI snapshots refresh once per second; process output does not publish a view update per byte. Restored archives cannot adopt previous process handles or automatically rerun commands.
 
 New app configurations use 16000 context tokens. Explicit session limits and API-reported remote limits take precedence; an unreported remote window uses the visible 16000-token assumption. The engine and its memory policy are unchanged.
+
+## Agent recovery · 1.4.9.03
+
+`AgentContinuation.swift` adds a conservative terminal-promise heuristic and malformed-envelope feedback. Both paths share two runtime repair attempts per user turn and consume the configured action budget. Feedback goes through the normal request pipeline; corrected actions still pass permission checks, hooks, approvals and tool validation. No guessed JSON or command executes. Exhaustion marks the reply as an error and pauses queued work; counters reset on new user turns, not tool results. Valid normal finals remain final. Runtime streaming phases no longer regress from decode/reasoning on incomplete usage metrics.

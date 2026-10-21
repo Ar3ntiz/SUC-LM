@@ -61,3 +61,7 @@ Universal build 38 adds per-session command jobs, incremental bounded output and
 ### Studio 1.4.9.02 · build 39
 
 Fixed complete tool envelopes rejected when a remote model emits numeric wait/timeout/offset arguments. Numeric normalization preserves tool validation and approvals; booleans, null, nested structures and multiple envelopes remain rejected. Real subprocess regression passed on Intel and M1 Ultra; Universal installer verified. User sessions and engine unchanged.
+
+## Studio 1.4.9.03 · build 40
+
+Conservative IT/EN recovery for promises without tool actions and malformed action envelopes shares two attempts per turn within the action budget. Corrected requests still require normal permissions/approvals; no guessed JSON executes. Exhaustion ends in error and pauses queued work. Streaming phases no longer regress on incomplete usage counts. Real streamed fixture/file/artifact tests passed on Intel and M1 Ultra; Universal installer verified. Engine, memory policy and Android unchanged. See `RELEASE_1.4.9.03_IT.md` and `RELEASE_1.4.9.03_QA.json`.

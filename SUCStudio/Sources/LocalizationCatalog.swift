@@ -947,6 +947,10 @@ enum StudioCatalog {
         "Scollegato": "Disconnected",
         "Connesso · {0} strumenti": "Connected · {0} tools",
         "Errore: {0}": "Error: {0}",
+        "Il modello ha annunciato un’operazione senza avviarla. Richiedo il prossimo passo concreto.": "The model announced an operation without starting it. Requesting the next concrete step.",
+        "Il modello continua ad annunciare operazioni senza richiedere strumenti. Recupero automatico fermato.": "The model keeps announcing operations without requesting tools. Automatic recovery stopped.",
+        "Richiesta di strumento incompleta: chiedo al modello di correggere il formato. Nessuna azione eseguita.": "Incomplete tool request: asking the model to correct the format. No action executed.",
+        "Il modello non ha corretto la richiesta di strumento. Recupero automatico fermato.": "The model did not correct the tool request. Automatic recovery stopped.",
     ]
     static let italian: [String:String] = ["Settings":"Impostazioni", "Settings…":"Impostazioni…", "SessionStart: contesto iniziale. UserPromptSubmit: valida il prompt. PreToolUse: blocca o riscrivi argomenti. PermissionRequest: consenti/nega. PostToolUse: aggiungi feedback. Stop: chiedi una continuazione. Matcher usa Bash per i comandi e apply_patch per la scrittura. Async: solo contesto al turno successivo, nessuna decisione. Pre/PostCompact sono accettati ma questo harness non compatta automaticamente.":"SessionStart: contesto iniziale. UserPromptSubmit: valida il prompt. PreToolUse: blocca o riscrivi argomenti. PermissionRequest: consenti/nega. PostToolUse: aggiungi feedback. Stop: chiedi una continuazione. Matcher usa Bash per i comandi e apply_patch per la scrittura. Async: solo contesto al turno successivo, nessuna decisione. Pre/PostCompact vengono eseguiti intorno alla compattazione, anche automatica."]
 }

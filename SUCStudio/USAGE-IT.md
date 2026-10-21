@@ -1,4 +1,4 @@
-# SUC Studio 1.4.9.02
+# SUC Studio 1.4.9.03
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.9.02-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.9.03-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -90,7 +90,7 @@ Installare i Command Line Tools Apple (`xcode-select --install`), con SDK macOS 
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.9.02-universal.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
+Output: `dist/SUC Studio.app` e `dist/SUC-Studio-1.4.9.03-universal.pkg`. Tutti i percorsi vengono calcolati rispetto agli script: la cartella deve restare all’interno di SUC-LM, accanto a `cpp/`. Per ricompilare da zero: `CLEAN=1 ./scripts/build.sh`. La app finale non richiede Python, Xcode, CLT o il repository.
 
 ## Installare e iniziare
 
@@ -390,7 +390,7 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.9.02-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.9.03-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Avanzamento e velocità nella 1.4.7.04
 
@@ -478,3 +478,7 @@ Il modello avvia un job con `run_command`, poi ne legge lo stato con `command_st
 Il pannello «Comandi della sessione» mostra stato e output espandibile. Interrompi ferma il turno e il comando; i nuovi messaggi restano in coda fino alla conclusione dei job. La coda di output è limitata a 256 KiB per job, fino a 64 KiB per lettura, con omissioni esplicitamente indicate; per log integrali occorre un file. I job non vengono ricollegati dopo il riavvio. I comandi che richiedono input continuano a usare il terminale inline.
 
 Il contesto predefinito delle nuove configurazioni è 16000 token. I limiti già salvati o dichiarati dal server remoto hanno precedenza; per i server che non dichiarano una finestra, il pannello del contesto indica il valore assunto di 16000 token, modificabile.
+
+## Recupero dell’agente · 1.4.9.03
+
+Le brevi promesse IT/EN senza azioni e le richieste di strumento malformate possono attivare fino a due tentativi di correzione condivisi per turno, entro il limite azioni. Il modello deve richiedere un’azione valida già autorizzata oppure spiegare risultato o impedimento. L’harness non esegue JSON ricostruiti o azioni dedotte. Approvazioni e Stop restano applicati; al limite, errore esplicito e coda sospesa. Risposte finali normali e domande restano conclusive. Metriche streaming senza conteggi di output non riportano più decode a prefill. Il controllo euristico conservativo non garantisce il completamento del compito.
