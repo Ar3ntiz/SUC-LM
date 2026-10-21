@@ -1,0 +1,48 @@
+{
+  "macos": {
+    "version": "1.4.9.02",
+    "build": 38,
+    "app_architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "engine_architecture": "arm64",
+    "installer": "SUCStudio/dist/SUC-Studio-1.4.9.02-universal.pkg",
+    "sha256": "adb986bada7f60807f2a183ee9b52bae1f9919b562b670c4c3d54faa8c301f0f",
+    "signing": "ad-hoc; installer unsigned; not notarized"
+  },
+  "tests": {
+    "command_jobs_intel": "PASS: real 31s command, output offsets/tail/UTF-8, ownership, duplicate prevention, explicit timeout, process-group cancellation, approvals, action limit, queue/Stop, recovery, premature completion guard",
+    "localization": "PASS",
+    "chat_queue": "PASS",
+    "context_compaction": "PASS",
+    "release_identity": "PASS",
+    "universal_bundle_and_extracted_installer": "PASS: deep strict signature verification, version/build, Universal verification script",
+    "command_jobs_m1_ultra": "PASS: same real-process suite on native arm64, including 31s command, UTF-8, timeout, descendant cancellation, approvals/queue and 16000 defaults"
+  },
+  "context": {
+    "default_tokens": 16000,
+    "saved_limits_preserved": true,
+    "remote_precedence": [
+      "session",
+      "model API",
+      "assumed 16000"
+    ]
+  },
+  "engine": {
+    "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+    "unchanged": true,
+    "memory_policy_changed": false,
+    "new_gpu_or_kl_benchmarks": false
+  },
+  "android": {
+    "version": "0.1.5",
+    "unchanged": true,
+    "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e"
+  },
+  "limits": [
+    "No automatic installation or changes to live user settings/sessions.",
+    "No new end-to-end test with a real LLM; command tests use real shell subprocesses and isolated fixture archives."
+  ]
+}

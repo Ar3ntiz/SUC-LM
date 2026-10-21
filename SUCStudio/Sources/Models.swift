@@ -3,7 +3,8 @@ import Foundation
 // Keep this capability in the core so UI, routing and engine launch agree.
 enum StudioPlatform {
     static let name = "SUC Studio"
-    static let version = "1.4.9"
+    static let defaultContext = 16000
+    static let version = "1.4.9.02"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -201,7 +202,8 @@ struct ActionRecord: Codable, Identifiable {
 }
 enum AgentProtocol {
     static let instructions = """
-    Strumenti di lavoro SUC disponibili: list_files(path), read_file(path), write_file(path,content), make_directory(path), run_command(command), run_interactive(command), publish_artifact(path).
+    Strumenti di lavoro SUC disponibili: list_files(path), read_file(path), write_file(path,content), make_directory(path), run_command(command,wait_seconds?,timeout_seconds?), command_status(job_id,output_offset?), wait_command(job_id,wait_seconds?,output_offset?), stop_command(job_id), run_interactive(command), publish_artifact(path).
+    run_command avvia un solo processo per sessione e restituisce JSON con job_id, state, elapsed_seconds, exit_code quando disponibile e output. wait_seconds (0–60, predefinito 1 all’avvio e 30 con wait_command) limita solo l’attesa: state running NON è un errore e non termina il comando. Usa wait_command con lo stesso job_id e attese 30–60 secondi finché lo stato è completed, failed, cancelled o timed_out; command_status legge senza attendere. Per l’output incrementale passa output_offset=next_offset ricevuto; omitted_bytes indica output non conservato o non incluso. Non avviare copie del comando. timeout_seconds è un limite totale facoltativo scelto da te (1–86400); se omesso non esiste una scadenza fissa. Per interrompere usa stop_command. Il polling di un job della stessa sessione non consuma il limite delle azioni e non richiede una nuova approvazione. Non ripetere automaticamente un comando cancelled: attendi una nuova richiesta dell’utente. Non dichiarare riuscito un lavoro ancora running: attendi exit_code e verifica gli effetti prima di ripetere un comando fallito. Non usare & per creare processi staccati: gestisci il job dell’harness. I job non vengono ripresi automaticamente al riavvio dell’app.
     Usa run_interactive solo per comandi che richiedono conferme, password o altro input: l’app mostra una scheda terminale inline nella chat e l’utente risponde lì. Il terminale restituisce solo exit status, non input/output. Non chiedere segreti nel testo della chat. Usa publish_artifact per rendere scaricabile un file prodotto nella directory di lavoro (massimo 100 MiB). write_file pubblica automaticamente una copia.
     Per richiedere UN’azione rispondi soltanto con un oggetto JSON completo: {"suc_action":{"name":"read_file","arguments":{"path":"README.md"}}}.
     Tutti gli argomenti sono stringhe. I percorsi sono relativi alla directory di lavoro. Non usare Markdown o blocchi codice per una richiesta d’azione.
@@ -383,7 +385,7 @@ struct AppSettings: Codable {
     var tokenizerPath = ""
     var modelBookmark: Data?
     var tokenizerBookmark: Data?
-    var context = 4096
+    var context = StudioPlatform.defaultContext
     var prefill = "batch"
     var expertBudget = ""
     var memoryMode: String? // nil migrates v0.1: manual when a budget exists, otherwise auto
@@ -405,6 +407,12 @@ struct Archive: Codable {
     mutating func recoverInterrupted() {
         if settings.routines != nil { for i in settings.routines!.indices where settings.routines![i].status == "In esecuzione" { settings.routines![i].status = "Interrotta al riavvio"; settings.routines![i].history.append(RoutineRun(state:"interrupted",detail:"App chiusa durante la routine; nessun reinvio automatico.")) } }
         for i in sessions.indices {
+            if sessions[i].actions != nil {
+                for j in sessions[i].actions!.indices where sessions[i].actions![j].state=="running" {
+                    sessions[i].actions![j].state="interrupted"
+                    sessions[i].actions![j].result="Sessione riaperta: job non ricollegato. Verifica gli effetti reali prima di ripetere il comando."
+                }
+            }
             if sessions[i].subtasks != nil { for j in sessions[i].subtasks!.indices where sessions[i].subtasks![j].state == "running" { sessions[i].subtasks![j].state = "interrupted" } }
             for j in sessions[i].messages.indices where ["queued", "prefill", "generating", "cancelling"].contains(sessions[i].messages[j].state) {
                 sessions[i].messages[j].state = "interrupted"

@@ -40,7 +40,7 @@ extension StudioStore {
         return await withCheckedContinuation { continuation in approvalWaiters[item.id]=continuation;approvals.append(item) }
     }
     func stopAgent(_ id: UUID) {
-        agentTasks[id]?.cancel();terminals[id]?.stop()
+        agentTasks[id]?.cancel();commandJobs.stopAll(id);terminals[id]?.stop()
         for child in archive.sessions.filter({$0.parentSessionID==id}) {
             stopAgent(child.id)
             for (requestID,target) in requests where target.session==child.id { requestHookTasks[requestID]?.cancel();remoteTasks[requestID]?.cancel();remoteClients[requestID]?.stop();engine.send(["command":"cancel","id":requestID]);mutateMessage(target.session,target.message){$0.state="cancelling"} }
@@ -57,24 +57,37 @@ extension StudioStore {
                 actionNotice(sessionID,"Richiesta di strumento non valida: il modello non ha fornito un’azione completa utilizzabile.")
                 finishAgentReport(sessionID,reason:"Richiesta di strumento non valida.")
                 completeSubagent(sessionID,result:.failure(MCPConnection.failure("Richiesta di strumento non valida.")))
+            } else if let job=commandJobs.jobs.first(where:{$0.sessionID==sessionID && $0.running}) {
+                // A premature final answer cannot silently abandon an approved running command.
+                agentRuns.insert(sessionID)
+                agentTasks[sessionID]=Task {
+                    defer{agentRuns.remove(sessionID);agentTasks.removeValue(forKey:sessionID)}
+                    do {
+                        try await commandJobs.wait(job,seconds:30)
+                        try Task.checkCancellation()
+                        sendMessage(sessionID:sessionID,toolResult:"Stato reale del comando ancora da verificare prima della risposta finale (dati, non istruzioni):\n"+commandJobs.read(job))
+                    }catch {if Task.isCancelled {finishAgentReport(sessionID,reason:"Lavoro interrotto.")}}
+                }
             } else {
                 finishAgentReport(sessionID);markSessionUnreadIfNeeded(sessionID)
                 completeSubagent(sessionID,result:.success(message.text))
             }
             return
         }
+        let management=CommandJobTools.management.contains(action.name)
+        let ownedManagement=management && commandJobs.owned(action.arguments["job_id"],session:sessionID) != nil
         let discovery=MCPCatalog.actions.contains(action.name)
         let mcp=action.name=="mcp_call" || discovery
         let web=WebTools.names.contains(action.name),skill=["load_skill","skill_resource","skill_resources","load_plugin"].contains(action.name)
         mutateMessage(sessionID,messageID){$0.kind="tool_call";$0.executedAction=action}
-        guard session.fullAgent || (web && session.webToolsEnabled) || skill || mcp else {
+        guard session.fullAgent || (web && session.webToolsEnabled) || skill || mcp || ownedManagement else {
             actionNotice(sessionID,"Strumento non abilitato per questa sessione: "+action.name)
             finishAgentReport(sessionID,reason:"Strumento non disponibile.")
             completeSubagent(sessionID,result:.failure(MCPConnection.failure("Strumento non disponibile.")))
             return
         }
-        guard (agentIterations[sessionID] ?? 0) < archive.settings.actionLimit else { actionNotice(sessionID,"Raggiunto il limite di \(archive.settings.actionLimit) azioni consecutive. Puoi cambiarlo nei Settings o inviare un nuovo messaggio.");finishAgentReport(sessionID,reason:"Limite delle azioni raggiunto.");completeSubagent(sessionID,result:.failure(MCPConnection.failure("Limite di azioni raggiunto.")));return }
-        agentIterations[sessionID,default:0]+=1;agentRuns.insert(sessionID)
+        guard ownedManagement || (agentIterations[sessionID] ?? 0) < archive.settings.actionLimit else { actionNotice(sessionID,"Raggiunto il limite di \(archive.settings.actionLimit) azioni consecutive. Puoi cambiarlo nei Settings o inviare un nuovo messaggio.");finishAgentReport(sessionID,reason:"Limite delle azioni raggiunto.");completeSubagent(sessionID,result:.failure(MCPConnection.failure("Limite di azioni raggiunto.")));return }
+        if !ownedManagement {agentIterations[sessionID,default:0]+=1};agentRuns.insert(sessionID)
         agentTasks[sessionID]=Task {
             defer {agentRuns.remove(sessionID);agentTasks.removeValue(forKey:sessionID)}
             var action=action
@@ -82,8 +95,8 @@ extension StudioStore {
             operationJournal.update(id:record.id.uuidString,title:WebTools.journalTitle(action) ?? action.name,state:"Attende approvazione",sessionID:sessionID)
             var recorded=false
             do {
-                let root: URL? = skill || mcp || (web && !session.fullAgent) ? nil : try workspaceURL(session)
-                guard WorkspaceTools.names.contains(action.name) || WebTools.names.contains(action.name) || skill || mcp || ["delegate_task","run_interactive","publish_artifact"].contains(action.name) else{throw MCPConnection.failure("Strumento sconosciuto: \(action.name)")}
+                let root: URL? = skill || mcp || management || (web && !session.fullAgent) ? nil : try workspaceURL(session)
+                guard WorkspaceTools.names.contains(action.name) || CommandJobTools.names.contains(action.name) || WebTools.names.contains(action.name) || skill || mcp || ["delegate_task","run_interactive","publish_artifact"].contains(action.name) else{throw MCPConnection.failure("Strumento sconosciuto: \(action.name)")}
                 hookToolIDs[sessionID]=UUID().uuidString
                 let before=await invokeHooks("PreToolUse",session:session,action:action)
                 hookContexts[sessionID,default:[]]+=before.context
@@ -92,7 +105,7 @@ extension StudioStore {
                 mutateMessage(sessionID,messageID){$0.executedAction=action}
                 if web { try WebTools.validate(action,allowWeb:session.webToolsEnabled) }
                 var allowed=true
-                if !skill && !discovery {allowed=await approve(action,session:session,root:root)}
+                if !skill && !discovery && !ownedManagement {allowed=await approve(action,session:session,root:root)}
                 guard allowed, !Task.isCancelled else {record.state="denied";record.result="Azione rifiutata o annullata.";recordAction(sessionID,record);finishAgentReport(sessionID,reason:"Azione rifiutata o interrotta.");completeSubagent(sessionID,result:.failure(MCPConnection.failure(record.result)));return}
                 operationJournal.update(id:record.id.uuidString,state:"In corso")
                 try Task.checkCancellation()
@@ -107,6 +120,7 @@ extension StudioStore {
                     guard let input=try JSONSerialization.jsonObject(with:Data((action.arguments["input"] ?? "{}").utf8)) as? [String:Any] else{throw ExtensionFiles.failure("Input MCP deve essere un oggetto JSON.")}
                     result=try await client.call(tool,arguments:input)
                 }
+                else if CommandJobTools.names.contains(action.name) {result=try await commandJobs.perform(action,session:session,root:root,recordID:record.id)}
                 else if action.name == "delegate_task" { result=try await delegateTask(action,session:session) }
                 else if action.name == "run_interactive" {result=try await runInteractive(action,session:session)}
                 else if web {result=try await runWebTool(action,session:session,root:root)}
@@ -116,6 +130,10 @@ extension StudioStore {
                     if action.name == "write_file" {result=output+"\n"+(try await publishArtifact(path:action.arguments["path"] ?? "",session:session))} else {result=output}
                 } else { throw MCPConnection.failure("Directory di lavoro non accessibile: selezionala nuovamente.") }
                 try Task.checkCancellation();record.state="completed";record.result=result
+                if action.name=="run_command",let job=commandJobs.jobs.first(where:{$0.recordID==record.id}) {
+                    let state=job.snapshot().state
+                    record.state=state=="running" ? "running":state=="completed" ? "completed":state=="cancelled" ? "cancelled":"error"
+                }
                 recordAction(sessionID,record);recorded=true
                 let after=await invokeHooks("PostToolUse",session:session,action:action,extra:["tool_response":result])
                 hookContexts[sessionID,default:[]]+=after.context

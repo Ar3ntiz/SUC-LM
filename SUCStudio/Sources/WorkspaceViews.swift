@@ -25,7 +25,7 @@ struct WorkspaceSettingsView: View {
             if let actions=store.selected?.actions, !actions.isEmpty {
                 DisclosureGroup(L("Registro azioni (\(actions.count))")) { ScrollView {VStack(alignment:.leading,spacing:10){ForEach(actions.suffix(30)){item in Text("\(item.name) · \(item.state)\n\(item.result)").font(StudioTypography.ui(.caption)).textSelection(.enabled)}}}.frame(maxHeight:160) }
             }
-        }.disabled(store.selected.map { session in store.agentRuns.contains(session.id) || store.requests.values.contains(where: { $0.session == session.id }) } == true)
+        }.disabled(store.selected.map { session in store.commandJobs.running(session.id) || store.agentRuns.contains(session.id) || store.requests.values.contains(where: { $0.session == session.id }) } == true)
     }
 }
 struct ActionApprovalView: View {

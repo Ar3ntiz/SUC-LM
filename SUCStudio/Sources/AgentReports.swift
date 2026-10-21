@@ -42,24 +42,30 @@ extension StudioStore {
         markSessionUnreadIfNeeded(sessionID)
     }
     func recordAction(_ sessionID:UUID,_ record:ActionRecord) {
-        operationJournal.update(id:record.id.uuidString,title:WebTools.names.contains(record.name) ? nil:record.name,state:["completed":"Completata","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta"][record.state] ?? record.state,sessionID:sessionID)
+        operationJournal.update(id:record.id.uuidString,title:WebTools.names.contains(record.name) ? nil:record.name,state:["completed":"Completata","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta","running":"In corso"][record.state] ?? record.state,sessionID:sessionID)
         mutateSession(sessionID){$0.actions=($0.actions ?? [])+[record]}
-        if record.state != "completed" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(String(record.result.prefix(1200)))") }
+        var notice=String(record.result.prefix(1200))
+        if CommandJobTools.names.contains(record.name),let payload=try? JSONSerialization.jsonObject(with:Data(record.result.utf8)) as? [String:Any],payload["job_id"] != nil {
+            notice=L("Comando terminato con errore. Apri il pannello comandi per dettagli e output.")
+        }
+        if record.state != "completed" && record.state != "running" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(notice)") }
     }
     func finishAgentReport(_ sessionID:UUID,reason:String?=nil) {
         if reason != nil { pauseChatQueue(sessionID) }
         defer { if reason == nil { scheduleContextContinuation(sessionID) } }
         activeSkillInstructions.removeValue(forKey:sessionID)
         guard let start=agentTurnStarts.removeValue(forKey:sessionID),let session=archive.sessions.first(where:{$0.id==sessionID}) else{return}
-        let records=Array((session.actions ?? []).dropFirst(start))
+        let records=Array((session.actions ?? []).dropFirst(start)).filter{!CommandJobTools.management.contains($0.name)}
         guard !records.isEmpty || reason != nil else{return}
-        let done=records.filter{$0.state=="completed"},failed=records.count-done.count
+        let done=records.filter{$0.state=="completed"},running=records.filter{$0.state=="running"}.count
+        let failed=records.count-done.count-running
         let names=["list_files":"elenchi directory","read_file":"letture file","write_file":"scritture file","make_directory":"directory create","run_command":"comandi","delegate_task":"subtask","web_search":"ricerche web","visit_page":"pagine web","load_skill":"skill caricate"]
         let singles=["list_files":"elenco directory","read_file":"lettura file","write_file":"scrittura file","make_directory":"directory creata","run_command":"comando","delegate_task":"subtask","web_search":"ricerca web","visit_page":"pagina web","load_skill":"skill caricata"]
         let groups=Dictionary(grouping:done,by:{$0.name=="google_search" ? "web_search":$0.name}).sorted{$0.key<$1.key}.map{"\($0.value.count) \(($0.value.count==1 ? singles[$0.key]:names[$0.key]) ?? $0.key)"}.joined(separator:" · ")
         var parts:[String]=[]
         if !groups.isEmpty {parts.append(groups)}
         else if !done.isEmpty {parts.append("\(done.count) azioni completate")}
+        if running>0 {parts.append(L("\(running) comandi avviati"))}
         if failed>0 {parts.append("\(failed) \(failed == 1 ? "non completata":"non completate")")}
         if let reason {parts.append(reason)}
         let text=parts.joined(separator:" · ")

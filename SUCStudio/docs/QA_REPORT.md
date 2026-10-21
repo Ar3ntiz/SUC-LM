@@ -140,3 +140,7 @@ Su Intel e M1, la chat interattiva automatica avvia il browser a freddo, esegue 
 Localizzazione IT/EN e prerequisiti shell. Piano e verifiche definitive: `docs/optimization/PROGRESS_1.4.9_IT.md` e `RELEASE_1.4.9_QA.json`. Nessun nuovo benchmark del motore.
 
 Verificati: catalogo e interpolazioni IT/EN, migrazione e salvataggio lingua con store reale, prerequisiti shell, identità installer, guide IT/EN. Android: 14 test Kotlin e suite UI, codice 6 e certificato invariato. Hash del motore padre e binario helper identici alla build precedente. Nessuna nuova misura GPU/KL né collaudo fisico su Apple Silicon o Android. Le verifiche definitive di bundle e installer sono nel rapporto JSON della release.
+
+## 1.4.9.02 · build 38
+
+Verificati con processi reali: superamento dei 30 secondi, attese indipendenti dall’esecuzione, output incrementale/coda limitata, exit code, timeout esplicito e cancellazione dei figli. Testati isolamento per sessione, approvazione iniziale, polling oltre il limite azioni, coda e Stop, recupero archivio e continuazione dopo una risposta prematura. Contesto 16000 e precedenza dei limiti verificati. Regressioni coda, compattazione e IT/EN superate. I controlli del bundle, dell’installer e i checksum definitivi sono nel rapporto `RELEASE_1.4.9.02_QA.json`. Motore e memory policy invariati.

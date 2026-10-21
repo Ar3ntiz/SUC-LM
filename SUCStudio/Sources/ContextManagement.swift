@@ -59,7 +59,7 @@ struct SummaryWaiter {var continuation:CheckedContinuation<SummaryResult,Error>;
 extension StudioStore {
     func contextLimit(_ session:ChatSession)->Int? {
         if !usesRemote {return min(loadedContext,session.contextWindow ?? loadedContext)}
-        return session.contextWindow ?? archive.settings.remote.flatMap{$0.modelContextWindows?[$0.model]}
+        return session.contextWindow ?? archive.settings.remote.flatMap{$0.modelContextWindows?[$0.model]} ?? StudioPlatform.defaultContext
     }
     func contextSystemPrompt(_ session:ChatSession)->String {
         let summary=session.activeContextSummary

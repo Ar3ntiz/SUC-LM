@@ -1,11 +1,11 @@
-# SUC Studio 1.4.9 — Setup and usage
+# SUC Studio 1.4.9.02 — Setup and usage
 
 SUC Studio is a Universal macOS app for Apple Silicon and Intel Macs, requiring macOS 15 or later.
 Apple Silicon supports the SUC C++/Metal engine and remote servers. Intel Macs use remote OpenAI-compatible servers.
 
 ## Installation and updates
 
-Open `SUC-Studio-1.4.9-universal.pkg` and follow the installer. The app is installed in Applications. This local distribution uses ad-hoc app signing without Developer ID or notarization. Existing sessions and settings remain in the same data directory; do not delete that directory during an update. The installer does not start the app or load a model automatically.
+Open `SUC-Studio-1.4.9.02-universal.pkg` and follow the installer. The app is installed in Applications. This local distribution uses ad-hoc app signing without Developer ID or notarization. Existing sessions and settings remain in the same data directory; do not delete that directory during an update. The installer does not start the app or load a model automatically.
 
 To build from source, keep `SUCStudio` inside the parent SUC-LM project and run `SUCStudio/scripts/build.sh`, then `SUCStudio/scripts/package.sh`. The app uses the parent `cpp` engine, without a duplicated engine tree. Python can be selected with `PYTHON_BIN`.
 
@@ -64,3 +64,13 @@ The **Log** panel is disabled by default. Enable it only for diagnostics to see 
 ## Android 0.1.5
 
 Android is a remote chat client. In Settings, choose English or Italiano; the default is English and the preference is saved in the device archive. It supports sessions, documents/images, web search, text skills and remote HTTP MCP. It does not include a local engine, shell, terminal, hooks, routines or notifications. Android data is not automatically synced with the Mac.
+
+## Long-running commands · 1.4.9.02
+
+`run_command` starts a session-owned job; `command_status` reads its state, `wait_command` waits, and `stop_command` stops it. The initial wait defaults to 1 second; subsequent waits default to 30 seconds, with a maximum of 60. Expiring a wait does not kill or restart the process. There is no fixed total deadline unless the model sets `timeout_seconds` (1–86400).
+
+Starting requires working-directory, model-action and shell permissions, plus the configured approval. Managing an existing job needs no extra approval and does not consume the consecutive-action budget. Only one command may run per session, up to 8 overall. The Session commands panel shows expandable output and real state. Stop cancels the turn and its commands; queued messages wait for active jobs.
+
+Output is incremental, with a 256 KiB tail per job and 64 KiB per read. Responses explicitly report omitted and remaining bytes; use files for full logs. There is no automatic process adoption after restart. Forced termination may leave effects that must be checked before retrying. Commands needing user input still use the inline terminal.
+
+New local configurations default to 16000 context tokens. Saved limits are preserved. For remote servers, explicit session limits and API-reported windows take precedence; otherwise an assumed, editable 16000-token limit is shown. This does not enlarge the server's actual model window.

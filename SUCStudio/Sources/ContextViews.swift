@@ -36,6 +36,9 @@ struct ContextControls:View {
                 Text(L("Contesto della sessione")).font(.headline)
                 Text(L("Contesto: \(usage.estimated ? "≈":"")\(usage.used) / \(usage.limit.map(String.init) ?? "limite sconosciuto") token")).font(.caption).textSelection(.enabled)
                 Text(L("≈ indica una stima. I conteggi effettivi del server hanno precedenza. Include istruzioni, storico attivo, strumenti e allegati; le immagini possono avere costi variabili.")).font(.caption).foregroundStyle(.secondary)
+                if store.usesRemote, session.contextWindow == nil,store.archive.settings.remote.flatMap({$0.modelContextWindows?[$0.model]}) == nil {
+                    Text(L("Limite non dichiarato dal server: valore predefinito 16000 token. Puoi impostare il limite reale qui sotto.")).font(.caption).foregroundStyle(.secondary)
+                }
                 HStack {TextField(L("Limite (token), 0 = automatico"),text:$limit).textFieldStyle(.roundedBorder)
                     Button(L("Applica")) {
                         guard let value=Int(limit),value==0 || (1024...10_000_000).contains(value) else{store.error=L("Limite non valido: usa 0 oppure almeno 1024 token.");return}

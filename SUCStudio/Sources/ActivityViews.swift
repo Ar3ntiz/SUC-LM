@@ -7,6 +7,10 @@ struct GlobalActivityView:View {
             if store.modelState=="loading" {
                 ModelLoadingActivity(phase:store.loadPhase,memory:store.loadMemory,path:store.archive.settings.modelPath)
             }
+            if let job=store.commandJobs.jobs.first(where:{$0.running && ($0.sessionID != store.archive.selected || store.tab != "chat")}) {
+                HStack {Label(L("Comando in esecuzione in un’altra chat"),systemImage:"terminal");Spacer();Button(L("Apri chat")){store.archive.selected=job.sessionID;store.tab="chat";store.scheduleSave()}}
+                    .font(StudioTypography.ui(.caption)).padding(10).background(studioAccent.opacity(0.06))
+            }
             if let item=store.approvals.first(where:{$0.sessionID != store.archive.selected || store.tab != "chat"}) {
                 HStack { Label(L("Approvazione richiesta · ")+item.title,systemImage:"hand.raised").lineLimit(1);Spacer();Button(L("Apri chat")) {store.archive.selected=item.sessionID;store.tab="chat";store.scheduleSave()} }.padding(12).background(Color.orange.opacity(0.10))
             }

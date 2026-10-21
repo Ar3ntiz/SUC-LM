@@ -1,4 +1,4 @@
-# SUC Studio 1.4.9
+# SUC Studio 1.4.9.02
 
 Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o superiore.
 
@@ -6,7 +6,7 @@ Versione unica **SUC Studio**, Universal per Intel e Apple Silicon, macOS 15 o s
 - Intel: solo client OpenAI compatibile; nessun porting del motore SUC.
 - Sessioni/dati: `~/Library/Application Support/SUC Studio Universal Preview/`.
 - Bundle ID: `local.sucstudio.universal.app`. Identità e credenziali della versione Universal conservate.
-- Installazione: aprire `dist/SUC-Studio-1.4.8.02-universal.pkg`.
+- Installazione: aprire `dist/SUC-Studio-1.4.9.02-universal.pkg`.
   Installa `/Applications/SUC Studio.app` come unica versione del prodotto.
 - Il pacchetto usa firma ad hoc, senza Developer ID/notarizzazione.
 - Non importa automaticamente dati, plugin o credenziali dalla precedente versione non Universal.
@@ -92,7 +92,7 @@ Install the Apple Command Line Tools (`xcode-select --install`) with the macOS 1
 ./scripts/package.sh
 ```
 
-Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.8.02-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
+Output: `dist/SUC Studio.app` and `dist/SUC-Studio-1.4.9.02-universal.pkg`. All paths are computed relative to the scripts: the folder must stay inside SUC-LM, next to `cpp/`. To rebuild from scratch: `CLEAN=1 ./scripts/build.sh`. The final app does not require Python, Xcode, the CLT or the repository.
 
 ## Installing and getting started
 
@@ -416,7 +416,7 @@ KL invariata su sei modelli; superati tutti i dodici confronti 8k/32k e i collau
 
 La lettura dello stream remoto avviene fuori dal thread dell’interfaccia; restano attivi cancellazione, controlli di dimensione e gestione UTF-8. Le metriche di prefill derivate dai tempi contano solo i token nuovi, mentre le velocità esplicite del server hanno precedenza. Con cache completa senza una velocità esplicita compare `—`. Le impostazioni, le sessioni e le API key esistenti vengono conservate.
 
-La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.8.02-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
+La 1.4.7.02 riduce il ritardo di ricezione nel client. La 1.4.7.03 aggiunge il checkpoint dei turni Qwen descritto sopra. Il primo turno lungo e le modifiche anteriori al prefisso salvato richiedono ancora il prefill completo. Template e kernel restano invariati. Per aggiornare chiudi l’app e avvia `dist/SUC-Studio-1.4.9.02-universal.pkg`; non occorre ricaricare o convertire i file SUC1 per usare il nuovo client remoto.
 
 ### Qwen conversation cache in 1.4.7.03
 
@@ -500,3 +500,11 @@ Il primo avvio usa l’inglese, anche con macOS in italiano. Da Settings → Lan
 Il controllo «Consenti comandi shell» è disabilitato finché non sono selezionati una directory di lavoro e «Consenti azioni del modello». La modalità di approvazione automatica non abilita da sola gli strumenti. Il fix 1.4.8.04 è incluso senza una build intermedia.
 
 Android 0.1.5 offre la stessa scelta IT/EN, con inglese predefinito e preferenza salvata nell’archivio del dispositivo. Nessuna sincronizzazione automatica con il Mac.
+
+## Comandi prolungati · 1.4.9.02
+
+Il modello avvia un job con `run_command`, poi ne legge lo stato con `command_status`, attende con `wait_command` e lo interrompe con `stop_command`. Il superamento dell’attesa non termina il processo; non esiste più la scadenza fissa di 30 secondi. La durata totale è facoltativa (`timeout_seconds`). L’avvio segue i permessi della sessione; le consultazioni dello stesso job non richiedono una nuova approvazione né consumano il limite delle azioni.
+
+Il pannello «Comandi della sessione» mostra stato e output espandibile. Interrompi ferma il turno e il comando; i nuovi messaggi restano in coda fino alla conclusione dei job. La coda di output è limitata a 256 KiB per job, fino a 64 KiB per lettura, con omissioni esplicitamente indicate; per log integrali occorre un file. I job non vengono ricollegati dopo il riavvio. I comandi che richiedono input continuano a usare il terminale inline.
+
+Il contesto predefinito delle nuove configurazioni è 16000 token. I limiti già salvati o dichiarati dal server remoto hanno precedenza; per i server che non dichiarano una finestra, il pannello del contesto indica il valore assunto di 16000 token, modificabile.

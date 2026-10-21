@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.02 — build 38
+
+Comandi shell come job con stato, attesa, output incrementale e interruzione gestibili dal modello. Rimossa la scadenza fissa di 30 secondi; durata totale facoltativa. Pannello comandi in chat, isolamento per sessione e integrazione con coda e Stop. Contesto predefinito 16000 token, mantenendo limiti salvati e rilevati. IT/EN preservati; motore e APK invariati.
+
 ## 1.4.9 — build 37
 
 Interfaccia IT/EN, inglese predefinito e lingua salvata nell’archivio delle sessioni. Localizzati menu, pannelli, dialoghi, suggerimenti e guida HTML. Integrato il fix shell 1.4.8.04 senza build intermedia. Android 0.1.5 offre la stessa selezione persistente. Contenuti delle chat, protocolli, motore e memory policy preservati.

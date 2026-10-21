@@ -53,3 +53,7 @@ Completata la risoluzione dei nomi e degli alias MCP non ambigui: le chiamate us
 ### SUC Studio 1.4.9 · build 37 / Android 0.1.5 · codice 6
 
 Interfacce IT/EN con inglese predefinito e lingua salvata negli archivi esistenti. Prerequisiti shell espliciti su macOS: directory e azioni del modello necessarie; controllo disabilitato quando mancano. Guide, menu, dialoghi e suggerimenti localizzati. Verificati archivio macOS reale, catalogo, 14 test Kotlin, suite UI Android e pacchetti. Motore, memory policy e metriche dei modelli invariati. Dettagli in `RELEASE_1.4.9_IT.md` e `RELEASE_1.4.9_QA.json`.
+
+## Studio 1.4.9.02 · managed shell commands
+
+Universal build 38 adds per-session command jobs, incremental bounded output and status/wait/stop tools. Waiting no longer kills a command at 30 seconds. Real subprocess tests passed on Intel and M1 Ultra, together with queue, context and localization regressions. Default context is 16000 tokens; saved limits remain intact. Engine, memory policy and Android 0.1.5 unchanged. See `RELEASE_1.4.9.02_QA.json`.

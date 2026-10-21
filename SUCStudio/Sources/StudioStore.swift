@@ -24,11 +24,12 @@ import UniformTypeIdentifiers
     @Published var apiRequests = Set<String>()
     @Published var operationJournal=OperationJournal()
     @Published var modelIOLog=ModelIOLog()
+    let commandJobs:CommandJobs
     @Published var terminals:[UUID:InteractiveTerminal]=[:]
     @Published var logs: [String] = []
     @Published var completed = 0
     @Published var engineFootprint: Double?
-    @Published var loadedContext = 4096
+    @Published var loadedContext = StudioPlatform.defaultContext
     @Published var memoryPlan = ""
     @Published var expertStats = ""
     @Published var mcpTools: [MCPTool] = []
@@ -91,10 +92,11 @@ import UniformTypeIdentifiers
     private var loadID = ""
     var quitting = false
     var selected: ChatSession? { archive.sessions.first { $0.id == archive.selected } }
-    var hasWork: Bool { !pendingContextTools.isEmpty || !compacting.isEmpty || terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
+    var hasWork: Bool { commandJobs.running() ||  !pendingContextTools.isEmpty || !compacting.isEmpty || terminals.values.contains(where:{$0.running}) || !agentRuns.isEmpty || !mcpRuns.isEmpty || !attachmentLoads.isEmpty || !requests.isEmpty || !apiRequests.isEmpty || modelState == "loading" }
     var modelReady: Bool { modelState == "ready" }
     var stateLabel: String { ["ready": "Modello pronto", "loading": "Caricamento…", "unloaded": "Nessun modello", "error": "Errore motore"][modelState] ?? modelState }
-    init(storageURL: URL? = nil) {
+    init(storageURL: URL? = nil, commandHelperURL: URL? = nil) {
+        commandJobs=CommandJobs(helperURL:commandHelperURL)
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(StudioPlatform.dataDirectory)
         archiveURL = storageURL ?? root.appendingPathComponent("sessions.json"); disk = ArchiveDisk(url: archiveURL)
         do { archive = try ArchiveDisk.load(archiveURL) }
@@ -108,6 +110,8 @@ import UniformTypeIdentifiers
         // Restored queues require explicit consent to resume after relaunch.
         for i in archive.sessions.indices where !(archive.sessions[i].queuedMessages ?? []).isEmpty { archive.sessions[i].queuePaused = true }
         StudioL10n.language=archive.settings.effectiveLanguage; StudioTypography.apply(archive.settings)
+        commandJobs.onChange={ [weak self] in self?.objectWillChange.send() }
+        commandJobs.onFinish={ [weak self] job in self?.commandJobFinished(job) }
         if storageURL == nil { refreshLoginStatus(); if archive.settings.keepAwake == true { setAwake(true) } }
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.engine.send(["command": "status"]); self?.tickRoutines() }
@@ -185,13 +189,13 @@ import UniformTypeIdentifiers
         archive.sessions.insert(s, at: 0); archive.selected = s.id; showArchived = false; scheduleSave()
     }
     func deleteSession(_ s: ChatSession) {
-        guard !compacting.contains(s.id), terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
+        guard !commandJobs.running(s.id), !compacting.contains(s.id), terminals[s.id]?.running != true, !agentRuns.contains(s.id), !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { error = "Interrompi la generazione di questa sessione prima di eliminarla."; return }
         let alert = NSAlert(); alert.messageText = L("Eliminare “\(s.title)”?"); alert.informativeText = L("Questa azione elimina la sessione e i suoi messaggi."); alert.addButton(withTitle: L("Elimina")); alert.addButton(withTitle: L("Annulla"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Task{_ = await invokeHooks("SessionEnd",session:s,extra:["reason":"other"])}
         for task in backgroundHooks.removeValue(forKey:s.id)?.values ?? [:].values {task.cancel()}
         hookSessions.remove(s.id);hookContexts.removeValue(forKey:s.id)
-        terminals.removeValue(forKey:s.id)?.stop();archive.sessions.removeAll { $0.id == s.id }; if archive.selected == s.id { archive.selected = archive.sessions.first?.id }; if archive.sessions.isEmpty { newSession() }; scheduleSave()
+        commandJobs.stopAll(s.id);terminals.removeValue(forKey:s.id)?.stop();archive.sessions.removeAll { $0.id == s.id }; if archive.selected == s.id { archive.selected = archive.sessions.first?.id }; if archive.sessions.isEmpty { newSession() }; scheduleSave()
     }
     func pickFile(model: Bool) {
         let p = NSOpenPanel(); p.canChooseDirectories = false; p.allowsMultipleSelection = false
@@ -449,7 +453,7 @@ import UniformTypeIdentifiers
             prefillProgress[t.message]=value
             mutateMessage(t.session,t.message) { $0.state="prefill" }
             activePhase="Prefill"; return
-        case "loaded": loadedContext = p["context"] as? Int ?? 4096; modelState = "ready"; loadedModel = p["model"] as? String ?? ""; appendLog("Modello pronto: \(loadedModel)")
+        case "loaded": loadedContext = p["context"] as? Int ?? archive.settings.context; modelState = "ready"; loadedModel = p["model"] as? String ?? ""; appendLog("Modello pronto: \(loadedModel)")
         case "unloaded": memoryPlan = ""; expertStats = ""; modelState = "unloaded"; loadedModel = ""; if loadAfterStart { loadAfterStart = false; loadModel() }
         case "server": serverRunning = p["running"] as? Bool ?? false; serverBusy = false; if serverRunning { apiAddress = "http://\(p["host"] as? String ?? "127.0.0.1"):\(p["port"] as? Int ?? 8080)/v1" }; appendLog(serverRunning ? "Server avviato: \(apiAddress)" : "Server arrestato")
         case "status": engineFootprint = (p["footprint_bytes"] as? Double).map { $0 / 1_073_741_824 }; return
@@ -536,8 +540,9 @@ import UniformTypeIdentifiers
     }
     func quit(completion: @escaping (Bool) -> Void) {
         if hasWork { let alert = NSAlert(); alert.messageText = L("Interrompere il lavoro e uscire?"); alert.addButton(withTitle: L("Interrompi ed esci")); alert.addButton(withTitle: L("Annulla")); guard alert.runModal() == .alertFirstButtonReturn else { completion(false); return } }
-        quitting = true; for task in compactionTasks.values{task.cancel()};for client in compactionClients.values{client.stop()}; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
+        quitting = true;commandJobs.stopAll(); for task in compactionTasks.values{task.cancel()};for client in compactionClients.values{client.stop()}; for terminal in terminals.values {terminal.stop()}; schedulingEnabled = false; try? power.set(false); saveTask?.cancel(); for id in Array(agentTasks.keys) { stopAgent(id) }; for task in requestHookTasks.values { task.cancel() }; for task in remoteTasks.values { task.cancel() }; for client in remoteClients.values { client.stop() }; engine.shutdown(); for id in Array(mcpConnections.keys) { disconnectMCP(id) }
         Task {
+            await commandJobs.shutdown()
             for tasks in backgroundHooks.values {for task in tasks.values{task.cancel()}}
             for session in archive.sessions where hookSessions.contains(session.id) {_ = await invokeHooks("SessionEnd",session:session,extra:["reason":"other"])}
             do { if !saveError { try await disk.save(archive) } } catch { self.error = error.localizedDescription; quitting = false; completion(false); return }; completion(true) }

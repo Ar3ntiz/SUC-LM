@@ -3,6 +3,23 @@ import Foundation
 // App-owned display text. Protocol names and user content never enter this catalog.
 enum StudioCatalog {
     static let english: [String:String] = [
+        "{0}: usa un numero intero tra {1} e {2}.": "{0}: enter an integer between {1} and {2}.",
+        "Un comando è già in esecuzione: {0}. Usa wait_command o stop_command; non avviarne una copia.": "A command is already running: {0}. Use wait_command or stop_command; do not start a copy.",
+        "Sessione riaperta: job non ricollegato. Verifica gli effetti reali prima di ripetere il comando.": "Session reopened: job not reconnected. Verify actual effects before repeating the command.",
+
+        "Comandi della sessione": "Session commands",
+        "Interrompi comandi": "Stop commands",
+        "Comando in esecuzione in un’altra chat": "Command running in another chat",
+        "Durata massima raggiunta": "Maximum duration reached",
+        "Anteprima: {0} byte precedenti non mostrati.": "Preview: {0} earlier bytes not shown.",
+        "Comando terminato con errore. Apri il pannello comandi per dettagli e output.": "Command ended with an error. Open the commands panel for details and output.",
+        "{0} comandi avviati": "{0} commands started",
+        "Limite non dichiarato dal server: valore predefinito 16000 token. Puoi impostare il limite reale qui sotto.": "The server does not report a limit: using the 16000-token default. You can set the actual limit below.",
+        "Durata massima del comando non valida.": "Invalid maximum command duration.",
+        "Comando sconosciuto in questa sessione. Nessun processo è stato avviato o riavviato.": "Unknown command in this session. No process was started or restarted.",
+        "Massimo 8 comandi attivi. Attendi o interrompi un comando.": "Maximum 8 active commands. Wait for or stop a command.",
+        "Durata massima richiesta dal modello raggiunta ({0} secondi). Nessun riavvio automatico.": "Maximum duration requested by the model reached ({0} seconds). No automatic restart.",
+
         "Server remoto · {0}": "Remote server · {0}",
         "Errore motore": "Engine error",
         " · copia": " · copy",

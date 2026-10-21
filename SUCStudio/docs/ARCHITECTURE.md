@@ -217,3 +217,11 @@ Compaction budgets grow with historical material (10% estimated memory target, d
 Scheduled turns reserve at least 4000 output tokens within context constraints. Thinking-only responses fail explicitly; routine completion waits for tools/compaction and requires a nonempty final answer. Context estimation in the composer runs on sampled background snapshots rather than per-token view evaluation. Stable historical presentation is cached within 16 MiB/256 entries; unchanged rows and unchanged 8k Markdown previews avoid redundant rendering. Live metrics are throttled to 5 Hz; text and final usage remain lossless. These changes remove client overhead without claiming to reduce an external backend’s attention or prefill cost.
 
 Historical reasoning is collapsed on first display and can be expanded. Live reasoning opens automatically and does not auto-collapse when decoding finishes, preserving scroll height. Transcript pagination renders at most 40 rows with a 20-row initial/following window; manual reading keeps the page start stable, and explicit previous/next controls navigate the preserved history.
+
+## Command jobs · 1.4.9.02
+
+`CommandJobs` owns session-scoped, runtime-only shell jobs. `WorkspaceCommand` drains nonblocking pipes off the main thread and isolates cancellation to the helper process group. Expiring a tool wait does not terminate or restart a command. Optional total deadlines are explicit and use monotonic time. A bounded output tail and incremental cursors avoid repeated full logs.
+
+The coordinator authorizes execution once, keeps management tools scoped to the owning session and exempts observations from the execution action limit. Hooks still run. The store integrates active jobs with FIFO queuing, Stop, normal shutdown, unread state and persisted action records. UI snapshots refresh once per second; process output does not publish a view update per byte. Restored archives cannot adopt previous process handles or automatically rerun commands.
+
+New app configurations use 16000 context tokens. Explicit session limits and API-reported remote limits take precedence; an unreported remote window uses the visible 16000-token assumption. The engine and its memory policy are unchanged.

@@ -40,47 +40,79 @@ enum WorkspaceTools {
         }.value
     }
 }
+struct CommandTimeLimitError:LocalizedError {
+    let seconds:Int
+    var errorDescription:String? {"Durata massima richiesta dal modello raggiunta (\(seconds) secondi). Nessun riavvio automatico."}
+}
 final class WorkspaceCommand: @unchecked Sendable {
     private let helperURL: URL
     init(helperURL: URL? = nil) { self.helperURL = helperURL ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/suc-studio-command") }
-    private let lock = NSLock()
-    private var process: Process?
-    private var cancelled = false
-    private var output = Data()
-    private var overflow = false
-    private func cancel() { lock.lock(); cancelled = true; let p=process; lock.unlock(); if let p, p.isRunning { kill(-p.processIdentifier, SIGTERM) } }
-    func run(_ command: String, root: URL, environment: [String:String] = [:]) async throws -> String {
-        try await withTaskCancellationHandler(operation: {
+    private let lock=NSLock()
+    private var process:Process?
+    private var cancelled=false
+    private func cancel() {
+        lock.lock();cancelled=true;let p=process;lock.unlock()
+        if let p,p.isRunning {kill(-p.processIdentifier,SIGTERM)}
+    }
+    func run(_ command:String,root:URL,environment:[String:String]=[:],timeout:TimeInterval?=nil,onOutput:((Data)->Void)?=nil) async throws -> String {
+        if let timeout, !timeout.isFinite || timeout<=0 {throw MCPConnection.failure("Durata massima del comando non valida.")}
+        return try await withTaskCancellationHandler(operation:{
             try await withCheckedThrowingContinuation { continuation in
                 DispatchQueue.global(qos:.userInitiated).async {
-                    do { continuation.resume(returning: try self.execute(command,root:root,environment:environment)) } catch { continuation.resume(throwing:error) }
+                    do{continuation.resume(returning:try self.execute(command,root:root,environment:environment,timeout:timeout,onOutput:onOutput))}
+                    catch{continuation.resume(throwing:error)}
                 }
             }
-        },onCancel:{ self.cancel() })
+        },onCancel:{self.cancel()})
     }
-    private func execute(_ command: String, root: URL, environment: [String:String]) throws -> String {
-        let p=Process(), pipe=Pipe()
+    private func execute(_ command:String,root:URL,environment:[String:String],timeout:TimeInterval?,onOutput:((Data)->Void)?) throws -> String {
+        let p=Process(),pipe=Pipe()
         p.executableURL=helperURL;p.arguments=[command];p.currentDirectoryURL=root
         p.environment=ProcessInfo.processInfo.environment.merging(environment,uniquingKeysWith:{_,new in new})
         p.standardInput=FileHandle.nullDevice;p.standardOutput=pipe;p.standardError=pipe
-        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let data=handle.availableData
-            guard let self else{return};self.lock.lock();defer{self.lock.unlock()}
-            if self.output.count + data.count > 256 * 1024 { self.overflow=true } else { self.output.append(data) }
+        let fd=pipe.fileHandleForReading.fileDescriptor
+        guard fcntl(fd,F_SETFL,fcntl(fd,F_GETFL)|O_NONBLOCK)>=0 else{throw POSIXError(.EIO)}
+        defer {
+            if p.processIdentifier>0 {kill(-p.processIdentifier,SIGKILL)}
+            try? pipe.fileHandleForReading.close();try? pipe.fileHandleForWriting.close()
+            lock.lock();process=nil;lock.unlock()
         }
-        defer { if p.processIdentifier > 0 { kill(-p.processIdentifier, SIGKILL) }; pipe.fileHandleForReading.readabilityHandler=nil;try? pipe.fileHandleForReading.close();lock.lock();process=nil;lock.unlock() }
         lock.lock();let stopped=cancelled;lock.unlock();if stopped{throw CancellationError()}
-        try p.run();lock.lock();process=p;lock.unlock()
-        let deadline=Date().addingTimeInterval(30)
-        while p.isRunning {
-            lock.lock();let stop=cancelled || overflow;lock.unlock()
-            if stop || Date() > deadline { kill(-p.processIdentifier,SIGTERM);Thread.sleep(forTimeInterval:0.1);kill(-p.processIdentifier,SIGKILL);if p.isRunning{kill(p.processIdentifier,SIGKILL)};p.waitUntilExit();throw MCPConnection.failure(stop ? "Comando annullato o output oltre 256 KiB." : "Comando oltre 30 secondi.") }
-            Thread.sleep(forTimeInterval:0.02)
+        try p.run();try? pipe.fileHandleForWriting.close()
+        lock.lock();process=p;lock.unlock()
+        let start=ProcessInfo.processInfo.systemUptime
+        var output=Data(),buffer=[UInt8](repeating:0,count:16384)
+        func drain() throws {
+            // Bounded reads keep cancellation responsive even for an endless output producer.
+            for _ in 0..<16 {
+                let count=Darwin.read(fd,&buffer,16384)
+                if count>0 {
+                    let data=Data(buffer.prefix(count))
+                    if let onOutput {onOutput(data)}
+                    else {guard output.count+count<=256*1024 else{throw MCPConnection.failure("Output oltre 256 KiB.")};output.append(data)}
+                } else if count==0 || errno==EAGAIN || errno==EWOULDBLOCK {return}
+                else if errno != EINTR {throw POSIXError(POSIXErrorCode(rawValue:errno) ?? .EIO)}
+            }
         }
-        // Allow the pipe reader to consume the final buffered bytes without waiting on descendants.
-        Thread.sleep(forTimeInterval:0.05)
-        lock.lock();let data=output, tooLarge=overflow, wasCancelled=cancelled;lock.unlock()
-        if tooLarge { throw MCPConnection.failure("Output oltre 256 KiB.") }; if wasCancelled { throw CancellationError() }
-        return "Exit status: \(p.terminationStatus)\n" + String(decoding:data,as:UTF8.self)
+        do {
+            while true {
+                lock.lock();let stop=cancelled;lock.unlock()
+                if stop{throw CancellationError()}
+                if let timeout,p.isRunning,ProcessInfo.processInfo.systemUptime-start>=timeout{throw CommandTimeLimitError(seconds:Int(timeout))}
+                try drain()
+                if !p.isRunning {
+                    // Shell-backgrounded descendants are not independent harness jobs.
+                    kill(-p.processIdentifier,SIGKILL)
+                    try drain();break
+                }
+                Thread.sleep(forTimeInterval:0.02)
+            }
+        } catch {
+            kill(-p.processIdentifier,SIGTERM);Thread.sleep(forTimeInterval:0.1)
+            kill(-p.processIdentifier,SIGKILL);if p.isRunning{kill(p.processIdentifier,SIGKILL)}
+            p.waitUntilExit();throw error
+        }
+        lock.lock();let wasCancelled=cancelled;lock.unlock();if wasCancelled{throw CancellationError()}
+        return "Exit status: \(p.terminationStatus)\n"+String(decoding:output,as:UTF8.self)
     }
 }
