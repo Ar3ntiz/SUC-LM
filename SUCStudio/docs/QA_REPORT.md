@@ -152,3 +152,7 @@ Regressione sulle richieste di strumento con argomenti numerici, riprodotta dal 
 ### 1.4.9.03 · build 40
 
 Fixture HTTP in streaming e archivi temporanei: recupero di promesse IT/EN verso lettura reale, correzione del modello di JSON Markdown malformato verso una sola scrittura con artifact, massimo due tentativi condivisi (anche alternando i problemi), limite azioni, FIFO, approvazione manuale e Stop. Risposte finali/domande e output troncato al limite non vengono ritentati. Metriche senza conteggi finali non riportano decode/ragionamento a prefill; richieste estranee non alterano la fase corrente. Nessun comando o documento reale della sessione utente è stato eseguito/prodotto. Esiti finali nel report `RELEASE_1.4.9.03_QA.json`.
+
+### 1.4.9.03 · build 41
+
+Regressioni su ogni prefisso dei marcatori tool_call aperti/chiusi/con JSON recintato, commenti, testo originale ed esempi di codice. Chiusura esterna mancante accettata solo per azioni complete a stop normale, con un solo file/artifact e contenuto Unicode identico; stringhe/argomenti incompleti, richieste multiple e troncamenti length non eseguiti. Contesto: soglie 98,99%/99%, input a 87,1% con output elevato senza compattazione, conteggi server preservati contro stime integrali maggiori, budget output residuo. Suite completa compattazione, rollback, code, routine e plugin. Dettagli finali in RELEASE_1.4.9.03_QA.json.

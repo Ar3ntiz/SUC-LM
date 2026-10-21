@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.03 — build 41
+
+Nascosti i marcatori tool_call durante lo streaming e nello storico, preservando commenti e codice. Auto-compattazione al 99% dell’input effettivo, senza riservare in anticipo l’output né sostituire i conteggi server con stime maggiori. Tollerata solo la chiusura esterna mancante di azioni già complete e terminate normalmente; nessun contenuto incompleto viene ricostruito.
+
 ## 1.4.9.03 — build 40
 
 Recupero IT/EN di promesse senza azioni e richieste di strumento malformate: massimo due tentativi condivisi per turno, senza eseguire JSON ricostruiti. Permessi, approvazioni, Stop e limite azioni preservati; errore esplicito e coda sospesa al limite. Corretta l’alternanza prefill/decode con metriche streaming incomplete. Nuove richieste ripartono dalla propria fase. Motore e Android invariati.

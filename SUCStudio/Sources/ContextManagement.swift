@@ -26,7 +26,7 @@ enum ContextBudget {
         if let parts=value as? [[String:Any]] {return parts.reduce(0){$0+estimate(($1["text"] as? String) ?? "")+($1["type"] as? String=="image_url" ? 1024:0)}}
         return 0
     }
-    static func needsCompact(used:Int,reserve:Int,limit:Int)->Bool {Double(used+reserve)>=Double(limit)*0.99}
+    static func needsCompact(used:Int,limit:Int)->Bool {Double(used)>=Double(limit)*0.99}
     static func chunks(_ text:String,maxBytes:Int)->[String] {
         guard maxBytes>0 else{return []}
         var result=[String](),chunk="",size=0
@@ -180,17 +180,15 @@ extension StudioStore {
     }
     func maybeCompactBeforeSend(_ session:ChatSession,messages:[[String:Any]],maxTokens:Int,queued:Bool,toolResult:String?,isTool:Bool)->Bool {
         guard let limit=contextLimit(session) else{return false}
-        let estimate=messages.reduce(0){$0+ContextBudget.payload($1["content"])+8}
-        let reported=contextUsage(session,includeDraft:false).used
-        let incoming=messages.last.map{ContextBudget.payload($0["content"])+8} ?? 0
-        let used=max(estimate,reported+incoming)
-        guard ContextBudget.needsCompact(used:used,reserve:min(maxTokens,max(128,limit/8)),limit:limit) else{return false}
+        let used=requestContextUsage(session,messages:messages)
+        guard ContextBudget.needsCompact(used:used,limit:limit) else{return false}
         guard !session.activeContextMessages.isEmpty || used>=limit else{return false}
         guard session.autoCompact != false,!session.activeContextMessages.isEmpty else{
             error="Contesto insufficiente (circa \(used) token + \(maxTokens) di risposta / \(limit)). Usa /compact, riduci l’input o il massimo output."
             pauseChatQueue(session.id);if toolResult != nil {finishAgentReport(session.id,reason:"Contesto insufficiente per il risultato dello strumento.")};return true
         }
         // Retain the pending input separately until compaction succeeds.
+        actionNotice(session.id,"La prossima richiesta raggiunge circa \(used) / \(limit) token: compattazione al 99% del contesto.")
         if let toolResult {pendingContextTools[session.id]=(toolResult,isTool)} else if !queued{enqueueDraft(session.id)}
         mutateSession(session.id){$0.compactRequested=""}
         if toolResult==nil {startCompaction(session.id)} else {Task{@MainActor in await Task.yield();self.startCompaction(session.id)}}
@@ -204,7 +202,7 @@ extension StudioStore {
             await Task.yield()
             guard !self.quitting,!self.sessionTurnBusy(id),let session=self.archive.sessions.first(where:{$0.id==id}) else{return}
             let usage=self.contextUsage(session,includeDraft:false)
-            if session.compactRequested != nil || (session.autoCompact != false && usage.limit.map{Double(usage.used)>=Double($0)*0.99}==true && !session.activeContextMessages.isEmpty) {
+            if session.compactRequested != nil || (session.autoCompact != false && usage.limit.map{ContextBudget.needsCompact(used:usage.used,limit:$0)}==true && !session.activeContextMessages.isEmpty) {
                 self.startCompaction(id)
             } else {self.scheduleChatQueue(id)}
         }
@@ -212,12 +210,17 @@ extension StudioStore {
 }
 
 extension StudioStore {
+    /// Same token basis as the context indicator, plus actual incoming input.
+    /// Prefer the server anchor over a competing full-history byte estimate.
+    func requestContextUsage(_ session:ChatSession,messages:[[String:Any]])->Int {
+        let incoming=messages.last.map{ContextBudget.payload($0["content"])+8} ?? 0
+        let outgoingSystem=messages.first(where:{$0["role"] as? String=="system"}).map{ContextBudget.payload($0["content"])} ?? 0
+        let extraSystem=max(0,outgoingSystem-ContextBudget.estimate(contextSystemPrompt(session)))
+        return contextUsage(session,includeDraft:false).used+incoming+extraSystem
+    }
     func contextOutputLimit(_ session:ChatSession,history:[[String:Any]])->Int {
         guard let limit=contextLimit(session) else{return effectiveOutputBudget(session)}
-        let estimate=history.reduce(0){$0+ContextBudget.payload($1["content"])+8}
-        let incoming=history.last.map{ContextBudget.payload($0["content"])+8} ?? 0
-        let anchored=contextUsage(session,includeDraft:false).used+incoming
-        return max(1,min(effectiveOutputBudget(session),limit-max(estimate,anchored)-max(32,limit/100)))
+        return max(1,min(effectiveOutputBudget(session),limit-requestContextUsage(session,messages:history)-max(32,limit/100)))
     }
 }
 

@@ -28,7 +28,24 @@ import Foundation
         let original=String(repeating:"Città 🌍 中文 RAW_HISTORICAL_MARKER ",count:400)
         let pieces=ContextBudget.chunks(original,maxBytes:91);check(pieces.joined()==original && pieces.allSatisfy{$0.utf8.count<=91})
         check(ContextBudget.payload([["type":"image_url"],["type":"text","text":"abc"]])==1025)
-        check(!ContextBudget.needsCompact(used:989,reserve:0,limit:1000));check(ContextBudget.needsCompact(used:990,reserve:0,limit:1000))
+        check(!ContextBudget.needsCompact(used:989,limit:1000));check(ContextBudget.needsCompact(used:990,limit:1000))
+        let threshold=store();threshold.mutateSelected{$0.contextWindow=10000;$0.maxTokens=4000;$0.allowWeb=false}
+        let thresholdSystem=threshold.contextSystemPrompt(threshold.selected!)
+        let anchor=ChatMessage(role:"assistant",text:String(repeating:"x",count:33000),model:threshold.chatModel,
+            metrics:Metrics(promptTokens:8699,completionTokens:1),generation:GenerationSnapshot(temperature:0.1,maxTokens:4000,context:0,thinking:false,systemPrompt:thresholdSystem))
+        threshold.mutateSelected{$0.messages=[anchor]}
+        let input:[[String:Any]]=[["role":"system","content":thresholdSystem],["role":"assistant","content":anchor.text],["role":"user","content":"next"]]
+        check(threshold.contextUsage(threshold.selected!,includeDraft:false).used==8700)
+        check(threshold.requestContextUsage(threshold.selected!,messages:input)==8710)
+        check(!threshold.maybeCompactBeforeSend(threshold.selected!,messages:input,maxTokens:4000,queued:false,toolResult:nil,isTool:false))
+        check(threshold.contextOutputLimit(threshold.selected!,history:input)==1190)
+        check(threshold.compacting.isEmpty)
+        threshold.mutateSelected{$0.messages[0].metrics=Metrics(promptTokens:9888,completionTokens:1)}
+        check(threshold.requestContextUsage(threshold.selected!,messages:input)==9899)
+        check(!ContextBudget.needsCompact(used:9899,limit:10000))
+        threshold.mutateSelected{$0.messages[0].metrics=Metrics(promptTokens:9889,completionTokens:1)}
+        check(threshold.requestContextUsage(threshold.selected!,messages:input)==9900)
+        check(ContextBudget.needsCompact(used:9900,limit:10000))
         let detect=store(),client=RemoteInference(detect.archive.settings.remote!,key:"");_=try await client.models();check(client.modelContextWindows["context-fixture"]==4096);client.stop()
         for automatic in [false,true] {
             FileHandle.standardError.write(Data("Context test: \(automatic ? "automatic":"manual") compaction\n".utf8))

@@ -14,12 +14,12 @@ class Handler(BaseHTTPRequestHandler):
             text='Queued turn completed.'
         elif latest.startswith('Risultato reale dello strumento write_file'):
             text='Markdown file saved and published.'
-        elif model in ['broken-write','always-invalid','truncated-invalid','mixed-repair']:
+        elif model in ['broken-write','always-invalid','truncated-invalid','mixed-repair','missing-outer']:
             wire=json.dumps({'suc_action':{'name':'write_file','arguments':{'path':'summary.md','content':'# Fixture summary\n\n```text\n"quoted" \\ path à🙂\n```\n'}}})
             if model=='mixed-repair' and not latest.startswith('Feedback harness'):
                 text='Procedo con la sintesi.'
             else:
-                text=wire if model=='broken-write' and latest.startswith('Feedback harness') else wire[:-1]
+                text=wire if model=='broken-write' and latest.startswith('Feedback harness') else (wire[:-1] if model in ['missing-outer','truncated-invalid'] else wire[:-1]+'INVALID}')
         elif latest.startswith('Risultato reale dello strumento read_file'):
             assert 'VERIFIED_FIXTURE_CONTENT' in latest
             text='Verified fixture file read successfully.'

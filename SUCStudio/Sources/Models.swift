@@ -95,14 +95,16 @@ struct ChatMessage: Codable, Identifiable, Equatable {
 struct WorkspaceAction: Codable, Equatable {
     var name: String
     var arguments: [String: String]
-    static func parse(_ text: String) -> WorkspaceAction? {
+    static func parse(_ text: String,allowMissingOuterClose:Bool=false) -> WorkspaceAction? {
         guard text.utf8.count <= 128 * 1024 else{return nil}
         let value=answerText(text)
         let candidates=protocolSuffixes(value,partial:false)
-        let payload: String
-        if candidates.count==1 {payload=unfenced(candidates[0])}
+        var payload: String
+        if candidates.count==1 {payload=unfenced(unwrappedToolCall(candidates[0]))}
         else if candidates.isEmpty {payload=unfenced(value)}
         else {return nil} // Never choose arbitrarily between multiple requested actions.
+        if allowMissingOuterClose,(try? JSONSerialization.jsonObject(with:Data(payload.utf8)))==nil,
+           let closed=closedOuterObject(payload) {payload=closed}
         guard let object=try? JSONSerialization.jsonObject(with:Data(payload.utf8)) as? [String:Any],object.count==1,
               let action=object["suc_action"] as? [String:Any],let name=action["name"] as? String,
               let supplied=action["arguments"] as? [String:Any] else{return nil}
@@ -116,6 +118,30 @@ struct WorkspaceAction: Codable, Equatable {
             else {return nil}
         }
         return Self(name:name,arguments:arguments)
+    }
+    /// Only the sole missing outer object delimiter; never complete action/input data.
+    /// Callers must opt in only after a normally finished generation.
+    private static func closedOuterObject(_ text:String)->String? {
+        let bytes=Array(text.utf8)
+        guard bytes.count<128*1024,bytes.first==123,bytes.last==125 else{return nil}
+        var stack=[UInt8](),string=false,escaped=false
+        for byte in bytes {
+            if string {
+                if escaped {escaped=false}
+                else if byte==92 {escaped=true}
+                else if byte==34 {string=false}
+            } else {
+                if byte==34 {string=true}
+                else if byte==123 || byte==91 {stack.append(byte)}
+                else if byte==125 || byte==93 {
+                    guard stack.last==(byte==125 ? 123:91) else{return nil}
+                    stack.removeLast()
+                    if stack.isEmpty {return nil} // A completed first document cannot be repaired into another.
+                }
+            }
+        }
+        guard !string,!escaped,stack==[123] else{return nil}
+        return text+"}"
     }
     /// Accept a terminal wire envelope on its own line, optionally after model commentary.
     /// Ordinary fenced code and inline quoted/examples are never searched for actions.
@@ -137,6 +163,15 @@ struct WorkspaceAction: Codable, Equatable {
                 if marker.count>=open.count && marker.first==open.first {fence=nil}
                 continue
             }
+            // A standalone wire marker belongs to the envelope, never commentary.
+            // Keep the original text; unwrap only for strict suc_action validation.
+            if trimmed=="<tool_call>" {
+                result.append(lines[index...].joined(separator:"\n"))
+                return result
+            }
+            if partial,index==lines.count-1,!trimmed.isEmpty,trimmed.hasPrefix("<"),"<tool_call>".hasPrefix(trimmed) {
+                result.append(lines[index...].joined(separator:"\n"));return result
+            }
             if marker.count>=3 {
                 fence=marker
                 let language=trimmed.dropFirst(marker.count).trimmingCharacters(in:.whitespaces).lowercased()
@@ -154,6 +189,13 @@ struct WorkspaceAction: Codable, Equatable {
             if result.count>1 {return result}
         }
         return result
+    }
+    private static func unwrappedToolCall(_ text:String)->String {
+        var lines=text.trimmingCharacters(in:.whitespacesAndNewlines).components(separatedBy:"\n")
+        guard lines.first?.trimmingCharacters(in:.whitespacesAndNewlines)=="<tool_call>" else{return text}
+        lines.removeFirst()
+        if lines.last?.trimmingCharacters(in:.whitespacesAndNewlines)=="</tool_call>" {lines.removeLast()}
+        return lines.joined(separator:"\n").trimmingCharacters(in:.whitespacesAndNewlines)
     }
     /// UI-only projection: retain commentary while withholding a terminal wire envelope.
     /// Never modify the stored text or the tool protocol sent back to the model.

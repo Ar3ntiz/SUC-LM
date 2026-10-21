@@ -6,6 +6,29 @@ import Foundation
         preconditionFailure("Timed out: "+label)
     }
     @MainActor static func main() async throws {
+        let wire=#"{"suc_action":{"name":"read_file","arguments":{"path":"fixture.txt"}}}"#
+        for wrapper in ["<tool_call>\n"+wire,"<tool_call>\n"+wire+"\n</tool_call>","<tool_call>\n```json\n"+wire+"\n```\n</tool_call>"] {
+            precondition(WorkspaceAction.parse(wrapper)?.arguments["path"]=="fixture.txt")
+            for intro in ["","Leggo il file."] {
+                let prefix=intro.isEmpty ? "":intro+"\n\n"
+                for count in 1...wrapper.count {
+                    let message=ChatMessage(role:"assistant",text:prefix+String(wrapper.prefix(count)),state:"generating")
+                    precondition(message.chatParts.answer==intro,"Leaked wrapper at prefix \(count)")
+                }
+                let saved=ChatMessage(role:"assistant",text:prefix+wrapper,kind:"tool_call")
+                precondition(saved.chatParts.answer==intro && saved.text==prefix+wrapper)
+            }
+        }
+        precondition(WorkspaceAction.parse("```xml\n<tool_call>\n"+wire+"\n</tool_call>\n```")==nil)
+        precondition(ChatMessage(role:"assistant",text:"```xml\n<tool_call>\nexample\n</tool_call>\n```").chatParts.answer.contains("<tool_call>"))
+        precondition(ChatMessage(role:"assistant",text:"The marker is `<tool_call>`.").chatParts.answer=="The marker is `<tool_call>`.")
+        precondition(WorkspaceAction.parse("<tool_call>\n"+wire+"\n"+wire+"\n</tool_call>")==nil)
+        precondition(WorkspaceAction.parse("<tool_call>\n{\"name\":\"read_file\",\"arguments\":{}}\n</tool_call>")==nil)
+        let missing=String(wire.dropLast())
+        precondition(WorkspaceAction.parse(missing)==nil && WorkspaceAction.parse(missing,allowMissingOuterClose:true)?.arguments["path"]=="fixture.txt")
+        for broken in [String(wire.dropLast(2)),"{\"suc_action\":{\"name\":\"write_file\",\"arguments\":{\"content\":\"unfinished",wire+missing,missing+",", "{\"suc_action\":{\"name\":\"read_file\"}"] {
+            precondition(WorkspaceAction.parse(broken,allowMissingOuterClose:true)==nil)
+        }
         for text in ["Ora cerco come REA carica la configurazione e se esiste un comando doctor.","Sto cercando la configurazione. Procedo con le ricerche.","Hai ragione, procedo subito con le ricerche.","I will check the configuration now.","Let me inspect the files.","I'll run the tests."] {precondition(AgentContinuation.isPromise(text),text)}
         for text in ["Il lavoro è completato.","Vuoi che proceda?","Attendo la tua conferma prima di procedere.","Non posso procedere senza accesso.","I need your permission to continue.","Procedo se confermi.","\"Procedo con le ricerche.\"","> Procedo con le ricerche.","```text\nProcedo con le ricerche.\n```",#"{"suc_action":{"name":"read_file","arguments":{"path":"x"}}}"#] {precondition(!AgentContinuation.isPromise(text),text)}
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -22,7 +45,7 @@ import Foundation
         }
         let recovered=store("recover"),sid=recovered.selected!.id
         recovered.sendMessage();recovered.mutateSelected{$0.draft="next queued turn"};recovered.sendMessage()
-        try await wait("real read and queued continuation"){!recovered.sessionTurnBusy(sid)}
+        try await wait("real read and queued continuation"){!recovered.sessionTurnBusy(sid) && recovered.selected!.messages.last?.text=="Queued turn completed."}
         precondition(recovered.selected!.messages.contains{$0.text=="Verified fixture file read successfully."})
         precondition(recovered.selected!.messages.last?.text=="Queued turn completed.")
         precondition(recovered.selected!.actions?.filter{$0.name=="read_file" && $0.state=="completed"}.count==1)
@@ -54,6 +77,13 @@ import Foundation
         precondition(savedMarkdown=="# Fixture summary\n\n```text\n\"quoted\" \\ path à🙂\n```\n")
         precondition(writer.selected!.artifacts?.count==1 && writer.selected!.actions?.filter{$0.name=="write_file" && $0.state=="completed"}.count==1)
         try FileManager.default.removeItem(at:root.appendingPathComponent("summary.md"))
+        let outer=store("missing-outer"),oid=outer.selected!.id
+        outer.sendMessage();try await wait("outer wrapper tolerance"){!outer.sessionTurnBusy(oid)}
+        precondition(outer.agentRepairs[oid]==0 && outer.selected!.actions?.filter{$0.name=="write_file" && $0.state=="completed"}.count==1)
+        precondition(outer.selected!.artifacts?.count==1)
+        let outerText=try String(contentsOf:root.appendingPathComponent("summary.md"),encoding:.utf8)
+        precondition(outerText==savedMarkdown)
+        try FileManager.default.removeItem(at:root.appendingPathComponent("summary.md"))
         for model in ["always-invalid","mixed-repair","truncated-invalid"] {
             let invalid=store(model),id=invalid.selected!.id;invalid.sendMessage()
             try await wait("malformed request stops"){!invalid.sessionTurnBusy(id)}
@@ -77,5 +107,6 @@ import Foundation
         print("PASS: IT/EN promise detection; real streamed recovery to authorized file read; FIFO; two-attempt cap/action budget; manual approval and Stop; final/question/no-tools exclusions.")
         print("PASS: zero/missing live completion counts do not revert decode/reasoning or remote wait; unrelated request metrics leave phase unchanged.")
         print("PASS: malformed Markdown action corrected by model to one real write/artifact; persistent/mixed invalid output bounded, no guessed execution; length truncation not retried.")
+        print("PASS: every streamed prefix of open/closed/fenced tool_call wrappers withheld; commentary/raw archive and code examples preserved; only normally finished complete actions tolerate one missing outer brace.")
     }
 }

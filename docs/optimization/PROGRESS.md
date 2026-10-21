@@ -65,3 +65,7 @@ Fixed complete tool envelopes rejected when a remote model emits numeric wait/ti
 ## Studio 1.4.9.03 · build 40
 
 Conservative IT/EN recovery for promises without tool actions and malformed action envelopes shares two attempts per turn within the action budget. Corrected requests still require normal permissions/approvals; no guessed JSON executes. Exhaustion ends in error and pauses queued work. Streaming phases no longer regress on incomplete usage counts. Real streamed fixture/file/artifact tests passed on Intel and M1 Ultra; Universal installer verified. Engine, memory policy and Android unchanged. See `RELEASE_1.4.9.03_IT.md` and `RELEASE_1.4.9.03_QA.json`.
+
+### Studio 1.4.9.03 · build 41
+
+Tool-call wire markers stay hidden across all streaming prefixes while commentary, original history and code examples remain intact. Automatic compaction uses 99% of projected input without output reservation or overriding valid server counts with larger byte estimates. A sole missing outer object delimiter is tolerated only after normal stop with unchanged complete action/arguments and full validation. Protocol/file/artifact and full context suites passed on Intel and M1 Ultra; Universal installer verified. Engine and memory policy unchanged.

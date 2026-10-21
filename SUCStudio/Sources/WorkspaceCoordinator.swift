@@ -51,7 +51,7 @@ extension StudioStore {
     func handleAgentResponse(sessionID: UUID, messageID: UUID) {
         guard let session=archive.sessions.first(where:{$0.id==sessionID}),
               let message=session.messages.first(where:{$0.id==messageID}), !agentRuns.contains(sessionID) else{return}
-        guard let action=WorkspaceAction.parse(message.protocolText) else {
+        guard let action=WorkspaceAction.parse(message.protocolText,allowMissingOuterClose:message.state=="complete" && message.finishReason=="stop") else {
             if WorkspaceAction.isActionEnvelope(message.protocolText) {
                 mutateMessage(sessionID,messageID){$0.kind="tool_call"}
                 if recoverInvalidAction(session,message:message) {return}
