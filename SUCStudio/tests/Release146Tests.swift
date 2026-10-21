@@ -142,6 +142,16 @@ import WebKit
         precondition(store.requests.isEmpty && store.activeRoutines.isEmpty)
         print("Release146Tests: actual scheduled SSE → hidden web action → WebKit localhost search → real tool result → final answer; draft/selection preserved, one-shot not replayed and unread persisted/cleared")
 
+        store.newSession();let interactive=store.selected!.id
+        store.mutateSelected{$0.approvalMode="automatic";$0.allowWeb=true;$0.draft="Cerca sul web"}
+        store.webBrowser?.shutdown();store.webBrowser=WebBrowser{WKWebsiteDataStore.nonPersistent()}
+        store.webBrowser?.searchEndpoint="http://127.0.0.1:\(port)/results?q=";store.webBrowserAllowed=false
+        store.sendMessage()
+        try await wait("interactive automatic browser launch") {!store.approvals.isEmpty || store.archive.sessions.first{$0.id==interactive}!.messages.contains{$0.text=="Risultato web verificato dalla routine." && $0.state=="complete"}}
+        precondition(store.approvals.isEmpty && store.webBrowserAllowed && !store.webSessionUnattended(store.selected!))
+        store.mutateSelected{$0.allowWeb=false};store.webBrowserAllowed=false
+        do{_=try await store.runWebTool(WorkspaceAction(name:"web_search",arguments:["query":"fixture"]),session:store.selected!,root:nil);preconditionFailure("Disabled web executed")}catch{precondition(store.approvals.isEmpty && !store.webBrowserAllowed)}
+        print("Interactive automatic web PASS: cold browser starts without confirmation; disabled web remains blocked.")
         store.selectSession(foreground)
         for mode in ["routine-commentary","routine-commentary-fenced"] {
             store.archive.settings.remote?.model=mode
@@ -166,11 +176,11 @@ import WebKit
 
         store.newSession();let mcpSession=store.selected!.id
         let mcpFixture=URL(fileURLWithPath:CommandLine.arguments[1]).deletingLastPathComponent().appendingPathComponent("mcp_fixture.py").path
-        let config=MCPConfiguration(name:"fixture",transport:"stdio",executable:"/usr/bin/python3",arguments:[mcpFixture],enabled:true)
+        let config=MCPConfiguration(name:"Fixture MCP",transport:"stdio",executable:"/usr/bin/python3",arguments:[mcpFixture],enabled:true)
         let connection=MCPConnection(config,credentials:[:]);defer{connection.stop()}
         let fixtureTools=try await connection.start()
         store.mcpConnections[config.id]=connection;store.archive.settings.mcpServers=[config]
-        store.mcpTools=fixtureTools+[MCPTool(serverID:config.id,serverName:"fixture",name:"huge_schema",description:"Unused tool",schema:"HUGE_SCHEMA_MARKER"+String(repeating:"x",count:800_000))]
+        store.mcpTools=fixtureTools+[MCPTool(serverID:config.id,serverName:"Fixture MCP",name:"huge_schema",description:"Unused tool",schema:"HUGE_SCHEMA_MARKER"+String(repeating:"x",count:800_000))]
         precondition(MCPCatalog.prompt(store.mcpTools).utf8.count<4096)
         store.archive.settings.remote?.model="explicit-mcp"
         store.mutateSelected{$0.approvalMode="manual";$0.draft="@Verifiche verifica lo strumento fixture"};store.sendMessage()

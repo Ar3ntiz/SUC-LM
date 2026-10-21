@@ -45,3 +45,7 @@ Intel UI/functional tests and native M1 context/helper checks passed. The engine
 and memory policy are unchanged; external LM Studio latency is documented
 separately from client rendering costs. See [release](RELEASE_1.4.8.03.md) and
 [verification evidence](RELEASE_1.4.8.03_QA.json).
+
+### SUC Studio 1.4.8.03 — build 36
+
+Completata la risoluzione dei nomi e degli alias MCP non ambigui: le chiamate usano il server connesso corretto. L’avvio del browser per la ricerca web rispetta l’approvazione automatica della sessione; le approvazioni manuali restano attive quando selezionate. Verificati catalogo MCP, limiti degli schemi e dei risultati, ricerca web e installer Universal. Motore e memory policy invariati.

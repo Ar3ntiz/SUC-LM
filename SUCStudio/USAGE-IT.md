@@ -456,3 +456,9 @@ La compattazione adatta il budget allo storico: da 2048 a 16384 token di output,
 Le routine riservano almeno 4000 token di output, entro il contesto disponibile. Una risposta contenente solo thinking non è un risultato completato: la chat mostra il motivo e la routine registra l’errore. L’indicatore del contesto si aggiorna circa ogni secondo; i conteggi prima dell’invio vengono calcolati al momento dell’invio. La velocità reale dei server esterni dipende anche dal loro modello e dal contesto.
 
 Lo storico grafico usa pagine limitate con pulsanti per messaggi precedenti/successivi; tutti i messaggi rimangono salvati. I ragionamenti storici partono richiusi e sono espandibili. Il ragionamento in streaming si apre e non si richiude automaticamente a fine risposta, evitando salti di altezza.
+
+### Correzioni build 36 (stessa versione 1.4.8.03)
+
+Le azioni MCP accettano il nome configurato, il suo UUID e un alias univoco senza il suffisso MCP: ad esempio `rea` riconosce `REA mcp`. In presenza di ambiguità viene richiesto il nome esatto o l’UUID; non viene scelto un server arbitrario. Un nome sconosciuto mostra i server disponibili e non viene più descritto come una disconnessione.
+
+Se gli strumenti web sono abilitati e le approvazioni sono automatiche, anche il primo avvio del browser segue la stessa impostazione, sia nelle chat interattive sia nelle routine. La modalità manuale conserva le conferme; gli strumenti web disabilitati restano bloccati.

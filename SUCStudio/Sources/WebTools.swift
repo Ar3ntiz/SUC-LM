@@ -380,8 +380,9 @@ extension StudioStore {
         let browser: WebBrowser
         if let webBrowser {browser=webBrowser} else { let id=webDataStoreID;browser=WebBrowser{WKWebsiteDataStore(forIdentifier:id)};webBrowser=browser }
         if !webBrowserAllowed && !browser.hasWindow {
-            if webSessionUnattended(session) && session.approvalMode=="automatic" {
-                // An enabled routine inherits the explicitly selected automatic approval policy.
+            if session.approvalMode=="automatic" {
+                // The enabled web action already follows the session approval policy,
+                // including the first browser launch in interactive chats.
                 webBrowserAllowed=true
             } else {
                 let request=WorkspaceAction(name:"avvio_browser",arguments:["richiesta":WebTools.startPrompt])

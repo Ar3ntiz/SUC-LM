@@ -1,4 +1,4 @@
-# SUC Studio 1.4.8.03 — build 35
+# SUC Studio 1.4.8.03 — build 36
 
 ## Correzioni
 
@@ -27,3 +27,11 @@ Il costo di attenzione e la cache di un server esterno rimangono responsabilità
 Evidenze finali in RELEASE_1.4.8.03_QA.json. Installer Universal in SUCStudio/dist/SUC-Studio-1.4.8.03-universal.pkg; checksum nella stessa cartella. Chiudere l’app prima di installare.
 
 Lo storico grafico usa pagine limitate con pulsanti per messaggi precedenti/successivi; tutti i messaggi rimangono salvati. I ragionamenti storici partono richiusi e sono espandibili. Il ragionamento in streaming si apre e non si richiude automaticamente a fine risposta, evitando salti di altezza.
+
+## Hotfix build 36 — identità MCP e approvazioni web
+
+La sessione segnalata usava il nome `rea`, mentre il catalogo conteneva `REA mcp`. Il confronto esatto provocava errori di connessione nonostante il server fosse disponibile. Discovery, schema e chiamata usano ora lo stesso resolver: nome esatto senza differenze di maiuscole/spazi esterni, UUID, alias univoco senza suffisso MCP e separatori normalizzati. Se più identità corrispondono, l’azione viene rifiutata con elenco dei nomi/UUID; nessun server disabilitato viene abilitato. Un nome sconosciuto viene distinto da un catalogo non disponibile.
+
+La conferma web aggiuntiva era relativa all’avvio del browser: veniva forzata anche dopo l’approvazione automatica dell’azione, salvo per le routine. Ora la medesima modalità automatica vale anche nelle chat interattive con web abilitato. Conferme manuali, controlli sui tool disabilitati e gestione CAPTCHA restano separati.
+
+Le sessioni sono consultate in sola lettura. I test usano strumenti echo e pagine localhost; nessun comando della sessione reale viene eseguito o esportato. Le misure UI/backend precedenti sono quelle raccolte nella build 35; questo hotfix non introduce nuovi benchmark di inferenza.

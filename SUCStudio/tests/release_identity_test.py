@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[1]
 info = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
 assert info['CFBundleDisplayName'] == info['CFBundleName'] == info['CFBundleExecutable'] == 'SUC Studio'
 assert info['CFBundleShortVersionString'] == '1.4.8.03'
-assert info['CFBundleVersion'] == '35'
+assert info['CFBundleVersion'] == '36'
 identity = 'local.sucstudio.universal.app'
 assert info['CFBundleIdentifier'] == identity
 with tempfile.TemporaryDirectory() as temporary:

@@ -1,6 +1,6 @@
 {
   "version": "1.4.8.03",
-  "build": 35,
+  "build": 36,
   "architectures": {
     "app": [
       "x86_64",
@@ -22,7 +22,7 @@
   "guides_and_release_notes_verified": true,
   "parent_cpp_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
   "parent_cpp_unchanged": true,
-  "package_sha256": "69272da6e65a5ad6ee6cb772661b13a3100e91019ac614f8e9982c60608b8f8d",
+  "package_sha256": "59c15341d7c6e8a2c4e7df26508a450310e8d970fb8a07c3d28ff0ec017bb0d3",
   "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
   "compaction": {
     "dynamic_budget": true,
@@ -80,13 +80,15 @@
       "passed": true,
       "stream_deltas": 150,
       "stream_seconds": 7.4840840101242065,
-      "uncached_presentation_seconds": 0.15369701385498047
+      "uncached_presentation_seconds": 0.15369701385498047,
+      "build_tested": 35
     },
     "ui_height_regression": {
       "characters": 8092,
       "height_after_8000": 1560,
       "height_before_8000": 1514,
-      "passed": true
+      "passed": true,
+      "build_tested": 35
     }
   },
   "external_backend_diagnostic": {
@@ -122,7 +124,8 @@
       "prefill_tps": 172.81,
       "decode_tps": 19.89
     },
-    "single_diagnostic_not_repeated_quality_benchmark": true
+    "single_diagnostic_not_repeated_quality_benchmark": true,
+    "build_tested": 35
   },
   "packaged_helper_native_m1_smoke": {
     "passed": true,
@@ -137,5 +140,22 @@
   "real_model_long_summary_quality_benchmark": false,
   "manual_gui_acceptance_on_all_supported_macs": false,
   "checksums_verified": true,
-  "build_sdk": "MacOSX26.5.sdk"
+  "build_sdk": "MacOSX26.5.sdk",
+  "hotfix_build36": {
+    "same_version": true,
+    "configured_server_name_vs_request_mismatch_confirmed": true,
+    "catalog_present_with_207_tools_on_failed_requests": true,
+    "canonical_name_alias_uuid_tests_passed": true,
+    "ambiguous_aliases_rejected": true,
+    "unknown_names_report_available_servers": true,
+    "mcp_list_schema_call_alias_round_trip_passed": true,
+    "interactive_automatic_cold_browser_no_approval_passed": true,
+    "disabled_web_remains_blocked": true,
+    "manual_approvals_and_scheduled_web_passed": true,
+    "native_m1_chat_mcp_web_regressions_passed": true,
+    "mcp_schema_3mib_result_4mib_limits_passed": true,
+    "real_rea_tools_executed": false,
+    "user_session_read_only": true,
+    "helper_byte_identical_to_build35": true
+  }
 }

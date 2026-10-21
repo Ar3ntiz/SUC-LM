@@ -5,6 +5,19 @@ import Foundation
         var received=[String]()
         for chunk in ["al","pha\nbeta\ngam","ma\n"] {reader.consume(Data(chunk.utf8)){received.append(String(decoding:$0,as:UTF8.self))}}
         precondition(received==expected)
+        let reaID=UUID(),otherID=UUID()
+        let rea=MCPTool(serverID:reaID,serverName:"REA mcp",name:"echo",description:"Fixture only",schema:"{\"type\":\"object\"}")
+        for name in ["rea","REA"," REA MCP ","rea-mcp",reaID.uuidString.lowercased()] {
+            let resolved=try MCPCatalog.serverID(name,tools:[rea]);precondition(resolved==reaID)
+            let page=try MCPCatalog.read(WorkspaceAction(name:"mcp_list",arguments:["server":name]),tools:[rea]);precondition(page.contains("REA mcp"))
+            let schema=try MCPCatalog.read(WorkspaceAction(name:"mcp_schema",arguments:["server":name,"tool":"echo"]),tools:[rea]);precondition(schema.contains("object"))
+        }
+        let other=MCPTool(serverID:otherID,serverName:"REA-MCP",name:"echo",description:"",schema:"{}")
+        do{_=try MCPCatalog.serverID("rea",tools:[rea,other]);preconditionFailure("Ambiguous alias accepted")}catch{precondition(error.localizedDescription.contains("ambiguo"))}
+        let exact=try MCPCatalog.serverID("REA mcp",tools:[rea,other]);precondition(exact==reaID)
+        do{_=try MCPCatalog.serverID("missing",tools:[rea]);preconditionFailure("Unknown name accepted")}catch{precondition(error.localizedDescription.contains("disponibili") && !error.localizedDescription.contains("non connesso"))}
+        do{_=try MCPCatalog.serverID("rea",tools:[]);preconditionFailure("Disconnected server accepted")}catch{}
+        print("MCP server identity PASS: canonical names, unique aliases, UUID, ambiguity rejection and accurate diagnostics.")
         let fixture=CommandLine.arguments[1]
         for transport in ["stdio","http"] {
             for oversized in [false,true] {

@@ -128,3 +128,9 @@ Regressioni Intel e M1 del contesto superate: budget dinamico, secondo tentativo
 Test SSE: 1500 frammenti con usage per token integri in 0,128 s; 3 eventi metriche, 5 delta alla UI. Test grafico Intel con 100 messaggi e 1,67 MB: 150 aggiornamenti integri in 7,48 s, intervallo UI massimo 1,60 s sotto carico sintetico. Cache di presentazione: 0,154 s senza cache e 0,00052 s con cache per lo stesso ciclo di lettura; non misura la velocità complessiva dell’app. La soglia 8000 caratteri mantiene l’altezza (1514 → 1560 pt). Ragionamenti storici richiusi e paginazione limitata evitano di renderizzare l’intero storico a ogni aggiornamento.
 
 Diagnosi diretta LM Studio: 269 token input → primo frammento 1,775 s, ricezione 42,19 tok/s; 78.341 token input → primo frammento 453,484 s, ricezione 19,90 tok/s, confermati dai tempi server. Singola prova sintetica, senza UI, non valutazione della qualità o benchmark ripetuto. Motore SUC e memory policy invariati. Verifica degli artefatti e checksum in docs/optimization/RELEASE_1.4.8.03_QA.json del progetto padre.
+
+### Hotfix build 36
+
+Test identità MCP superati: nomi canonici senza distinzione di maiuscole/spazi esterni, alias senza suffisso MCP, separatori, UUID, precedenza del nome esatto, rifiuto delle ambiguità e indicazione dei server disponibili per nomi sconosciuti. Fixture stdio/HTTP conservano i limiti di schema 3 MiB e risultati 4 MiB. La catena catalogo→schema→echo da 4 MiB funziona usando `fixture` per un server configurato come `Fixture MCP`; nessun tool reale REA viene eseguito.
+
+Su Intel e M1, la chat interattiva automatica avvia il browser a freddo, esegue web_search su localhost e riceve la risposta finale senza approvazioni; il web disabilitato resta bloccato. Approvazioni MCP e web manuali e web schedulato conservano il comportamento atteso. Versione 1.4.8.03 invariata, build 36; misure grafiche e prestazionali precedenti restano riferite alla build 35.

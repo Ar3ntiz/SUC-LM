@@ -101,7 +101,9 @@ extension StudioStore {
                 else if skill { result=try action.name=="load_skill" ? SkillDocument.load(action,skills:archive.settings.skills ?? []) : SkillDocument.resource(action,skills:archive.settings.skills ?? []) }
                 else if discovery {result=try MCPCatalog.read(action,tools:mcpTools)}
                 else if mcp {
-                    guard let config=archive.settings.mcpServers?.first(where:{$0.enabled && $0.name==action.arguments["server"]}),let client=mcpConnections[config.id],let tool=mcpTools.first(where:{$0.serverID==config.id && $0.name==action.arguments["tool"]}) else{throw ExtensionFiles.failure("Strumento MCP non attivo.")}
+                    let serverID=try MCPCatalog.serverID(action.arguments["server"] ?? "",tools:mcpTools)
+                    guard archive.settings.mcpServers?.contains(where:{$0.enabled && $0.id==serverID})==true,let client=mcpConnections[serverID] else{throw ExtensionFiles.failure("Server MCP non attivo. Verifica la connessione nei Settings.")}
+                    guard let tool=mcpTools.first(where:{$0.serverID==serverID && $0.name==action.arguments["tool"]}) else{throw ExtensionFiles.failure("Strumento MCP non trovato su questo server: usa mcp_list.")}
                     guard let input=try JSONSerialization.jsonObject(with:Data((action.arguments["input"] ?? "{}").utf8)) as? [String:Any] else{throw ExtensionFiles.failure("Input MCP deve essere un oggetto JSON.")}
                     result=try await client.call(tool,arguments:input)
                 }

@@ -486,3 +486,9 @@ Compaction adapts its output budget to historical material: 2048–16384 tokens,
 Scheduled routines reserve at least 4000 output tokens within the available context. Reasoning-only responses are reported as failures rather than completed results. The context indicator refreshes roughly once per second; pre-send budget checks remain current. External inference speed also depends on the server model and its active context.
 
 Transcript pages render a bounded number of rows with previous/next controls; every message remains saved. Historical reasoning starts collapsed and can be expanded. Live reasoning opens and does not auto-collapse at the end of a response, avoiding height jumps.
+
+### Build 36 fixes (version remains 1.4.8.03)
+
+MCP actions accept configured names, UUIDs and unambiguous aliases without the MCP suffix: `rea` resolves to `REA mcp`. Ambiguous aliases require an exact name or UUID; no arbitrary server is selected. Unknown names report available servers instead of claiming a disconnection.
+
+When web tools are enabled and approvals are automatic, the first browser launch follows that policy in interactive chats as well as scheduled routines. Manual approvals remain in place and disabled web tools remain blocked.
