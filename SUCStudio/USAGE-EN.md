@@ -84,3 +84,9 @@ Build 41: standalone tool_call wire markers stay hidden while streaming and in r
 Build 42: the fixed Session commands footer is removed. Click the full command header row (arrow, label or empty space) to toggle details. Text in the expanded command remains selectable. Stop and interactive terminal behavior are unchanged; completed output stays in the session action log.
 
 The action log now shows roomy newest-first cards with readable names, status and time. Click the full row to view separate request/result panels. It remains readable during active work. Previews are bounded; copying/opening the full recorded result remains available.
+
+## Compaction · build 43
+
+Compaction now budgets saved memory, instructions, history and response headroom consistently in estimated tokens. UTF-8 bytes are used only to split lossless Unicode chunks. The automatic threshold remains 99%; the configured window is not increased. If saved memory exceeds a smaller window, it is reduced before new material, with bounded attempts and no silent truncation. Retry output also respects remaining room. These estimates can differ from the server tokenizer.
+
+When compaction fails or is stopped, an already completed tool result is preserved once in the conversation archive without rerunning the command. The previous memory and original history remain intact. Retry `/compact`, then continue the chat; failed compaction does not automatically resume actions. Oversized manual priorities can still require shorter instructions or a larger server-supported window.

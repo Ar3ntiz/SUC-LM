@@ -40,6 +40,14 @@ enum ContextBudget {
     }
 }
 enum CompactionPolicy {
+    // Every budget is in estimated tokens. UTF-8 bytes are used only at chunk boundaries.
+    static func inputCost(system:String,prompt:String)->Int {
+        ContextBudget.estimate(system)+ContextBudget.estimate(prompt)+128
+    }
+    static func remainingInput(limit:Int,output:Int,system:String,prefix:String)->Int {
+        limit-output-inputCost(system:system,prompt:prefix)
+    }
+    static func chunkBytes(tokens:Int)->Int {max(0,tokens)*3}
     // Budget grows with actual historical material, not the configured window alone.
     static func outputBudget(limit:Int,inputTokens:Int)->Int {
         let target=min(8192,max(1024,(inputTokens+9)/10))
@@ -96,22 +104,30 @@ extension StudioStore {
                 // Keep bulk attachment decoding/chunking away from the UI executor.
                 let initial=await Task.detached(priority:.userInitiated){
                     let material=messages.map{"[\($0.role)]\n\($0.modelContent)"}.joined(separator:"\n\n")
-                    return ContextBudget.chunks(material,maxBytes:min(24*1024,max(64,(limit-output-system.utf8.count-512)/2)))
+                    return ContextBudget.chunks(material,maxBytes:min(24*1024,max(64,CompactionPolicy.chunkBytes(tokens:limit-output-CompactionPolicy.inputCost(system:system,prompt:"")))))
                 }.value
                 var pending=initial,summary=session.activeContextSummary,done=0
+                var memoryReductions=0
                 while !pending.isEmpty {
                     try Task.checkCancellation()
                     let prefix="Memoria precedente:\n"+summary+"\nPriorità dell’utente:\n"+instructions+"\nNuovi dati storici:\n"
-                    let room=limit-output-system.utf8.count-prefix.utf8.count-128
+                    let room=CompactionPolicy.remainingInput(limit:limit,output:output,system:system,prefix:prefix)
+                    if room<64,!summary.isEmpty,memoryReductions<2 {
+                        // A saved/rolling memory may exceed a newly reduced window. Feed it
+                        // through the same reducer before new history, preserving every byte.
+                        pending.insert("[Memoria precedente da ricompattare]\n"+summary,at:0)
+                        summary="";memoryReductions+=1
+                        continue
+                    }
                     guard room>=64 else{throw MCPConnection.failure("La sintesi o le istruzioni non entrano nel contesto: aumenta il limite della sessione.")}
-                    let next=pending.removeFirst(),pieces=ContextBudget.chunks(next,maxBytes:room)
+                    let next=pending.removeFirst(),pieces=ContextBudget.chunks(next,maxBytes:CompactionPolicy.chunkBytes(tokens:room))
                     if pieces.count>1{pending.insert(contentsOf:pieces.dropFirst(),at:0)}
                     compactionProgress[id]=CompactionProgress(done:done,total:done+pending.count+1,outputBudget:output)
                     let prompt=prefix+(pieces.first ?? "")
                     var result=SummaryResult()
                     // A reasoning-only response is not a summary. Retry at most once, reserving
                     // output headroom before choosing input chunks; never commit truncated memory.
-                    let retryOutput=min(32768,max(output,limit-system.utf8.count-prompt.utf8.count-128))
+                    let retryOutput=min(32768,limit-CompactionPolicy.inputCost(system:system,prompt:prompt))
                     for budget in Array(Set([output,min(retryOutput,output*2)])).sorted() {
                         compactionProgress[id]?.outputBudget=budget
                         let body:[String:Any]=["model":model,"messages":[["role":"system","content":system],["role":"user","content":prompt]],"temperature":0.1,"max_tokens":budget,"chat_template_kwargs":["enable_thinking":false]]
@@ -133,9 +149,14 @@ extension StudioStore {
                 // Dispatch only after the compaction task has released its busy flag.
                 Task{@MainActor in await Task.yield();if let pending=self.pendingContextTools.removeValue(forKey:id) {self.sendMessage(sessionID:id,toolResult:pending.text,isToolResult:pending.isTool)} else {self.scheduleChatQueue(id)}}
             } catch {
-                pendingContextTools.removeValue(forKey:id);finishAgentReport(id,reason:"Compattazione interrotta.");pauseChatQueue(id);actionNotice(id,"Compattazione non completata: \(error.localizedDescription) Lo storico e il contesto precedente sono conservati.")
+                preservePendingContextTool(id);finishAgentReport(id,reason:"Compattazione interrotta.");pauseChatQueue(id);actionNotice(id,"Compattazione non completata: \(error.localizedDescription) Lo storico e il contesto precedente sono conservati.")
             }
         }
+    }
+    @discardableResult func preservePendingContextTool(_ id:UUID)->Bool {
+        guard let pending=pendingContextTools.removeValue(forKey:id) else{return false}
+        mutateSession(id){$0.messages.append(ChatMessage(role:"user",text:pending.text,kind:pending.isTool ? "tool_result":nil))}
+        return true
     }
     func summarizeContext(_ sessionID:UUID,body:[String:Any],remote:RemoteConfiguration?) async throws->SummaryResult {
         if let config=remote {

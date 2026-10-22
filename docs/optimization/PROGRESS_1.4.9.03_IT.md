@@ -30,3 +30,12 @@ Collaudo completo superato su Intel e M1 Ultra. Installer estratto, firme, archi
 
 - [x] Registro azioni a schede leggibili, più alto, con richiesta/risultato separati, copia/apertura integrale e preview limitate.
 - [x] Consultazione del registro separata dal blocco delle impostazioni durante l’esecuzione.
+
+## Compattazione build 43
+
+- [x] Diagnosi della sessione reale in sola lettura e riproduzione del budget negativo.
+- [x] Budget coerenti in token, blocchi Unicode senza perdita, retry entro finestra.
+- [x] Riduzione limitata della memoria precedente quando la finestra viene diminuita.
+- [x] Risultato operativo conservato una sola volta dopo errore o Stop, senza riesecuzione.
+- [x] Suite contesto completa Intel e M1 Ultra, inclusi i nuovi casi HTTP.
+- [x] Build Universal 43, installer, checksum, commit e sincronizzazione sorgenti/Mac Studio/pubblico.

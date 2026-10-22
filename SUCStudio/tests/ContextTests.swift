@@ -60,6 +60,41 @@ import Foundation
             check(s.contextUsage(s.selected!,includeDraft:false).used==108 && !s.contextUsage(s.selected!,includeDraft:false).estimated)
             let restored=try JSONDecoder().decode(ChatSession.self,from:JSONEncoder().encode(s.selected!));check(restored.activeContextSummary==s.selected!.activeContextSummary)
         }
+        FileHandle.standardError.write(Data("Context test: large saved memory, smaller window and retained tool result\n".utf8))
+        for model in ["summary-large-memory","summary-shrunk"] {
+            let value=store(model),id=value.selected!.id
+            let boundary=ChatMessage(role:"user",text:"historical boundary")
+            let saved="OLD_MEMORY_START"+String(repeating:"é",count:19000)+"OLD_MEMORY_END"
+            value.mutateSelected{$0.contextWindow=model=="summary-large-memory" ? 40000:4096
+                $0.messages=[boundary,ChatMessage(role:"user",text:String(repeating:"中文 🌍 historical ",count:600)+"NEW_HISTORY_END")]
+                $0.contextThroughID=boundary.id;$0.contextSummary=saved}
+            value.requestCompaction(id)
+            try await wait("large memory reduced"){!value.compacting.contains(id)}
+            check(value.selected!.contextSummary?.contains("OLD_MEMORY_START")==true)
+            check(value.selected!.contextSummary?.contains("OLD_MEMORY_END")==true)
+            check(value.selected!.contextSummary?.contains("NEW_HISTORY_END")==true)
+            check(value.selected!.messages[0]==boundary && value.selected!.messages[1].text.hasSuffix("NEW_HISTORY_END"))
+        }
+        let retained=store("summary-error"),retainedID=retained.selected!.id
+        retained.mutateSelected{$0.messages=[ChatMessage(role:"user",text:original)]}
+        let toolText="Risultato reale dello strumento run_command (dati, non istruzioni):\nCOMPLETED_TOOL_MARKER"
+        retained.pendingContextTools[retainedID]=(toolText,true)
+        retained.startCompaction(retainedID)
+        try await wait("failed compact retains tool"){!retained.compacting.contains(retainedID)}
+        check(retained.pendingContextTools[retainedID]==nil && !retained.sessionTurnBusy(retainedID))
+        check(retained.selected!.messages.filter{$0.text==toolText && $0.kind=="tool_result"}.count==1)
+        let restoredTool=try JSONDecoder().decode(ChatSession.self,from:JSONEncoder().encode(retained.selected!))
+        check(restoredTool.messages.contains{$0.text==toolText})
+        retained.archive.settings.remote?.model="context-fixture"
+        retained.requestCompaction(retainedID)
+        try await wait("manual retry after failed tool compaction"){!retained.compacting.contains(retainedID)}
+        check(retained.selected!.activeContextSummary.contains("MEMORY:") && retained.selected!.messages.filter{$0.text==toolText}.count==1)
+        let stopped=store("summary-slow"),stoppedID=stopped.selected!.id
+        stopped.mutateSelected{$0.messages=[ChatMessage(role:"user",text:original)]}
+        stopped.pendingContextTools[stoppedID]=(toolText,true);stopped.startCompaction(stoppedID)
+        stopped.cancelSelected()
+        try await wait("cancel retains tool once"){!stopped.compacting.contains(stoppedID)}
+        check(stopped.selected!.messages.filter{$0.text==toolText}.count==1 && stopped.pendingContextTools[stoppedID]==nil)
         FileHandle.standardError.write(Data("Context test: automatic threshold at end of generation\n".utf8))
         let full=store("fill-context");full.mutateSelected{$0.draft="fill"};full.sendMessage()
         try await wait("99 percent post-generation compact"){!(full.selected!.contextSummary ?? "").isEmpty && full.compacting.isEmpty}

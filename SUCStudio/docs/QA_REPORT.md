@@ -160,3 +160,7 @@ Regressioni su ogni prefisso dei marcatori tool_call aperti/chiusi/con JSON reci
 ### 1.4.9.03 · build 42
 
 Collaudo UI superato su Intel e M1 Ultra: intestazioni comando larghe almeno 580 punti e alte almeno 36: pulsante accessibile a tutta larghezza, con alternanza singola dello stato a pressioni ripetute. Il collaudo automatico usa le azioni di accessibilità nella finestra fixture, non click del mouse nell’app installata. Registro azioni con schede spaziose e dettaglio apribile anche durante il blocco dei controlli di configurazione; record e stato runtime conservati. Nessuna modifica alla gestione dei processi o al motore. Esiti effettivi nel report QA della release.
+
+### 1.4.9.03 · build 43
+
+Regressioni HTTP offline: memoria precedente Unicode di circa 38 KB con finestra 40000, ricompattazione dopo riduzione a 4096, marcatori iniziali/finali conservati attraverso i blocchi, ogni richiesta di sintesi entro il budget stimato inclusa la riserva output. Fallimento e Stop conservano una sola copia del risultato operativo; serializzazione/rilettura e nuova compattazione manuale. Intera suite contesto, soglia 99%, code, routine, rollback, retry thinking/troncamenti e policy plugin. Esiti effettivi/checksum nel report QA della release; nessun test sulla sessione live o nuovi benchmark GPU/KL.

@@ -518,3 +518,11 @@ Build 41: i marcatori tecnici tool_call non compaiono durante lo streaming o nel
 Build 42: rimosso il pannello fisso Comandi della sessione. Il clic su tutta la riga del comando (freccia, etichetta o spazio vuoto) apre e chiude i dettagli. Il testo del comando aperto resta selezionabile. Stop e terminale interattivo sono invariati; gli output conclusi restano nel registro azioni della sessione.
 
 Il registro azioni mostra schede più spaziose, dalla più recente, con nome leggibile, stato e ora. Il clic su tutta la riga apre richiesta e risultato separati. Resta consultabile durante il lavoro. Le anteprime sono limitate; copia e apertura del risultato completo archiviato restano disponibili.
+
+## Compattazione · build 43
+
+Corretta la mescolanza tra byte UTF-8 e token: memoria precedente, istruzioni, blocchi di storico e spazio per la risposta sono ora conteggiati nella stessa unità stimata in token. La conversione in byte avviene soltanto per dividere il testo in blocchi Unicode integri. La soglia automatica resta al 99% e la finestra impostata non viene aumentata.
+
+Se la memoria precedente non entra dopo una riduzione della finestra, viene ricompattata prima dei nuovi dati, senza tagli automatici; i tentativi di riduzione sono limitati. Il secondo tentativo di sintesi rispetta lo spazio residuo. Conteggi stimati e tokenizer del server possono differire: non si tratta di una tokenizzazione esatta universale.
+
+Se la compattazione fallisce o viene fermata, il risultato dello strumento già completato viene aggiunto integralmente allo storico come normale risultato operativo, senza rieseguire il comando. Lo storico e la memoria precedente restano conservati. Si può riprovare `/compact`, poi continuare la chat; il fallimento non riprende automaticamente le azioni. Le priorità manuali troppo grandi possono ancora richiedere di ridurre le istruzioni o aumentare una finestra effettivamente supportata dal server.

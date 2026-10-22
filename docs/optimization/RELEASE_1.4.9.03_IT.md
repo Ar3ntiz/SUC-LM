@@ -1,4 +1,4 @@
-# SUC Studio 1.4.9.03 · build 42
+# SUC Studio 1.4.9.03 · build 43
 
 ## Continuità dell’agente
 
@@ -31,3 +31,11 @@ Il pannello fisso «Comandi della sessione» è stato rimosso dal fondo della ch
 La gestione dei processi non cambia: la rimozione del pannello non ferma comandi attivi, non cancella record e non modifica code, permessi o Stop. Gli output conclusi restano nel registro azioni della sessione; gli avvisi di errore indirizzano a quel registro. I terminali interattivi inline restano disponibili.
 
 Il registro azioni ora usa schede con nome leggibile, icona/stato, ora e anteprima della richiesta; le ultime 30 azioni sono mostrate dalla più recente. La superficie scrollabile cresce a 240–380 punti, con testo del corpo e riquadri monospaziati selezionabili per richiesta e risultato. Ogni intestazione è cliccabile per intero. Per i job, i metadati JSON vengono resi come codice di uscita, durata e output. Le anteprime sono limitate a 16000 caratteri; copia e apertura integrale conservano il risultato completo archiviato. Le voci attive aperte mostrano un aggiornamento periodico dell’output. Il registro resta consultabile mentre i controlli di configurazione sono disabilitati durante il lavoro.
+
+## Compattazione · build 43
+
+Corretta la mescolanza tra byte UTF-8 e token: memoria precedente, istruzioni, blocchi di storico e spazio per la risposta sono ora conteggiati nella stessa unità stimata in token. La conversione in byte avviene soltanto per dividere il testo in blocchi Unicode integri. La soglia automatica resta al 99% e la finestra impostata non viene aumentata.
+
+Se la memoria precedente non entra dopo una riduzione della finestra, viene ricompattata prima dei nuovi dati, senza tagli automatici; i tentativi di riduzione sono limitati. Il secondo tentativo di sintesi rispetta lo spazio residuo. Conteggi stimati e tokenizer del server possono differire: non si tratta di una tokenizzazione esatta universale.
+
+Se la compattazione fallisce o viene fermata, il risultato dello strumento già completato viene aggiunto integralmente allo storico come normale risultato operativo, senza rieseguire il comando. Lo storico e la memoria precedente restano conservati. Si può riprovare `/compact`, poi continuare la chat; il fallimento non riprende automaticamente le azioni. Le priorità manuali troppo grandi possono ancora richiedere di ridurre le istruzioni o aumentare una finestra effettivamente supportata dal server.

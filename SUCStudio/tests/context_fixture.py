@@ -17,10 +17,19 @@ class Handler(BaseHTTPRequestHandler):
         if summary and value['model']=='summary-error':self.send_error(503);return
         if summary:
             assert len(messages)==2 and 'suc_action' not in system
-            assert len(system.encode())+len(messages[-1]['content'].encode())+value['max_tokens']<(32768 if value['model'].startswith(('summary-retry','summary-truncated','summary-only-thinking')) else 4096)
+            window=40000 if value['model']=='summary-large-memory' else (32768 if value['model'].startswith(('summary-retry','summary-truncated','summary-only-thinking')) else 4096)
+            estimated=lambda text: (len(text.encode())+2)//3 if text else 0
+            assert estimated(system)+estimated(messages[-1]['content'])+128+value['max_tokens']<=window
+            if value['model'] in ('summary-large-memory','summary-shrunk'):
+                # Accumulate sentinels only when actually received, including later chunks.
+                seen=attempts.setdefault(value['model']+'-markers',set())
+                for marker in ('OLD_MEMORY_START','OLD_MEMORY_END','NEW_HISTORY_END'):
+                    if marker in messages[-1]['content']:seen.add(marker)
             if value['model']=='summary-slow':time.sleep(.5)
             text='MEMORY: obiettivo preservato; file queued.swift; decisioni e attività pendenti.'
             model=value['model'];attempts[model]=attempts.get(model,0)+1
+            if model in ('summary-large-memory','summary-shrunk'):
+                text+=' '+' '.join(sorted(attempts[model+'-markers']))
             if model=='summary-only-thinking' or (model=='summary-retry' and attempts[model]==1):text='';reasoning='Thinking without answer';finish='length'
             if model=='summary-truncated' and attempts[model]==1:text='MEMORY: truncated unusable';finish='length'
             if model in ('summary-retry','summary-truncated','summary-only-thinking'):

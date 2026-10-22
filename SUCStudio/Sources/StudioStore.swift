@@ -381,7 +381,7 @@ import UniformTypeIdentifiers
         guard let session = archive.selected else { return }
         pauseChatQueue(session)
         if let target=archive.sessions.first(where:{$0.id==session}) {Task{_ = await invokeHooks("Interrupt",session:target)}}
-        compactionTasks[session]?.cancel();compactionClients[session]?.stop();mutateSession(session){$0.compactRequested=nil};if pendingContextTools.removeValue(forKey:session) != nil {finishAgentReport(session,reason:"Richiesta interrotta.")}
+        compactionTasks[session]?.cancel();compactionClients[session]?.stop();mutateSession(session){$0.compactRequested=nil};if preservePendingContextTool(session) {finishAgentReport(session,reason:"Richiesta interrotta.")}
         stopAgent(session)
         for (id, target) in requests where target.session == session { requestHookTasks[id]?.cancel(); if let client = remoteClients[id] { remoteTasks[id]?.cancel(); client.stop() } else { engine.send(["command": "cancel", "id": id]) }; operationJournal.update(id:id,state:"Interruzione richiesta");mutateMessage(target.session, target.message) { $0.state = "cancelling" } }
     }

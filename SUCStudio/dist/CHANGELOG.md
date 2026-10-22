@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.03 — build 43
+
+Corretti i budget della compattazione: token e byte non vengono più mescolati. Memorie precedenti troppo grandi vengono ricompattate senza tagli; retry entro lo spazio disponibile. Risultati degli strumenti conservati nello storico anche dopo errore o Stop, senza rieseguire comandi. Soglia 99% invariata. Regressioni offline su memoria lunga, finestre ridotte, Unicode e recupero.
+
 ## 1.4.9.03 — build 42
 
 Rimosso il pannello fisso Session commands. Comandi espandibili cliccando tutta la riga, con area minima di 36 punti. Registro azioni ridisegnato con schede spaziose, stati chiari, richiesta e risultato separati, copia/apertura integrale e anteprime limitate. Consultabile durante l’esecuzione; output attivo aggiornato nelle voci aperte. Stop, processi e terminale invariati.

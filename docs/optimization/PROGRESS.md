@@ -73,3 +73,7 @@ Tool-call wire markers stay hidden across all streaming prefixes while commentar
 ### SUC Studio 1.4.9.03 · build 42
 
 Rimosso il pannello fisso Comandi della sessione e resi espandibili i riquadri cliccando tutta l’intestazione. Registro azioni con schede più grandi, stato/ora/anteprima e dettagli richiesta/risultato separati; consultabile durante l’esecuzione. Collaudo UI isolato superato su Intel e M1 Ultra, installer Universal verificato. Motore, memory policy e Android invariati.
+
+### SUC Studio 1.4.9.03 · build 43
+
+Budget della compattazione coerenti in token, senza sottrarre byte dal limite. Memorie precedenti troppo grandi ricompattate senza tagli, retry entro finestra. Risultato operativo conservato una sola volta dopo errore o Stop, senza riesecuzione. Intera suite contesto/plugin HTTP offline superata su Intel e M1 Ultra, incluso il caso memoria da circa 38 KB/finestra 40000. Installer Universal verificato; soglia 99%, motore, memory policy e Android invariati.
