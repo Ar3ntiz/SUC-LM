@@ -89,3 +89,7 @@ Chiamate MCP gestite come job: stato, attesa e annullamento per chat, nessun ter
 ## SUC Studio 1.4.9.05 · build 46
 
 Aggiornamenti inviati durante il lavoro recepiti tra le operazioni: una proposta ancora da eseguire viene riconsiderata, mentre il risultato di uno strumento già avviato precede la correzione. Approvazioni superate ritirate senza concedere permessi. Test Intel/M1 su FIFO, hook, limiti, allegati, Stop e compattazione. Decode, motore e Android invariati. Verifiche e limiti in `RELEASE_1.4.9.05_QA.json`.
+
+## SUC Studio 1.4.9.05 · build 47
+
+Riconoscimento dei marcatori tool_call inline e recupero verso JSON canonico senza interpretare funzioni o argomenti posizionali. Prosa, esempi e archivio originali preservati. La quarta operazione consecutiva identica viene bloccata dopo tre risultati terminali uguali, con polling e gestione dei job esclusi. Test Intel/M1 su recupero, limiti, approvazioni, Stop, coda e compattazione. Installer verificato; motore e Android invariati.

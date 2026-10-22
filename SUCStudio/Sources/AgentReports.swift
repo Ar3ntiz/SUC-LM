@@ -42,7 +42,7 @@ extension StudioStore {
         markSessionUnreadIfNeeded(sessionID)
     }
     func recordAction(_ sessionID:UUID,_ record:ActionRecord) {
-        operationJournal.update(id:record.id.uuidString,title:WebTools.names.contains(record.name) ? nil:record.name,state:["completed":"Completata","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta","running":"In corso"][record.state] ?? record.state,sessionID:sessionID)
+        operationJournal.update(id:record.id.uuidString,title:WebTools.names.contains(record.name) ? nil:record.name,state:["completed":"Completata","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta","running":"In corso","blocked":"Bloccata"][record.state] ?? record.state,sessionID:sessionID)
         mutateSession(sessionID){$0.actions=($0.actions ?? [])+[record]}
         var notice=String(record.result.prefix(1200))
         if CommandJobTools.names.contains(record.name),let payload=try? JSONSerialization.jsonObject(with:Data(record.result.utf8)) as? [String:Any],payload["job_id"] != nil {
@@ -55,6 +55,7 @@ extension StudioStore {
         if record.state != "completed" && record.state != "running" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(notice)") }
     }
     func finishAgentReport(_ sessionID:UUID,reason:String?=nil) {
+        actionLoopGuard.reset(sessionID)
         if reason != nil { pauseChatQueue(sessionID) }
         defer { if reason == nil { scheduleContextContinuation(sessionID) } }
         activeSkillInstructions.removeValue(forKey:sessionID)

@@ -1,14 +1,14 @@
 {
   "macos": {
     "version": "1.4.9.05",
-    "build": 46,
+    "build": 47,
     "app_architectures": [
       "arm64",
       "x86_64"
     ],
     "engine_architecture": "arm64",
     "installer": "SUCStudio/dist/SUC-Studio-1.4.9.05-universal.pkg",
-    "sha256": "a991a7b5abe543756136b59c5fd684ae347dc182608a72cf523d110b06d6a593",
+    "sha256": "c58607a126c03bda05522d1cfdd66f7868c57882309dda34b9465f82ef7cea58",
     "signing": "ad-hoc; installer unsigned; not notarized"
   },
   "engine": {
@@ -24,29 +24,63 @@
     "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e"
   },
   "changes": [
-    "FIFO user updates enter at safe boundaries, without cancelling or modifying the active decoder.",
-    "An unexecuted proposal is retained as superseded_action; its model context explicitly says it was not executed.",
-    "A pending approval is withdrawn with a negative resolution, never granted automatically. Any revised action retains its normal approval.",
-    "Completed tool result and pending correction are separate user-role messages in the next request; one generation per session.",
-    "Corrections preserve original action/repair/subtask limits, loaded explicit instructions, drafts, attachment identity and prompt hooks.",
-    "Insufficient context or oversized wire body preserves completed tool results; pending updates remain queued."
+    "Inline tool_call markers attached to prose are recognized as noncanonical attempts, hidden in streaming/history view and sent to bounded model repair. Stored raw text is retained.",
+    "Function-style run_command(...) and suc_action(...) are never interpreted or executed. Only a strict canonical action from a later model response may execute.",
+    "Fourth consecutive identical operation is blocked after three equal terminal outcomes; job IDs/timings/control waits excluded from comparison. Job observations and cancellation remain exempt.",
+    "Original two-attempt/action-budget limits, approvals, Stop, queued steering and context protection retained."
   ],
   "tests": {
-    "steering": "PASS Intel/native M1 Ultra: real HTTP streaming; correction before write prevents wrong.txt; revised write produces exactly correct.txt; correction during one actual shell command is delivered after TOOL_SENTINEL with one result and one command; correction during pending manual approval withdraws old proposal without executing it and requires new approval.",
-    "hooks_and_limits": "PASS Intel/native M1 Ultra: UserPromptSubmit gets original/update text exactly once each with the same turn_id; original explicit instructions retained in final generation snapshot; action counts remain 1 for before/during and 2 for a revised approval, not reset by steering.",
-    "archive_and_context_failure": "PASS Intel/native M1 Ultra: queued UUID/attachments delivered once, unsent draft retained, Codable roundtrip; insufficient context with auto-compact disabled retains exactly one completed tool result and leaves update paused.",
-    "queue": "PASS Intel/native M1 Ultra: full FIFO streaming/tool fixture, attachment and unsent-draft preservation, background session/unread, error/cancel pause and explicit resume, restored queues paused, safe editing.",
-    "context": "PASS Intel/native M1 Ultra: full context/plugin fixture suite, manual/auto compact at 99%, adaptive Unicode summaries, queue continuation, actual usage, archive preservation, failure/Stop rollback and tool-result conservation.",
-    "continuation": "PASS Intel/native M1 Ultra: ordinary recovery still reads one real file, bounded malformed-action and promise repairs, action limit and Stop; pending user update precedes automatic repair with no unwanted action; no guessed execution or length-truncation repair; raw tool wrappers hidden and normal-stop outer-brace tolerance preserved.",
-    "localization": "PASS Intel/native M1 Ultra: EN default/legacy migration, IT persistence, catalog interpolation/placeholders and shell prerequisites.",
-    "identity": "PASS: 1.4.9.05 build 46 release identity, migration guards and retained Apple Events declaration/entitlement signing paths.",
-    "installer": "PASS: extracted 1.4.9.05 build 46, Universal app/command/terminal helpers and arm64 engine; deep/strict ad-hoc signature, app automation entitlement, Apple Events description in IT/EN, both HTML guides and release notes, unchanged engine content/helper hashes."
+    "format_and_streaming": "PASS Intel/native M1 Ultra: inline function, suc_action function and inline wrapped JSON examples; every streaming character prefix withheld from <t onward; original commentary preserved; code fences, inline code, quotes and blockquotes stay text; JSON argument literals preserved and mixed requests not executed. CRLF, Unicode commentary and escaped Markdown markers verified on both architectures.",
+    "real_recovery": "PASS Intel/native M1 Ultra: three GLM-like response formats cause exactly one validated file read after one repair; persistent invalid format stops at two repairs; length-truncated call not repaired; manual approval required; Stop prevents the corrected action and preserves paused queue; queued user update precedes automatic repair.",
+    "loop_guard": "PASS Intel/native M1 Ultra: canonical action and terminal-result comparison, volatile job IDs/timing/wait settings ignored; changed output, running records and different intervening actions are not blocked; MCP normalized results covered; job management exempt; reset permits new user turn.",
+    "real_commands": "PASS Intel/native M1 Ultra: temporary shell command appends exactly three markers; fourth blocked despite action limit 100; explicit new turn permits three more; same command with five changing outputs completes normally. Fixture explicitly awaits terminal results to avoid confusing a running job with completion under compiler load.",
+    "legacy_recovery": "PASS Intel/native M1 Ultra: original promise/action correction, two shared repairs, action limit, final/question/no-tools exclusions, manual approval, Stop and malformed Markdown to one artifact; raw tool wrapper suppression and normal-stop outer-object tolerance retained.",
+    "steering": "PASS Intel/native M1 Ultra: updates before operation, during real command and during approval; old proposal not run, revised approval required, UUID/attachments/draft/explicit instruction and prompt-hook preservation; no counter reset; completed result survives insufficient context.",
+    "queue_and_context": "PASS Intel/native M1 Ultra: FIFO, error/Stop pause and resume, archived queue recovery; full manual/auto 99% context and Unicode adaptive compaction suite, tool results retained on failure/cancel, usage and plugin policy.",
+    "localization": "PASS Intel/native M1 Ultra: EN default/legacy migration, IT persistence, catalog placeholders and shell prerequisites.",
+    "identity": "PASS: 1.4.9.05 build 47, retained bundle identity and migration guards, Apple Events declaration/localizations and app entitlement signing paths.",
+    "installer": "PASS: extracted 1.4.9.05 build 47, Universal app/command/terminal helpers and arm64 engine; deep/strict ad-hoc signature, app automation entitlement, Apple Events description in IT/EN, both HTML guides and release notes, unchanged engine content/helper hashes."
   },
   "limits": [
-    "Synthetic localhost model fixtures and temporary workspaces; no execution of user session commands, installed-app replacement or live archive modifications.",
-    "The active decode cannot receive new input tokens. Updates are submitted in the next request, not spliced into an in-flight stream. Already started operations continue unless explicitly stopped.",
-    "Server-side inference speed, cache behavior and real-model interpretation of a correction are not qualified by these fixture tests. No new GPU/performance/KL claims.",
-    "Paused, stopped or restored queues require explicit resume. Corrections within a work cycle cannot bypass configured action/repair/subtask limits.",
-    "Runtime-only MCP jobs and best-effort cancellation retain the scope qualified in RELEASE_1.4.9.04_QA.json; no change to the transport implementation."
-  ]
+    "Only synthetic localhost services and temporary-workspace commands were used. No commands, provider actions or binaries from the inspected live session were executed or modified.",
+    "Repair depends on the model emitting valid canonical JSON within the existing limits; unsupported positional syntax is not translated or guessed.",
+    "Loop detection is a conservative exact-operation/result heuristic, not semantic progress measurement or proof that repeated commands have no side effects. Changed arguments/results and intervening different actions do not trigger it.",
+    "For intentional long identical repetitions, use a single explicitly requested loop/report command or request another user turn. Active-turn steering does not reset the guard or action budget.",
+    "No installed-app GUI or live-model compatibility qualification; Universal compilation and Intel/native M1 fixture regressions are the verified scope. No new GPU/KL or performance claims."
+  ],
+  "previous_build_46": {
+    "macos": {
+      "version": "1.4.9.05",
+      "build": 46,
+      "app_architectures": [
+        "arm64",
+        "x86_64"
+      ],
+      "engine_architecture": "arm64",
+      "installer": "SUCStudio/dist/SUC-Studio-1.4.9.05-universal.pkg",
+      "sha256": "a991a7b5abe543756136b59c5fd684ae347dc182608a72cf523d110b06d6a593",
+      "signing": "ad-hoc; installer unsigned; not notarized"
+    },
+    "changes": [
+      "FIFO user updates enter at safe boundaries, without cancelling or modifying the active decoder.",
+      "An unexecuted proposal is retained as superseded_action; its model context explicitly says it was not executed.",
+      "A pending approval is withdrawn with a negative resolution, never granted automatically. Any revised action retains its normal approval.",
+      "Completed tool result and pending correction are separate user-role messages in the next request; one generation per session.",
+      "Corrections preserve original action/repair/subtask limits, loaded explicit instructions, drafts, attachment identity and prompt hooks.",
+      "Insufficient context or oversized wire body preserves completed tool results; pending updates remain queued."
+    ],
+    "tests": {
+      "steering": "PASS Intel/native M1 Ultra: real HTTP streaming; correction before write prevents wrong.txt; revised write produces exactly correct.txt; correction during one actual shell command is delivered after TOOL_SENTINEL with one result and one command; correction during pending manual approval withdraws old proposal without executing it and requires new approval.",
+      "hooks_and_limits": "PASS Intel/native M1 Ultra: UserPromptSubmit gets original/update text exactly once each with the same turn_id; original explicit instructions retained in final generation snapshot; action counts remain 1 for before/during and 2 for a revised approval, not reset by steering.",
+      "archive_and_context_failure": "PASS Intel/native M1 Ultra: queued UUID/attachments delivered once, unsent draft retained, Codable roundtrip; insufficient context with auto-compact disabled retains exactly one completed tool result and leaves update paused.",
+      "queue": "PASS Intel/native M1 Ultra: full FIFO streaming/tool fixture, attachment and unsent-draft preservation, background session/unread, error/cancel pause and explicit resume, restored queues paused, safe editing.",
+      "context": "PASS Intel/native M1 Ultra: full context/plugin fixture suite, manual/auto compact at 99%, adaptive Unicode summaries, queue continuation, actual usage, archive preservation, failure/Stop rollback and tool-result conservation.",
+      "continuation": "PASS Intel/native M1 Ultra: ordinary recovery still reads one real file, bounded malformed-action and promise repairs, action limit and Stop; pending user update precedes automatic repair with no unwanted action; no guessed execution or length-truncation repair; raw tool wrappers hidden and normal-stop outer-brace tolerance preserved.",
+      "localization": "PASS Intel/native M1 Ultra: EN default/legacy migration, IT persistence, catalog interpolation/placeholders and shell prerequisites.",
+      "identity": "PASS: 1.4.9.05 build 46 release identity, migration guards and retained Apple Events declaration/entitlement signing paths.",
+      "installer": "PASS: extracted 1.4.9.05 build 46, Universal app/command/terminal helpers and arm64 engine; deep/strict ad-hoc signature, app automation entitlement, Apple Events description in IT/EN, both HTML guides and release notes, unchanged engine content/helper hashes."
+    },
+    "source_commit": "ea0cf715f73c23d9322273ac220d9b458fa8fb0c",
+    "scope": "Historical build 46; its installer/checksum are available in that Git revision. The same version filename now holds build 47."
+  }
 }

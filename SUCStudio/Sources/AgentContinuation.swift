@@ -4,7 +4,7 @@ enum AgentContinuation {
     static let limit=2
     static let invalidFeedback="""
 Feedback harness · formato azione non valido (nessuno strumento eseguito).
-La precedente richiesta suc_action non è un'azione completa utilizzabile. Ricontrolla il JSON: oggetto unico suc_action con name e arguments, virgolette e caratteri di controllo correttamente escaped, tutte le parentesi chiuse. Per write_file, content deve essere una stringa JSON valida anche quando contiene Markdown, blocchi codice o ritorni a capo. Non troncare il documento e non dichiararlo salvato.
+La precedente richiesta suc_action non è un'azione completa utilizzabile. Non usare <tool_call>, chiamate run_command(...) o suc_action(...): restituisci soltanto il JSON canonico {\"suc_action\":{\"name\":\"NOME\",\"arguments\":{}}} senza wrapper di funzione. Le chiamate testuali precedenti non sono state eseguite. Ricontrolla il JSON: oggetto unico suc_action con name e arguments, virgolette e caratteri di controllo correttamente escaped, tutte le parentesi chiuse. Per write_file, content deve essere una stringa JSON valida anche quando contiene Markdown, blocchi codice o ritorni a capo. Non troncare il documento e non dichiararlo salvato.
 Se l'azione è ancora necessaria e autorizzata, invia UNA richiesta completa corretta; attendi il risultato reale. In alternativa spiega concretamente il blocco. Non cambiare permessi, non inventare risultati e non ripetere azioni già concluse.
 """
     static let feedback="""

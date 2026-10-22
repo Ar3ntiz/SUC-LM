@@ -37,8 +37,8 @@ struct ActionLogRow:View {
     private var title:String {
         LT(["run_command":"Comando shell","run_interactive":"Comando interattivo","command_status":"Stato comando","wait_command":"Attesa comando","stop_command":"Interruzione comando","read_file":"Lettura file","write_file":"Scrittura file","list_files":"Elenco directory","make_directory":"Creazione directory","web_search":"Ricerca web","visit_page":"Lettura pagina","mcp_call":"Strumento MCP","mcp_status":"Stato MCP","mcp_wait":"Attesa MCP","mcp_cancel":"Interruzione MCP","load_skill":"Caricamento skill","load_plugin":"Caricamento plugin"][record.name] ?? record.name)
     }
-    private var color:Color {record.state=="completed" ? .green:["error","denied"].contains(record.state) ? .red:record.state=="running" ? .orange:.secondary}
-    private var status:String {LT(["completed":"Completata","running":"In esecuzione","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta","interrupted":"Interrotta"][record.state] ?? record.state)}
+    private var color:Color {record.state=="completed" ? .green:["error","denied","blocked"].contains(record.state) ? .red:record.state=="running" ? .orange:.secondary}
+    private var status:String {LT(["completed":"Completata","running":"In esecuzione","error":"Errore","denied":"Rifiutata","blocked":"Bloccata","cancelled":"Interrotta","interrupted":"Interrotta"][record.state] ?? record.state)}
     private var preview:String {String(record.details.split(separator:"\n").dropFirst().joined(separator:" · ").prefix(180))}
     var body:some View {
         VStack(alignment:.leading,spacing:0) {

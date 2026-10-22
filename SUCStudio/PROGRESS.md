@@ -93,3 +93,7 @@ Dichiarazione Apple Events IT/EN ed entitlement di automazione nell’app. Chiam
 ## 1.4.9.05 · build 46 — aggiornamenti tra le operazioni
 
 La coda consegna le correzioni ai confini sicuri del ciclo: prima di una proposta ancora da eseguire oppure dopo un risultato reale. Decode, operazioni avviate, bozze, allegati e limiti restano conservati. Piano: `docs/optimization/PROGRESS_1.4.9.05_IT.md`; verifiche e limiti nel rapporto `RELEASE_1.4.9.05_QA.json`.
+
+## 1.4.9.05 · build 47 — formati GLM e cicli
+
+Riconoscimento dei marcatori non canonici inline e recupero limitato, senza esecuzione di sintassi posizionale. Controllo runtime della quarta operazione consecutiva identica dopo tre risultati terminali uguali, con stato/attesa/annullamento esclusi. Piano `docs/optimization/PROGRESS_1.4.9.05_B47_IT.md`; risultati e limiti nel rapporto QA della release. Nessun comando della sessione reale eseguito dai test; motore e memoria invariati.

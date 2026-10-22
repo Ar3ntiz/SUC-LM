@@ -40,7 +40,7 @@ extension StudioStore {
         return await withCheckedContinuation { continuation in approvalWaiters[item.id]=continuation;approvals.append(item) }
     }
     func stopAgent(_ id: UUID) {
-        agentTasks[id]?.cancel();mcpJobs.stopAll(id);commandJobs.stopAll(id);terminals[id]?.stop()
+        actionLoopGuard.reset(id);agentTasks[id]?.cancel();mcpJobs.stopAll(id);commandJobs.stopAll(id);terminals[id]?.stop()
         for child in archive.sessions.filter({$0.parentSessionID==id}) {
             stopAgent(child.id)
             for (requestID,target) in requests where target.session==child.id { requestHookTasks[requestID]?.cancel();remoteTasks[requestID]?.cancel();remoteClients[requestID]?.stop();engine.send(["command":"cancel","id":requestID]);mutateMessage(target.session,target.message){$0.state="cancelling"} }
@@ -125,6 +125,13 @@ extension StudioStore {
                     return
                 }
                 guard allowed, !Task.isCancelled else {record.state="denied";record.result="Azione rifiutata o annullata.";recordAction(sessionID,record);finishAgentReport(sessionID,reason:"Azione rifiutata o interrotta.");completeSubagent(sessionID,result:.failure(MCPConnection.failure(record.result)));return}
+                if actionLoopGuard.blocks(action,session:sessionID,records:archive.sessions.first(where:{$0.id==sessionID})?.actions ?? []) {
+                    let reason=L("Ciclo interrotto: tre operazioni consecutive identiche hanno restituito lo stesso risultato. Nessuna quarta esecuzione. Verifica il registro azioni e invia nuove istruzioni per riprendere.")
+                    record.state="blocked";record.result=reason;recordAction(sessionID,record)
+                    finishAgentReport(sessionID,reason:reason);completeSubagent(sessionID,result:.failure(MCPConnection.failure(reason)))
+                    return
+                }
+                actionLoopGuard.note(action,session:sessionID,recordID:record.id)
                 operationJournal.update(id:record.id.uuidString,state:"In corso")
                 try Task.checkCancellation()
                 let result: String

@@ -26,6 +26,7 @@ import UniformTypeIdentifiers
     @Published var modelIOLog=ModelIOLog()
     let commandJobs:CommandJobs
     let mcpJobs=MCPJobs()
+    let actionLoopGuard=ActionLoopGuard()
     @Published var terminals:[UUID:InteractiveTerminal]=[:]
     @Published var logs: [String] = []
     @Published var completed = 0
@@ -199,7 +200,7 @@ import UniformTypeIdentifiers
         Task{_ = await invokeHooks("SessionEnd",session:s,extra:["reason":"other"])}
         for task in backgroundHooks.removeValue(forKey:s.id)?.values ?? [:].values {task.cancel()}
         hookSessions.remove(s.id);hookContexts.removeValue(forKey:s.id)
-        mcpJobs.stopAll(s.id);commandJobs.stopAll(s.id);terminals.removeValue(forKey:s.id)?.stop();archive.sessions.removeAll { $0.id == s.id }; if archive.selected == s.id { archive.selected = archive.sessions.first?.id }; if archive.sessions.isEmpty { newSession() }; scheduleSave()
+        actionLoopGuard.reset(s.id);mcpJobs.stopAll(s.id);commandJobs.stopAll(s.id);terminals.removeValue(forKey:s.id)?.stop();archive.sessions.removeAll { $0.id == s.id }; if archive.selected == s.id { archive.selected = archive.sessions.first?.id }; if archive.sessions.isEmpty { newSession() }; scheduleSave()
     }
     func pickFile(model: Bool) {
         let p = NSOpenPanel(); p.canChooseDirectories = false; p.allowsMultipleSelection = false
@@ -278,7 +279,7 @@ import UniformTypeIdentifiers
         let promptText=followup?.text ?? toolResult ?? (queuedInput?.text ?? s.draft.trimmingCharacters(in:.whitespacesAndNewlines))
         let firstHookTurn=userTurn && !hookSessions.contains(s.id)
         if userTurn {hookSessions.insert(s.id)}
-        if newTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0;agentRepairs[s.id]=0;agentRepairMessages[s.id]=[] }
+        if newTurn { actionLoopGuard.reset(s.id);hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0;agentRepairs[s.id]=0;agentRepairMessages[s.id]=[] }
         guard !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { return }
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
             let a = NSAlert(); a.messageText = L("Modello diverso per questa risposta"); a.informativeText = L("La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."); a.addButton(withTitle: L("Continua")); a.addButton(withTitle: L("Annulla")); guard a.runModal() == .alertFirstButtonReturn else { return }

@@ -100,6 +100,8 @@ struct WorkspaceAction: Codable, Equatable {
     static func parse(_ text: String,allowMissingOuterClose:Bool=false) -> WorkspaceAction? {
         guard text.utf8.count <= 128 * 1024 else{return nil}
         let value=answerText(text)
+        // Noncanonical inline wrappers are repair candidates, never executable syntax.
+        guard inlineToolCallSuffix(value,partial:false)==nil else{return nil}
         let candidates=protocolSuffixes(value,partial:false)
         var payload: String
         if candidates.count==1 {payload=unfenced(unwrappedToolCall(candidates[0]))}
@@ -192,6 +194,59 @@ struct WorkspaceAction: Codable, Equatable {
         }
         return result
     }
+    /// Detect malformed inline markers without interpreting function-style arguments.
+    /// Fences, code spans, quoted literals and blockquotes remain ordinary text.
+    private static func inlineToolCallSuffix(_ text:String,partial:Bool)->String? {
+        guard text.utf8.count<=128*1024,text.contains("<") else{return nil}
+        let tag=Array("<tool_call>"),totalCharacters=text.count
+        var fence:Character?,fenceCount=0,ticks=0,quote:Character?,escaped=false,offset=0
+        for line in text.components(separatedBy:"\n") {
+            // CRLF is one Swift Character, even though components splits at LF.
+            let lineAdvance=line.count+(line.hasSuffix("\r") ? 0:1)
+            let trimmed=line.trimmingCharacters(in:.whitespaces)
+            let first=trimmed.first
+            let run=(first=="`" || first=="~") ? trimmed.prefix(while:{$0==first}).count:0
+            if let open=fence {
+                if first==open && run>=fenceCount {fence=nil}
+                offset+=lineAdvance;continue
+            }
+            if ticks==0,quote==nil,run>=3 {fence=first;fenceCount=run;offset+=lineAdvance;continue}
+            if trimmed.hasPrefix(">") {offset+=lineAdvance;continue}
+            let chars=Array(line);var i=0
+            while i<chars.count {
+                let ch=chars[i]
+                if ticks>0 {
+                    if ch=="`" {let n=chars[i...].prefix(while:{$0=="`"}).count;if n==ticks{ticks=0};i+=n}else{i+=1}
+                    continue
+                }
+                if let end=quote {
+                    if escaped{escaped=false}else if ch=="\\"{escaped=true}else if ch==end{quote=nil}
+                    i+=1;continue
+                }
+                if ch=="\\" {i+=min(2,chars.count-i);continue}
+                if ch=="`" {ticks=chars[i...].prefix(while:{$0=="`"}).count;i+=ticks;continue}
+                if ch=="\"" || ch=="“" || ch=="‘" || (ch=="'" && (i==0 || !chars[i-1].isLetter)) {
+                    quote=ch=="“" ? "”":ch=="‘" ? "’":ch;i+=1;continue
+                }
+                if ch=="<" {
+                    let available=chars.count-i
+                    let complete=available>=tag.count && Array(chars[i..<i+tag.count])==tag
+                    if complete,trimmed != "<tool_call>" {
+                        let suffix=String(text.dropFirst(offset+i))
+                        let body=String(suffix.dropFirst(tag.count)).trimmingCharacters(in:.whitespacesAndNewlines)
+                        let call=body.range(of:"^[A-Za-z_][A-Za-z0-9_.:-]*\\s*\\(",options:.regularExpression) != nil
+                        let growing=partial && (body.isEmpty || body.range(of:"^[A-Za-z_][A-Za-z0-9_.:-]*$",options:.regularExpression) != nil)
+                        if body.isEmpty || body.hasPrefix("{") || call || growing {return suffix}
+                    } else if partial,offset+i+available==totalCharacters,available>=2,available<tag.count,Array(tag.prefix(available))==Array(chars[i...]) {
+                        return String(text.dropFirst(offset+i))
+                    }
+                }
+                i+=1
+            }
+            offset+=lineAdvance
+        }
+        return nil
+    }
     private static func unwrappedToolCall(_ text:String)->String {
         var lines=text.trimmingCharacters(in:.whitespacesAndNewlines).components(separatedBy:"\n")
         guard lines.first?.trimmingCharacters(in:.whitespacesAndNewlines)=="<tool_call>" else{return text}
@@ -203,7 +258,8 @@ struct WorkspaceAction: Codable, Equatable {
     /// Never modify the stored text or the tool protocol sent back to the model.
     static func commentaryBeforeEnvelope(_ text:String, partial:Bool) -> String {
         let value=answerText(text)
-        if let suffix=protocolSuffixes(value,partial:partial).first,value.hasSuffix(suffix) {
+        let candidates=[protocolSuffixes(value,partial:partial).first,inlineToolCallSuffix(value,partial:partial)].compactMap{$0}
+        if let suffix=candidates.max(by:{$0.count<$1.count}),value.hasSuffix(suffix) {
             return String(value.dropLast(suffix.count)).trimmingCharacters(in:.whitespacesAndNewlines)
         }
         return ""
@@ -221,7 +277,7 @@ struct WorkspaceAction: Codable, Equatable {
     /// Holds a possible protocol envelope while streaming; ordinary JSON/code is shown on completion.
     static func pendingEnvelope(_ text: String) -> Bool {
         let value=answerText(text)
-        if !protocolSuffixes(value,partial:true).isEmpty {return true}
+        if inlineToolCallSuffix(value,partial:true) != nil || !protocolSuffixes(value,partial:true).isEmpty {return true}
         if value.hasPrefix("{") {return true}
         let prefix=String(value.prefix(12)).lowercased()
         if ["`", "``", "```", "```j", "```js", "```jso", "```json"].contains(prefix) && value.count<=7 {return true}
@@ -230,7 +286,7 @@ struct WorkspaceAction: Codable, Equatable {
     }
     static func isActionEnvelope(_ text: String) -> Bool {
         let value=answerText(text)
-        if !protocolSuffixes(value,partial:false).isEmpty {return true}
+        if inlineToolCallSuffix(value,partial:false) != nil || !protocolSuffixes(value,partial:false).isEmpty {return true}
         let payload=unfenced(value)
         return payload.hasPrefix("{") && payload.contains("\"suc_action\"")
     }

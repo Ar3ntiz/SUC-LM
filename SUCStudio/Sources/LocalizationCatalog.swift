@@ -3,6 +3,8 @@ import Foundation
 // App-owned display text. Protocol names and user content never enter this catalog.
 enum StudioCatalog {
     static let english: [String:String] = [
+        "Bloccata": "Blocked",
+        "Ciclo interrotto: tre operazioni consecutive identiche hanno restituito lo stesso risultato. Nessuna quarta esecuzione. Verifica il registro azioni e invia nuove istruzioni per riprendere.": "Loop stopped: three consecutive identical operations returned the same result. No fourth execution. Check the action log and send new instructions to resume.",
         "Gli aggiornamenti saranno inviati al prossimo passaggio tra le operazioni, senza interrompere la risposta corrente.": "Updates will be sent at the next boundary between operations, without interrupting the current response.",
         "{0} operazioni avviate": "{0} operations started",
         "Stato MCP": "MCP status",

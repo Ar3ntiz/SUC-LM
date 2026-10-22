@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[1]
 info = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
 assert info['CFBundleDisplayName'] == info['CFBundleName'] == info['CFBundleExecutable'] == 'SUC Studio'
 assert info['CFBundleShortVersionString'] == '1.4.9.05'
-assert info['CFBundleVersion'] == '46'
+assert info['CFBundleVersion'] == '47'
 assert info.get('NSAppleEventsUsageDescription', '').strip()
 entitlements = plistlib.loads((root / 'Resources/SUCStudio.entitlements').read_bytes())
 assert entitlements['com.apple.security.automation.apple-events'] is True

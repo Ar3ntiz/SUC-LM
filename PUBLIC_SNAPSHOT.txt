@@ -1,4 +1,4 @@
-Source commit: ea0cf715f73c23d9322273ac220d9b458fa8fb0c
+Source commit: 2b60debfc4df33cf62a5d34a99874bcf4281b5a6
 Local export only; no remote push or existing public history overwrite.
 Machine paths/logins/LAN addresses are replaced with public examples.
 Internal progress is summarized; raw results and release binaries are excluded.

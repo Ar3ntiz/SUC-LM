@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.05 — build 47
+
+Riconosciuti i marcatori tool_call attaccati alla prosa: recupero verso JSON canonico senza eseguire chiamate testuali. Codice ed esempi preservati; tentativi limitati. Bloccata la quarta operazione consecutiva identica dopo tre esiti uguali, con polling dei job escluso. Avviso e coda sospesa; nuovi turni consentono ulteriori prove. Motore e Android invariati.
+
 ## 1.4.9.05 — build 46
 
 Correzioni inviate durante il lavoro recepite tra le operazioni, senza fermare il decode. Le proposte non ancora eseguite vengono riconsiderate; i risultati degli strumenti già avviati restano conservati. FIFO, allegati, bozze, approvazioni, hook e limiti preservati. Pausa/Stop e compattazione mantengono gli aggiornamenti in attesa. Motore e Android invariati.
