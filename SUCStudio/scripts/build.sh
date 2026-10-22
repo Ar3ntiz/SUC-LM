@@ -40,7 +40,7 @@ cp "$ROOT/../docs/optimization/LONG_CHAT_DIAGNOSTICS.md" "$ROOT/../docs/optimiza
 cp "$ROOT/../docs/optimization/CHAT_PREFIX_CHECKPOINTS.md" "$ROOT/../docs/optimization/RELEASE_1.4.7.03.md" "$APP/Contents/Resources/docs/"
 cp "$ROOT/../docs/optimization/RELEASE_1.4.7.04.md" "$APP/Contents/Resources/docs/"
 cp "$ROOT/../docs/optimization/RELEASE_1.4.7.05.md" "$ROOT/../docs/optimization/RELEASE_1.4.8.md" "$ROOT/../docs/optimization/RELEASE_1.4.8.02.md" "$ROOT/../docs/optimization/RELEASE_1.4.8.03.md" "$APP/Contents/Resources/docs/"
-cp "$ROOT/../docs/optimization/RELEASE_1.4.9.04_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9.03_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9.02_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9_IT.md" "$APP/Contents/Resources/docs/"
+cp "$ROOT/../docs/optimization/RELEASE_1.4.9.05_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9.04_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9.03_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9.02_IT.md" "$ROOT/../docs/optimization/RELEASE_1.4.9_IT.md" "$APP/Contents/Resources/docs/"
 cp -R "$ROOT/Resources/en.lproj" "$ROOT/Resources/it.lproj" "$APP/Contents/Resources/"
 cp "$ROOT/docs/CUSTOMIZATION_1.4.6.02_IT.md" "$APP/Contents/Resources/docs/"
 mkdir -p "$APP/Contents/Resources/licenses"

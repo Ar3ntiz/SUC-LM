@@ -89,3 +89,7 @@ Piano ed evidenze: `../docs/optimization/CHAT_PREFIX_CHECKPOINTS.md`. Qualifica 
 ## 1.4.9.04 · build 45 — chiamate MCP prolungate
 
 Dichiarazione Apple Events IT/EN ed entitlement di automazione nell’app. Chiamate MCP gestite come job con stato, attesa, annullamento e scadenza totale facoltativa; approvazioni, isolamento delle chat e Stop conservati. Nessuna ripetizione automatica dopo esito incerto. Piano e verifiche: `docs/optimization/PROGRESS_1.4.9.04_IT.md`; dettagli: `docs/optimization/RELEASE_1.4.9.04_IT.md`. Motore, memory policy e APK invariati.
+
+## 1.4.9.05 · build 46 — aggiornamenti tra le operazioni
+
+La coda consegna le correzioni ai confini sicuri del ciclo: prima di una proposta ancora da eseguire oppure dopo un risultato reale. Decode, operazioni avviate, bozze, allegati e limiti restano conservati. Piano: `docs/optimization/PROGRESS_1.4.9.05_IT.md`; verifiche e limiti nel rapporto `RELEASE_1.4.9.05_QA.json`.

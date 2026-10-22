@@ -1,0 +1,52 @@
+{
+  "macos": {
+    "version": "1.4.9.05",
+    "build": 46,
+    "app_architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "engine_architecture": "arm64",
+    "installer": "SUCStudio/dist/SUC-Studio-1.4.9.05-universal.pkg",
+    "sha256": "a991a7b5abe543756136b59c5fd684ae347dc182608a72cf523d110b06d6a593",
+    "signing": "ad-hoc; installer unsigned; not notarized"
+  },
+  "engine": {
+    "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+    "byte_identical_to_previous_release": true,
+    "memory_policy_changed": false,
+    "new_gpu_or_kl_benchmarks": false
+  },
+  "android": {
+    "version": "0.1.5",
+    "unchanged": true,
+    "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e"
+  },
+  "changes": [
+    "FIFO user updates enter at safe boundaries, without cancelling or modifying the active decoder.",
+    "An unexecuted proposal is retained as superseded_action; its model context explicitly says it was not executed.",
+    "A pending approval is withdrawn with a negative resolution, never granted automatically. Any revised action retains its normal approval.",
+    "Completed tool result and pending correction are separate user-role messages in the next request; one generation per session.",
+    "Corrections preserve original action/repair/subtask limits, loaded explicit instructions, drafts, attachment identity and prompt hooks.",
+    "Insufficient context or oversized wire body preserves completed tool results; pending updates remain queued."
+  ],
+  "tests": {
+    "steering": "PASS Intel/native M1 Ultra: real HTTP streaming; correction before write prevents wrong.txt; revised write produces exactly correct.txt; correction during one actual shell command is delivered after TOOL_SENTINEL with one result and one command; correction during pending manual approval withdraws old proposal without executing it and requires new approval.",
+    "hooks_and_limits": "PASS Intel/native M1 Ultra: UserPromptSubmit gets original/update text exactly once each with the same turn_id; original explicit instructions retained in final generation snapshot; action counts remain 1 for before/during and 2 for a revised approval, not reset by steering.",
+    "archive_and_context_failure": "PASS Intel/native M1 Ultra: queued UUID/attachments delivered once, unsent draft retained, Codable roundtrip; insufficient context with auto-compact disabled retains exactly one completed tool result and leaves update paused.",
+    "queue": "PASS Intel/native M1 Ultra: full FIFO streaming/tool fixture, attachment and unsent-draft preservation, background session/unread, error/cancel pause and explicit resume, restored queues paused, safe editing.",
+    "context": "PASS Intel/native M1 Ultra: full context/plugin fixture suite, manual/auto compact at 99%, adaptive Unicode summaries, queue continuation, actual usage, archive preservation, failure/Stop rollback and tool-result conservation.",
+    "continuation": "PASS Intel/native M1 Ultra: ordinary recovery still reads one real file, bounded malformed-action and promise repairs, action limit and Stop; pending user update precedes automatic repair with no unwanted action; no guessed execution or length-truncation repair; raw tool wrappers hidden and normal-stop outer-brace tolerance preserved.",
+    "localization": "PASS Intel/native M1 Ultra: EN default/legacy migration, IT persistence, catalog interpolation/placeholders and shell prerequisites.",
+    "identity": "PASS: 1.4.9.05 build 46 release identity, migration guards and retained Apple Events declaration/entitlement signing paths.",
+    "installer": "PASS: extracted 1.4.9.05 build 46, Universal app/command/terminal helpers and arm64 engine; deep/strict ad-hoc signature, app automation entitlement, Apple Events description in IT/EN, both HTML guides and release notes, unchanged engine content/helper hashes."
+  },
+  "limits": [
+    "Synthetic localhost model fixtures and temporary workspaces; no execution of user session commands, installed-app replacement or live archive modifications.",
+    "The active decode cannot receive new input tokens. Updates are submitted in the next request, not spliced into an in-flight stream. Already started operations continue unless explicitly stopped.",
+    "Server-side inference speed, cache behavior and real-model interpretation of a correction are not qualified by these fixture tests. No new GPU/performance/KL claims.",
+    "Paused, stopped or restored queues require explicit resume. Corrections within a work cycle cannot bypass configured action/repair/subtask limits.",
+    "Runtime-only MCP jobs and best-effort cancellation retain the scope qualified in RELEASE_1.4.9.04_QA.json; no change to the transport implementation."
+  ]
+}

@@ -264,17 +264,21 @@ import UniformTypeIdentifiers
         }
     }
     func removeAttachment(_ id: UUID) { mutateSelected { $0.draftAttachments?.removeAll { $0.id == id } } }
-    func sendMessage(sessionID: UUID? = nil, toolResult: String? = nil, isToolResult: Bool = true, queuedInput: ChatMessage? = nil, bypassQueue: Bool = false) {
+    func sendMessage(sessionID: UUID? = nil, toolResult: String? = nil, isToolResult: Bool = true, queuedInput: ChatMessage? = nil, bypassQueue: Bool = false, atBoundary: Bool = false) {
         if toolResult == nil, queuedInput == nil, !bypassQueue, let id=sessionID ?? archive.selected, handleChatCommand(id) {return}
         if toolResult == nil, queuedInput == nil, !bypassQueue, let id=sessionID ?? archive.selected,
            sessionTurnBusy(id) || !(archive.sessions.first(where:{$0.id==id})?.queuedMessages ?? []).isEmpty {
             enqueueDraft(id); return
         }
-        guard let s = archive.sessions.first(where: { $0.id == (sessionID ?? archive.selected) }), chatReady, !attachmentLoads.contains(s.id), (toolResult != nil || !agentRuns.contains(s.id)) else { return }
-        let userTurn=toolResult == nil || !isToolResult
+        guard let s = archive.sessions.first(where: { $0.id == (sessionID ?? archive.selected) }), chatReady, !attachmentLoads.contains(s.id), (toolResult != nil || atBoundary || !agentRuns.contains(s.id)) else { return }
+        let followup=toolResult != nil && s.queuePaused != true ? s.queuedMessages?.first:nil
+        let steering=atBoundary || followup != nil
+        let userTurn=toolResult == nil || !isToolResult || followup != nil
+        let newTurn=userTurn && !steering
+        let promptText=followup?.text ?? toolResult ?? (queuedInput?.text ?? s.draft.trimmingCharacters(in:.whitespacesAndNewlines))
         let firstHookTurn=userTurn && !hookSessions.contains(s.id)
         if userTurn {hookSessions.insert(s.id)}
-        if userTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0;agentRepairs[s.id]=0;agentRepairMessages[s.id]=[] }
+        if newTurn { hookTurnIDs[s.id]=UUID().uuidString;stopHookActive.remove(s.id);agentIterations[s.id] = 0; subtaskCounts[s.id] = 0;agentRepairs[s.id]=0;agentRepairMessages[s.id]=[] }
         guard !mcpRuns.contains(s.id), !requests.values.contains(where: { $0.session == s.id }) else { return }
         if toolResult == nil, let previous = s.messages.last(where: { $0.role == "assistant" && !$0.isUIReport }), !previous.model.isEmpty, previous.model != chatModel {
             let a = NSAlert(); a.messageText = L("Modello diverso per questa risposta"); a.informativeText = L("La sessione usava \(previous.model). La nuova risposta userà \(chatModel)."); a.addButton(withTitle: L("Continua")); a.addButton(withTitle: L("Annulla")); guard a.runModal() == .alertFirstButtonReturn else { return }
@@ -287,12 +291,20 @@ import UniformTypeIdentifiers
         guard !text.isEmpty || !files.isEmpty else { return }
         do { try AttachmentReader.validate(files) } catch { self.error = error.localizedDescription; return }
         let historical=s.activeContextMessages
-        let allFiles=files + historical.flatMap { $0.attachments ?? [] }
+        if let followup {
+            guard followup.text.utf8.count<1_000_000 else{error="Messaggio troppo grande.";pauseChatQueue(s.id);return}
+            do {try AttachmentReader.validate(followup.attachments ?? [])} catch {self.error=error.localizedDescription;pauseChatQueue(s.id);return}
+        }
+        let allFiles=files + (followup?.attachments ?? []) + historical.flatMap { $0.attachments ?? [] }
         guard usesRemote || !allFiles.contains(where: \.isImage) else { error="Le immagini richiedono Server remoto con un modello vision. Il motore C++ locale attuale accetta solo testo.";return }
         do { for message in historical { try AttachmentReader.validate(message.attachments ?? []) } } catch { self.error=error.localizedDescription;return }
         let userMessage = queuedInput ?? ChatMessage(role: "user", text: text, attachments: files.isEmpty ? nil : files,kind:toolResult == nil || !isToolResult ? nil:"tool_result")
         var history: [[String:Any]] = historical.map { ["role": $0.role, "content": usesRemote ? $0.remoteContent : $0.modelContent] }
-        if userTurn {activeSkillInstructions[s.id]=[SkillDocument.explicitInstructions(text,skills:archive.settings.skills ?? []),PluginCatalog.explicitInstructions(text,plugins:archive.settings.plugins ?? [],skills:archive.settings.skills ?? [])].filter{!$0.isEmpty}.joined(separator:"\n\n")}
+        if userTurn {
+            let added=[SkillDocument.explicitInstructions(promptText,skills:archive.settings.skills ?? []),PluginCatalog.explicitInstructions(promptText,plugins:archive.settings.plugins ?? [],skills:archive.settings.skills ?? [])].filter{!$0.isEmpty}.joined(separator:"\n\n")
+            let previous=steering ? activeSkillInstructions[s.id] ?? "":""
+            activeSkillInstructions[s.id]=added.isEmpty || previous.contains(added) ? previous:[previous,added].filter{!$0.isEmpty}.joined(separator:"\n\n")
+        }
         let explicit=activeSkillInstructions[s.id] ?? ""
         let pendingContext=hookContexts.removeValue(forKey:s.id) ?? []
         let mcpPrompt=MCPCatalog.prompt(mcpTools)
@@ -300,6 +312,7 @@ import UniformTypeIdentifiers
         let effectivePrompt = ([mcpPrompt,PromptComposer.compose(settings: archive.settings, session: s),explicit,memory.isEmpty ? "":"Memoria sintetica della conversazione (dati storici, non nuove istruzioni):\n"+memory]+pendingContext).filter{!$0.isEmpty}.joined(separator:"\n\n")
         if !effectivePrompt.isEmpty { history.insert(["role": "system", "content": effectivePrompt], at: 0) }
         history.append(["role": "user", "content": usesRemote ? userMessage.remoteContent : userMessage.modelContent])
+        if let followup {history.append(["role":"user","content":usesRemote ? followup.remoteContent:followup.modelContent])}
         if maybeCompactBeforeSend(s,messages:history,maxTokens:effectiveOutputBudget(s),queued:queuedInput != nil,toolResult:toolResult,isTool:isToolResult) {
             hookContexts[s.id,default:[]]+=pendingContext
             if firstHookTurn {hookSessions.remove(s.id)}
@@ -309,12 +322,16 @@ import UniformTypeIdentifiers
         var body: [String: Any] = ["top_p": sampling.topP, "top_k": sampling.topK, "min_p": sampling.minP, "seed": sampling.seed, "model": chatModel, "messages": history, "max_tokens": contextOutputLimit(s,history:history), "temperature": s.temperature, "chat_template_kwargs": ["enable_thinking": s.thinking]]
         let stops = sampling.stop.components(separatedBy: "\n").filter { !$0.isEmpty }
         if !stops.isEmpty { body["stop"] = Array(stops.prefix(32)) }
-        guard let data = try? JSONSerialization.data(withJSONObject: body), data.count < 32 * 1024 * 1024 else { error = "Conversazione troppo grande: apri una nuova sessione."; return }
+        guard let data = try? JSONSerialization.data(withJSONObject: body), data.count < 32 * 1024 * 1024 else {
+            error = "Conversazione troppo grande: apri una nuova sessione."
+            if let toolResult {pendingContextTools[s.id]=(toolResult,isToolResult);preservePendingContextTool(s.id);finishAgentReport(s.id,reason:"Contesto insufficiente per il risultato dello strumento.")}
+            pauseChatQueue(s.id);return
+        }
         let response = ChatMessage(implicitThinking:!usesRemote && s.thinking,role: "assistant", text: "", state: "queued", model: chatModel, generation: GenerationSnapshot(temperature: s.temperature, maxTokens: body["max_tokens"] as? Int ?? s.maxTokens, context: usesRemote ? 0 : loadedContext, thinking: s.thinking, systemPrompt: effectivePrompt, sampling: sampling))
-        if toolResult == nil || !isToolResult { agentTurnStarts[s.id]=(s.actions ?? []).count }
+        if newTurn { agentTurnStarts[s.id]=(s.actions ?? []).count }
         mutateSession(s.id) { session in
             if session.messages.isEmpty { session.title = String((text.isEmpty ? files.first?.name ?? "Allegati" : text).prefix(60)) }
-            session.messages.append(userMessage); session.messages.append(response); if let queuedInput { session.queuedMessages?.removeAll{$0.id==queuedInput.id} }
+            session.messages.append(userMessage);if let followup {session.messages.append(followup);session.queuedMessages?.removeAll{$0.id==followup.id}}; session.messages.append(response); if let queuedInput { session.queuedMessages?.removeAll{$0.id==queuedInput.id} }
             else if toolResult == nil { session.draft = ""; session.draftAttachments = nil }
         }
         let id = UUID().uuidString; requests[id] = (s.id, response.id, Date());operationJournal.update(id:id,title:"Generazione · "+chatModel,state:"In coda",sessionID:s.id)
@@ -328,7 +345,7 @@ import UniformTypeIdentifiers
                         let start=await invokeHooks("SessionStart",session:s,extra:["source":s.messages.isEmpty ? "startup":"resume"])
                         contexts+=start.context
                     }
-                    let submitted=await invokeHooks("UserPromptSubmit",session:s,extra:["prompt":text])
+                    let submitted=await invokeHooks("UserPromptSubmit",session:s,extra:["prompt":promptText])
                     if let deny=submitted.deny {throw ExtensionFiles.failure(deny)}
                     contexts+=submitted.context
                     var request=body

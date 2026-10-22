@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.05 — build 46
+
+Correzioni inviate durante il lavoro recepite tra le operazioni, senza fermare il decode. Le proposte non ancora eseguite vengono riconsiderate; i risultati degli strumenti già avviati restano conservati. FIFO, allegati, bozze, approvazioni, hook e limiti preservati. Pausa/Stop e compattazione mantengono gli aggiornamenti in attesa. Motore e Android invariati.
+
 ## 1.4.9.04 — build 45
 
 Chiamate MCP senza scadenza fissa: job con stato, attesa e annullamento gestibili dal modello, durata totale facoltativa e isolamento per chat. Stop e approvazioni preservati; nessuna ripetizione automatica. Dichiarazione Apple Events IT/EN, entitlement di automazione e indicazioni per configurare i provider esterni. Motore e Android invariati.

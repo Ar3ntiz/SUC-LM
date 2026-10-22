@@ -44,27 +44,31 @@ import Foundation
             return value
         }
         let recovered=store("recover"),sid=recovered.selected!.id
-        recovered.sendMessage();recovered.mutateSelected{$0.draft="next queued turn"};recovered.sendMessage()
-        try await wait("real read and queued continuation"){!recovered.sessionTurnBusy(sid) && recovered.selected!.messages.last?.text=="Queued turn completed."}
+        recovered.sendMessage()
+        try await wait("real read and queued continuation"){!recovered.sessionTurnBusy(sid) && recovered.selected!.messages.contains{$0.text=="Verified fixture file read successfully."}}
         precondition(recovered.selected!.messages.contains{$0.text=="Verified fixture file read successfully."})
-        precondition(recovered.selected!.messages.last?.text=="Queued turn completed.")
+        precondition(recovered.selected!.messages.last(where:{!$0.isUIReport})?.text=="Verified fixture file read successfully.")
         precondition(recovered.selected!.actions?.filter{$0.name=="read_file" && $0.state=="completed"}.count==1)
-        precondition(recovered.selected!.queuedMessages?.isEmpty==true && recovered.agentRepairs[sid]==0)
+        precondition(recovered.agentRepairs[sid]==1)
+        let steering=store("recover"),steeringID=steering.selected!.id
+        steering.sendMessage();steering.mutateSelected{$0.draft="next queued turn"};steering.sendMessage()
+        try await wait("user update before automatic repair"){!steering.sessionTurnBusy(steeringID) && steering.selected!.messages.last?.text=="Queued turn completed."}
+        precondition((steering.selected!.actions ?? []).isEmpty && steering.agentRepairs[steeringID]==0 && steering.selected!.queuedMessages?.isEmpty==true)
         let bounded=store("always-promise"),bid=bounded.selected!.id
-        bounded.sendMessage();bounded.mutateSelected{$0.draft="next queued turn"};bounded.sendMessage()
-        try await wait("bounded recovery stops"){bounded.selected!.queuePaused==true && !bounded.sessionTurnBusy(bid)}
+        bounded.sendMessage()
+        try await wait("bounded recovery stops"){bounded.agentRepairs[bid]==2 && !bounded.sessionTurnBusy(bid)}
         precondition(bounded.agentRepairs[bid]==2 && bounded.agentIterations[bid]==2)
         precondition(bounded.selected!.messages.filter{$0.kind=="tool_result" && $0.text.hasPrefix("Feedback harness")}.count==2)
-        precondition(bounded.selected!.queuedMessages?.count==1 && (bounded.selected!.actions ?? []).isEmpty)
+        precondition((bounded.selected!.actions ?? []).isEmpty)
         let manual=store("recover"),mid=manual.selected!.id;manual.mutateSelected{$0.approvalMode="manual"};manual.sendMessage()
-        manual.mutateSelected{$0.draft="next queued turn"};manual.sendMessage()
         try await wait("approval still required"){!manual.approvals.isEmpty}
+        manual.mutateSelected{$0.draft="next queued turn"};manual.sendMessage()
         precondition(manual.selected!.actions?.isEmpty != false)
         manual.cancelSelected();try await wait("cancel recovery/approval"){!manual.sessionTurnBusy(mid)}
         precondition(manual.selected!.queuePaused==true && !manual.selected!.messages.contains{$0.text=="Verified fixture file read successfully."})
-        let limited=store("always-promise"),lid=limited.selected!.id;limited.archive.settings.maxConsecutiveActions=1;limited.sendMessage();limited.mutateSelected{$0.draft="next queued turn"};limited.sendMessage()
+        let limited=store("always-promise"),lid=limited.selected!.id;limited.archive.settings.maxConsecutiveActions=1;limited.sendMessage()
         try await wait("action budget"){!limited.sessionTurnBusy(lid)}
-        precondition(limited.agentRepairs[lid]==1 && limited.selected!.queuePaused==true)
+        precondition(limited.agentRepairs[lid]==1)
         for (model,agent) in [("question",true),("final",true),("always-promise",false)] {
             let quiet=store(model,agent:agent),id=quiet.selected!.id;quiet.sendMessage()
             try await wait("legitimate final/no tools"){!quiet.sessionTurnBusy(id)}

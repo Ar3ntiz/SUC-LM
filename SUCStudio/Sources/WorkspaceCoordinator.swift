@@ -120,6 +120,10 @@ extension StudioStore {
                 if web { try WebTools.validate(action,allowWeb:session.webToolsEnabled) }
                 var allowed=true
                 if !skill && !discovery && !ownedManagement {allowed=await approve(action,session:session,root:root)}
+                if !Task.isCancelled, forwardQueuedAtBoundary(sessionID,messageID:messageID) {
+                    operationJournal.update(id:record.id.uuidString,state:"Interrotta")
+                    return
+                }
                 guard allowed, !Task.isCancelled else {record.state="denied";record.result="Azione rifiutata o annullata.";recordAction(sessionID,record);finishAgentReport(sessionID,reason:"Azione rifiutata o interrotta.");completeSubagent(sessionID,result:.failure(MCPConnection.failure(record.result)));return}
                 operationJournal.update(id:record.id.uuidString,state:"In corso")
                 try Task.checkCancellation()

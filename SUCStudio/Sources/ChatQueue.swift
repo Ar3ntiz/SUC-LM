@@ -6,6 +6,21 @@ extension StudioStore {
             || agentTurnStarts[id] != nil || editingSessions.contains(id)
     }
     var selectedTurnBusy: Bool { archive.selected.map{sessionTurnBusy($0)} ?? false }
+    /// A safe boundary has no active decoder. The prior proposal has not run yet.
+    @discardableResult func forwardQueuedAtBoundary(_ id:UUID,messageID:UUID)->Bool {
+        guard !quitting,!compacting.contains(id),pendingContextTools[id]==nil,
+              !requests.values.contains(where:{$0.session==id}),!mcpRuns.contains(id),
+              let session=archive.sessions.first(where:{$0.id==id}),session.queuePaused != true,
+              let item=session.queuedMessages?.first,
+              let message=session.messages.first(where:{$0.id==messageID}),message.state=="complete",message.finishReason != "length",
+              !message.protocolText.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else{return false}
+        if WorkspaceAction.isActionEnvelope(message.protocolText) {
+            mutateMessage(id,messageID){$0.kind="superseded_action";$0.executedAction=nil}
+        }
+        sendMessage(sessionID:id,queuedInput:item,atBoundary:true)
+        if !requests.values.contains(where:{$0.session==id}),!compacting.contains(id),pendingContextTools[id]==nil {pauseChatQueue(id)}
+        return true
+    }
     func enqueueDraft(_ id: UUID) {
         guard chatReady, !attachmentLoads.contains(id), !editingSessions.contains(id),
               let session=archive.sessions.first(where:{$0.id==id}) else{return}
@@ -16,6 +31,10 @@ extension StudioStore {
         guard usesRemote || !files.contains(where:\.isImage) else{error="Le immagini richiedono Server remoto con un modello vision.";return}
         let item=ChatMessage(role:"user",text:text,attachments:files.isEmpty ? nil:files)
         mutateSession(id){$0.queuedMessages=($0.queuedMessages ?? [])+[item];$0.draft="";$0.draftAttachments=nil}
+        if session.queuePaused != true {
+            // Withdraw a pending proposal; never turn a correction into permission to execute it.
+            for approval in approvals.filter({$0.sessionID==id}) {resolveApproval(approval.id,allowed:false)}
+        }
         scheduleChatQueue(id)
     }
     func removeQueuedMessage(_ id:UUID,sessionID:UUID) {

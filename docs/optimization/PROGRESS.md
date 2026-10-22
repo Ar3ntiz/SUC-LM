@@ -85,3 +85,7 @@ Reasoning non reinviato escluso dal contesto futuro con conteggi server o stime 
 ## SUC Studio 1.4.9.04 · build 45
 
 Chiamate MCP gestite come job: stato, attesa e annullamento per chat, nessun termine fisso a 30 secondi, scadenza totale facoltativa, approvazioni e Stop preservati. Verificati stdio/HTTP oltre 30 secondi e assenza di duplicazioni su Intel e M1. Dichiarazioni Apple Events IT/EN ed entitlement dell’app. Motore e Android invariati. Esiti e limiti nel rapporto `RELEASE_1.4.9.04_QA.json`.
+
+## SUC Studio 1.4.9.05 · build 46
+
+Aggiornamenti inviati durante il lavoro recepiti tra le operazioni: una proposta ancora da eseguire viene riconsiderata, mentre il risultato di uno strumento già avviato precede la correzione. Approvazioni superate ritirate senza concedere permessi. Test Intel/M1 su FIFO, hook, limiti, allegati, Stop e compattazione. Decode, motore e Android invariati. Verifiche e limiti in `RELEASE_1.4.9.05_QA.json`.

@@ -235,7 +235,7 @@ extension StudioStore {
         guard !session.activeContextMessages.isEmpty || used>=limit else{return false}
         guard session.autoCompact != false,!session.activeContextMessages.isEmpty else{
             error="Contesto insufficiente (circa \(used) token + \(maxTokens) di risposta / \(limit)). Usa /compact, riduci l’input o il massimo output."
-            pauseChatQueue(session.id);if toolResult != nil {finishAgentReport(session.id,reason:"Contesto insufficiente per il risultato dello strumento.")};return true
+            pauseChatQueue(session.id);if let toolResult {pendingContextTools[session.id]=(toolResult,isTool);preservePendingContextTool(session.id);finishAgentReport(session.id,reason:"Contesto insufficiente per il risultato dello strumento.")};return true
         }
         // Retain the pending input separately until compaction succeeds.
         actionNotice(session.id,"La prossima richiesta raggiunge circa \(used) / \(limit) token: compattazione al 99% del contesto.")

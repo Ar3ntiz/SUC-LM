@@ -2,10 +2,10 @@ import Foundation
 
 extension ChatMessage {
     var protocolText: String {ThinkingParts.split(text,separate:reasoning,implicit:implicitThinking==true).answer}
-    var isOperational:Bool { kind=="tool_call" || kind=="tool_result" }
+    var isOperational:Bool { kind=="tool_call" || kind=="tool_result" || kind=="superseded_action" }
     var isUIReport:Bool { kind=="action_report" || kind=="action_notice" || kind=="command_help" }
     var commandAction:WorkspaceAction? {
-        guard role=="assistant",let action=executedAction ?? WorkspaceAction.parse(protocolText),
+        guard kind != "superseded_action",role=="assistant",let action=executedAction ?? WorkspaceAction.parse(protocolText),
               ["run_command","run_interactive"].contains(action.name) else{return nil}
         return action
     }

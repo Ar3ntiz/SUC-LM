@@ -22,6 +22,7 @@ extension StudioStore {
         if message.finishReason == "length" {
             actionNotice(sessionID,contextWarning ?? "Risposta interrotta al limite Output max: il risultato può essere incompleto.")
         }
+        if forwardQueuedAtBoundary(sessionID,messageID:messageID) {return}
         let final=WorkspaceAction.parse(message.protocolText)==nil && !WorkspaceAction.isActionEnvelope(message.protocolText)
         guard final,(archive.settings.hooks ?? []).contains(where:{$0.enabled && ["Stop","SubagentStop"].contains(HookDefinition.event($0.event))}) else{handleAgentResponse(sessionID:sessionID,messageID:messageID);return}
         agentRuns.insert(sessionID)

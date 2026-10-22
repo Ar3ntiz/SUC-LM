@@ -1,0 +1,9 @@
+# SUC Studio 1.4.9.05 · build 46
+
+I messaggi inviati mentre il modello lavora vengono recepiti al prossimo passaggio sicuro, in ordine FIFO. Il decode in corso termina normalmente. Se la risposta propone un’azione non ancora eseguita, il modello riceve prima l’aggiornamento dell’utente e riconsidera la proposta; la proposta originale rimane nello storico contrassegnata come non eseguita. Una correzione arrivata durante l’approvazione ritira la vecchia proposta senza approvarla; una nuova azione richiede la propria conferma.
+
+Se uno strumento è già partito, il risultato reale viene conservato e inviato insieme al prossimo aggiornamento come messaggio utente separato, prima che il modello scelga l’operazione successiva. Le operazioni non vengono duplicate o annullate implicitamente. I job shell/MCP restano controllabili con i relativi strumenti di stato, attesa e annullamento. Una normale risposta senza azioni può essere seguita immediatamente dall’aggiornamento, senza attendere la conclusione di un intero ciclo dell’agente.
+
+Bozze non inviate e allegati restano separati; pausa, Stop e ripristino mantengono la coda sospesa. Le correzioni nello stesso ciclo non azzerano il limite delle azioni, dei tentativi di recupero o dei subtask. Gli hook UserPromptSubmit ricevono il nuovo testo; le skill esplicite già caricate restano disponibili. Il conteggio del contesto include l’aggiornamento; se serve compattare, i messaggi in attesa non vengono rimossi prima della consegna. Errori e Stop non riavviano automaticamente operazioni già eseguite.
+
+Non è un inserimento di token nel decode già avviato: il server vede il nuovo messaggio nella richiesta successiva. Tempi di risposta del modello, operazioni lunghe e richieste di approvazione possono ancora richiedere attesa. Motore, memoria e Android invariati; nessuna installazione automatica.

@@ -13,6 +13,7 @@ struct ChatQueuePanel: View {
                         if session.queuePaused==true {store.resumeChatQueue(session.id)} else {store.pauseChatQueue(session.id)}
                     }.buttonStyle(.borderless)
                 }
+                Text(L("Gli aggiornamenti saranno inviati al prossimo passaggio tra le operazioni, senza interrompere la risposta corrente.")).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
                 ScrollView {
                     VStack(alignment:.leading,spacing:6) {
                         ForEach(Array(queued.enumerated()),id:\.element.id) { index,item in

@@ -5,7 +5,7 @@ import CoreFoundation
 enum StudioPlatform {
     static let name = "SUC Studio"
     static let defaultContext = 16000
-    static let version = "1.4.9.04"
+    static let version = "1.4.9.05"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY
@@ -75,6 +75,7 @@ struct ChatMessage: Codable, Identifiable, Equatable {
     var kind: String?
     // Reconstruct exactly the same attachment text for later turns and exports.
     var modelContent: String {
+        if kind=="superseded_action" {return "[Harness: this proposed tool action was NOT executed because a user update arrived. Reconsider it using the following user message.]\n"+text}
         guard let files = attachments, !files.isEmpty else { return text }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let documents = files.map { ["file": $0.name, "content": $0.isImage ? "[Immagine allegata; dati conservati nell’export JSON]" : $0.text] }

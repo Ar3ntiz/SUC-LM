@@ -43,7 +43,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 text = 'ACK:' + prompt
                 if prompt == 'queue-second' and value['model'] == 'queue-tool':
-                    assert any(m['role'] == 'assistant' and m['content'] == 'ACK:queue-first' for m in messages)
+                    assert any('NOT executed' in str(m['content']) for m in messages if m['role'] == 'assistant')
             time.sleep(.25)
         elif value['model'] == 'explicit-mcp':
             assert 'CORPO_SKILL_RISERVATO' in system

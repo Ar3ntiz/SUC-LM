@@ -3,6 +3,7 @@ import Foundation
 // App-owned display text. Protocol names and user content never enter this catalog.
 enum StudioCatalog {
     static let english: [String:String] = [
+        "Gli aggiornamenti saranno inviati al prossimo passaggio tra le operazioni, senza interrompere la risposta corrente.": "Updates will be sent at the next boundary between operations, without interrupting the current response.",
         "{0} operazioni avviate": "{0} operations started",
         "Stato MCP": "MCP status",
         "Attesa MCP": "Wait for MCP",
