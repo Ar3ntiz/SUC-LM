@@ -35,7 +35,7 @@ struct ActionLogRow:View {
     @State private var expanded=false
     @State private var showFull=false
     private var title:String {
-        LT(["run_command":"Comando shell","run_interactive":"Comando interattivo","command_status":"Stato comando","wait_command":"Attesa comando","stop_command":"Interruzione comando","read_file":"Lettura file","write_file":"Scrittura file","list_files":"Elenco directory","make_directory":"Creazione directory","web_search":"Ricerca web","visit_page":"Lettura pagina","mcp_call":"Strumento MCP","load_skill":"Caricamento skill","load_plugin":"Caricamento plugin"][record.name] ?? record.name)
+        LT(["run_command":"Comando shell","run_interactive":"Comando interattivo","command_status":"Stato comando","wait_command":"Attesa comando","stop_command":"Interruzione comando","read_file":"Lettura file","write_file":"Scrittura file","list_files":"Elenco directory","make_directory":"Creazione directory","web_search":"Ricerca web","visit_page":"Lettura pagina","mcp_call":"Strumento MCP","mcp_status":"Stato MCP","mcp_wait":"Attesa MCP","mcp_cancel":"Interruzione MCP","load_skill":"Caricamento skill","load_plugin":"Caricamento plugin"][record.name] ?? record.name)
     }
     private var color:Color {record.state=="completed" ? .green:["error","denied"].contains(record.state) ? .red:record.state=="running" ? .orange:.secondary}
     private var status:String {LT(["completed":"Completata","running":"In esecuzione","error":"Errore","denied":"Rifiutata","cancelled":"Interrotta","interrupted":"Interrotta"][record.state] ?? record.state)}
@@ -88,7 +88,7 @@ struct ActionLogRow:View {
         if let code=object["exit_code"] as? Int {lines.append(L("Codice di uscita")+": \(code)")}
         if let seconds=object["elapsed_seconds"] as? Double {lines.append(L("Durata")+": "+String(format:"%.1f s",seconds))}
         if let error=object["error"] as? String,!error.isEmpty {lines.append(error)}
-        lines.append((object["output"] as? String).flatMap{$0.isEmpty ? nil:$0} ?? L("Nessun output testuale."))
+        lines.append(((object["output"] as? String) ?? (object["result"] as? String)).flatMap{$0.isEmpty ? nil:$0} ?? L("Nessun output testuale."))
         if let omitted=object["omitted_bytes"] as? Int,omitted>0 {lines.append(L("Anteprima: \(omitted) byte precedenti non mostrati."))}
         return lines.joined(separator:"\n\n")
     }

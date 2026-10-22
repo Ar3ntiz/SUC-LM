@@ -1,0 +1,9 @@
+# SUC Studio 1.4.9.04 · build 45
+
+Le chiamate MCP non scadono più dopo 30 secondi. `mcp_call` avvia un job e restituisce risultato o identificativo/stato: `wait_seconds` regola solo l’attesa della singola osservazione (0–60 secondi, predefinito 1). Il modello può usare `mcp_status`, `mcp_wait` (attesa predefinita 30 secondi) e `mcp_cancel`, specificando `job_id`. `timeout_seconds` è una scadenza totale facoltativa, tra 1 e 86400 secondi; se omessa non viene imposto un termine alla chiamata. Connessione e scoperta del catalogo mantengono scadenze finite.
+
+L’avvio conserva le approvazioni della sessione; consultazione, attesa e annullamento del proprio job non consumano nuove azioni né richiedono ulteriori approvazioni. Un job MCP alla volta per sessione, fino a otto attivi nell’app. Il superamento dell’attesa non interrompe il lavoro e non lo rilancia. Stop e scollegamento interrompono le chiamate interessate; i job non vengono ripresi dopo il riavvio. L’annullamento è best effort: un server può aver già eseguito effetti che non possono essere annullati. Nessuna ripetizione automatica dopo esito incerto. Il limite del risultato resta 4 MiB; lo schema resta 3 MiB.
+
+L’app dichiara l’uso di Apple Events in IT/EN e include l’entitlement di automazione. macOS può richiedere il consenso in Privacy e sicurezza → Automazione. Questo non concede automaticamente l’autorizzazione e non corregge la firma o gli entitlement mancanti di Hopper o di altri programmi esterni. Per Ghidra, l’eseguibile MCP deve ricevere `GHIDRA_INSTALL_DIR` e un `JAVA_HOME` compatibile tramite il pannello delle variabili d’ambiente; un Mach-O Universal può richiedere una singola architettura estratta. Il catalogo MCP connesso non implica che sia aperto un documento nel provider.
+
+Motore C++/Metal, misure di qualità e Android 0.1.5 invariati. Pacchetto locale ad hoc, senza notarizzazione né installazione automatica.

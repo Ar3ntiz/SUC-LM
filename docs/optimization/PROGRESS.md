@@ -81,3 +81,7 @@ Budget della compattazione coerenti in token, senza sottrarre byte dal limite. M
 ### SUC Studio 1.4.9.03 · build 44
 
 Reasoning non reinviato escluso dal contesto futuro con conteggi server o stime esplicite. Controlli thinking per LM Studio/router e override persistenti. Sintesi breve con ricompattazione della memoria e retry su metà Unicode dopo troncamenti, senza commit parziali. Budget effettivo e avvisi di contesto corretti, soglia 99% invariata. Suite contesto/remota/telemetria/IT-EN su Intel e M1 Ultra; prova reale del Router su dati neutri conclusa senza reasoning. Installer Universal verificato; motore, memory policy e Android invariati.
+
+## SUC Studio 1.4.9.04 · build 45
+
+Chiamate MCP gestite come job: stato, attesa e annullamento per chat, nessun termine fisso a 30 secondi, scadenza totale facoltativa, approvazioni e Stop preservati. Verificati stdio/HTTP oltre 30 secondi e assenza di duplicazioni su Intel e M1. Dichiarazioni Apple Events IT/EN ed entitlement dell’app. Motore e Android invariati. Esiti e limiti nel rapporto `RELEASE_1.4.9.04_QA.json`.

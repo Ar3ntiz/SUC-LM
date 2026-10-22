@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.04 — build 45
+
+Chiamate MCP senza scadenza fissa: job con stato, attesa e annullamento gestibili dal modello, durata totale facoltativa e isolamento per chat. Stop e approvazioni preservati; nessuna ripetizione automatica. Dichiarazione Apple Events IT/EN, entitlement di automazione e indicazioni per configurare i provider esterni. Motore e Android invariati.
+
 ## 1.4.9.03 — build 44
 
 Corretto il contesto che ricontava reasoning non reinviato. Controlli thinking compatibili con LM Studio/router e override configurabili. Compattazione con obiettivo breve, memoria precedente ridotta e retry su metà Unicode dopo troncamenti, senza salvare sintesi parziali. Diagnostica dei budget e token; soglia 99% invariata. Regressioni complete e prova reale del router su dati neutri.

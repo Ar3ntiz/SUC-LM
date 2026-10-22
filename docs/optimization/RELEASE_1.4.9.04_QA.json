@@ -1,0 +1,52 @@
+{
+  "macos": {
+    "version": "1.4.9.04",
+    "build": 45,
+    "app_architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "engine_architecture": "arm64",
+    "installer": "SUCStudio/dist/SUC-Studio-1.4.9.04-universal.pkg",
+    "sha256": "2970dc60c00331d819084e68dd4ec1e7842d8e15b522d4551d3f4f61597a13e8",
+    "signing": "ad-hoc; installer unsigned; not notarized"
+  },
+  "engine": {
+    "parent_content_sha256": "fae7774eb1e37051dcde5230a622292bef5516a7974951870f00bc7e654a04ff",
+    "helper_sha256": "f0468298d4d07a1dc789464d8079a4017647f28d8c91bb67d181013a2733ed46",
+    "byte_identical_to_previous_release": true,
+    "memory_policy_changed": false,
+    "new_gpu_or_kl_benchmarks": false
+  },
+  "android": {
+    "version": "0.1.5",
+    "unchanged": true,
+    "sha256": "56725f8d78c0b658f37b1174b472d9ae4ef991efc0600ef118c5f63e1c8d5c6e"
+  },
+  "changes": [
+    "Apple Events usage declaration in English/Italian and app-only automation entitlement.",
+    "MCP calls have no fixed 30-second lifetime; optional total deadline, bounded observations, session-owned status/wait/cancel.",
+    "Stop discards delivery into later turns while preserving action records; cancellation is best effort, without automatic replay.",
+    "Manual MCP invocation shares lifecycle; premature final answers wait for the real result."
+  ],
+  "tests": {
+    "mcp_lifecycle": "PASS Intel/native M1 Ultra: stdio and HTTP/SSE real 31-second calls; exactly one invocation; timeout_seconds deadline; cancellation notification; subsequent calls succeed; cancelled observation leaves original call running; cross-session management rejected.",
+    "mcp_coordinator": "PASS Intel/native M1 Ultra: initial manual approval, owned status past action limit without new approval, busy queue, Stop and persisted action state, premature final answer waits for result, manual invocation observes Stop, archive recovery. Cancelled-turn jobs are not redelivered into the next turn.",
+    "mcp_http": "PASS Intel: full JSON/SSE fixture suite, authentication/session/protocol headers, tool errors, credentials not redirected.",
+    "mcp_sizes": "PASS Intel: intact stdio/HTTP schemas above 1 MiB accepted up to 3 MiB; oversized schemas rejected. Intact 4 MiB ASCII/Unicode/escaped results accepted; 4 MiB + 1 rejected. Canonical names, aliases and ambiguity checks.",
+    "context": "PASS Intel: complete context/plugin suite; adaptive Unicode summaries, manual/auto 99% threshold, projected counts, actual usage, queues, cancellation/error rollback, archive preservation and plugin policy.",
+    "localization": "PASS Intel/native M1 Ultra: defaults, IT persistence, interpolation/catalog placeholders, shell prerequisites.",
+    "agent_reports": "PASS native M1 Ultra: settings/action-limit, hidden operational messages, immediate errors and final summaries. The historical fixture emulates a local backend and is not applicable on Intel.",
+    "queue_and_continuation": "PASS Intel/native M1 Ultra: FIFO, complete tool chains, attachments, cancellation/error pause, persisted queues; bounded model correction, malformed Markdown to one artifact, streaming tool wrappers hidden, no repair of truncated/incomplete arguments.",
+    "command_jobs": "PASS Intel: original real 31-second shell job, no restart, ownership/approval/action-limit, cancellation of descendants, bounded Unicode tails and explicit deadline. Commands unchanged.",
+    "identity": "PASS: 1.4.9.04 build 45 identity, installer migration guards, Apple Events declaration/localizations, entitlement and both signing paths.",
+    "installer": "PASS: extracted 1.4.9.04 build 45, Universal app/command/terminal helpers and arm64 engine; deep/strict ad-hoc signature, app automation entitlement, Apple Events description in IT/EN, both HTML guides and release notes, unchanged engine content/helper hashes."
+  },
+  "limits": [
+    "Tests use local synthetic MCP/HTTP fixtures and isolated archives. No REA/Hopper/Ghidra tool invocation, user-chat modification, permission reset or installed-app replacement.",
+    "Apple TCC consent and external-process signing remain independent. The app declaration cannot fix missing entitlements in Hopper itself; Ghidra still needs its provider environment and a supported binary architecture.",
+    "Cancellation is best effort and cannot undo effects already performed by a server. No automatic retry; jobs are runtime-only.",
+    "No installed-app GUI end-to-end or live-LLM MCP autonomy qualification; native M1 and Intel core lifecycle and Universal compilation are the verified scope.",
+    "Reference historical UI/remote-thinking tests remain in RELEASE_1.4.9.03_QA.json; no new GPU/performance/KL claims."
+  ]
+}

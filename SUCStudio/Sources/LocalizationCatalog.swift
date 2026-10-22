@@ -3,6 +3,20 @@ import Foundation
 // App-owned display text. Protocol names and user content never enter this catalog.
 enum StudioCatalog {
     static let english: [String:String] = [
+        "{0} operazioni avviate": "{0} operations started",
+        "Stato MCP": "MCP status",
+        "Attesa MCP": "Wait for MCP",
+        "Interruzione MCP": "Cancel MCP",
+        "Chiamata MCP terminata con errore. Apri il registro azioni per i dettagli.": "MCP call ended with an error. Open the action log for details.",
+        "Una chiamata MCP è già in corso: usa mcp_status o mcp_wait con il job_id esistente, senza duplicarla.": "An MCP call is already running: use mcp_status or mcp_wait with its existing job_id; do not duplicate it.",
+        "Massimo 8 chiamate MCP attive. Attendi o interrompi una chiamata.": "At most 8 MCP calls can run at once. Wait for or cancel a call.",
+        "Troppi risultati MCP non ancora letti: consulta i job esistenti.": "Too many unread MCP results: inspect the existing jobs.",
+        "Chiamata MCP sconosciuta in questa sessione. Nessuno strumento è stato avviato o ripetuto.": "Unknown MCP call in this session. No tool was started or repeated.",
+        "Chiamata interrotta; esito remoto eventualmente incerto.": "Call cancelled; its remote outcome may be uncertain.",
+        "Chiamata MCP interrotta.": "MCP call cancelled.",
+        "Scadenza MCP raggiunta. L’esito dell’azione può essere incerto; nessuna ripetizione automatica.": "MCP deadline reached. The action outcome may be uncertain; no automatic retry.",
+        "I provider come Ghidra richiedono variabili proprie, per esempio GHIDRA_INSTALL_DIR e JAVA_HOME. L’automazione di altre app può richiedere il consenso in Privacy e sicurezza → Automazione; la connessione MCP da sola non lo concede.": "Providers such as Ghidra require their own environment variables, for example GHIDRA_INSTALL_DIR and JAVA_HOME. Automating other apps may require consent in Privacy & Security → Automation; connecting MCP alone does not grant it.",
+
         "{0}: usa un numero intero tra {1} e {2}.": "{0}: enter an integer between {1} and {2}.",
         "Un comando è già in esecuzione: {0}. Usa wait_command o stop_command; non avviarne una copia.": "A command is already running: {0}. Use wait_command or stop_command; do not start a copy.",
         "Sessione riaperta: job non ricollegato. Verifica gli effetti reali prima di ripetere il comando.": "Session reopened: job not reconnected. Verify actual effects before repeating the command.",

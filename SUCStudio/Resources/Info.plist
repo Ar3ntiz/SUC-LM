@@ -15,13 +15,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.4.9.03</string>
+	<string>1.4.9.04</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleLocalizations</key>
 	<array><string>en</string><string>it</string></array>
 	<key>CFBundleVersion</key>
-	<string>44</string>
+	<string>45</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>NSAppTransportSecurity</key>
@@ -33,6 +33,8 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect chat to inference and MCP servers on your local network, or expose the engine to authorized clients.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Allow tools you enable to automate other Mac apps when required by your chat requests.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

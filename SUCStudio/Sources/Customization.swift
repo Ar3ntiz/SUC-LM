@@ -46,6 +46,7 @@ extension StudioStore {
         if enabled { var value = configuration; value.enabled = true; Task { await connectMCP(value) } }
     }
     func disconnectMCP(_ id: UUID) {
+        mcpJobs.stopServer(id)
         let old = mcpConnections.removeValue(forKey: id); old?.stop()
         mcpTools.removeAll { $0.serverID == id }; mcpStatus[id] = "Spento"
     }
@@ -77,7 +78,11 @@ extension StudioStore {
         let logID=UUID().uuidString;operationJournal.update(id:logID,title:"MCP · "+tool.serverName+" / "+tool.name,state:"In corso",sessionID:sessionID)
         var logSuccess=false
         defer{operationJournal.update(id:logID,state:logSuccess ? "Completata":"Errore")}
-        let result = try await client.call(tool, arguments: arguments)
+        let job=try mcpJobs.start(client:client,tool:tool,input:arguments,session:sessionID,record:UUID(),timeout:nil)
+        // This manual invocation delivers an attachment, not an agent continuation.
+        job.delivered=true
+        do {while job.running {try await mcpJobs.wait(job,seconds:60)};try Task.checkCancellation()} catch {job.task?.cancel();throw error}
+        guard job.state=="completed",let result=job.result else{throw MCPConnection.failure(job.error ?? "Chiamata MCP interrotta.")}
         guard let index = archive.sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let attachment = ChatAttachment(name: "MCP · \(tool.serverName) / \(tool.name)", text: result, originalBytes: result.utf8.count)
         var files = archive.sessions[index].draftAttachments ?? []

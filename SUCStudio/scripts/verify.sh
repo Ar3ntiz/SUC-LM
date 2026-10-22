@@ -4,6 +4,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/SUC Studio.app"
 plutil -lint "$APP/Contents/Info.plist"
 codesign --verify --deep --strict "$APP"
+[[ -n "$(/usr/libexec/PlistBuddy -c 'Print NSAppleEventsUsageDescription' "$APP/Contents/Info.plist")" ]]
+ENTITLEMENTS="$(codesign -d --entitlements :- "$APP" 2>/dev/null)"
+[[ "$(printf '%s' "$ENTITLEMENTS" | /usr/libexec/PlistBuddy -c 'Print com.apple.security.automation.apple-events' /dev/stdin)" == true ]]
 for bin in "$APP/Contents/MacOS/SUC Studio" "$APP/Contents/Helpers/suc-studio-command" "$APP/Contents/Helpers/suc-studio-terminal"; do
   # Some Apple lipo versions reject multiple verify_arch arguments.
   for arch in arm64 x86_64; do lipo "$bin" -verify_arch "$arch"; done

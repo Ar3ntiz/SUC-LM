@@ -48,6 +48,10 @@ extension StudioStore {
         if CommandJobTools.names.contains(record.name),let payload=try? JSONSerialization.jsonObject(with:Data(record.result.utf8)) as? [String:Any],payload["job_id"] != nil {
             notice=L("Comando terminato con errore. Apri il registro azioni della sessione per dettagli e output.")
         }
+        if record.name=="mcp_call" || MCPJobTools.management.contains(record.name),
+           let payload=try? JSONSerialization.jsonObject(with:Data(record.result.utf8)) as? [String:Any],payload["job_id"] != nil {
+            notice=L("Chiamata MCP terminata con errore. Apri il registro azioni per i dettagli.")
+        }
         if record.state != "completed" && record.state != "running" { actionNotice(sessionID,"**\(record.state == "denied" ? "Azione rifiutata" : record.state == "cancelled" ? "Azione interrotta" : "Errore nell’azione") · \(record.name)**\n\n\(notice)") }
     }
     func finishAgentReport(_ sessionID:UUID,reason:String?=nil) {
@@ -55,7 +59,7 @@ extension StudioStore {
         defer { if reason == nil { scheduleContextContinuation(sessionID) } }
         activeSkillInstructions.removeValue(forKey:sessionID)
         guard let start=agentTurnStarts.removeValue(forKey:sessionID),let session=archive.sessions.first(where:{$0.id==sessionID}) else{return}
-        let records=Array((session.actions ?? []).dropFirst(start)).filter{!CommandJobTools.management.contains($0.name)}
+        let records=Array((session.actions ?? []).dropFirst(start)).filter{!CommandJobTools.management.contains($0.name) && !MCPJobTools.management.contains($0.name)}
         guard !records.isEmpty || reason != nil else{return}
         let done=records.filter{$0.state=="completed"},running=records.filter{$0.state=="running"}.count
         let failed=records.count-done.count-running
@@ -65,7 +69,7 @@ extension StudioStore {
         var parts:[String]=[]
         if !groups.isEmpty {parts.append(groups)}
         else if !done.isEmpty {parts.append("\(done.count) azioni completate")}
-        if running>0 {parts.append(L("\(running) comandi avviati"))}
+        if running>0 {parts.append(L("\(running) operazioni avviate"))}
         if failed>0 {parts.append("\(failed) \(failed == 1 ? "non completata":"non completate")")}
         if let reason {parts.append(reason)}
         let text=parts.joined(separator:" · ")

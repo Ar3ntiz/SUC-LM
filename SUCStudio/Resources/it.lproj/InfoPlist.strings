@@ -1,1 +1,2 @@
 "NSLocalNetworkUsageDescription" = "Collega la chat a server di inferenza e MCP nella rete locale, oppure esponi il motore ai client autorizzati.";
+"NSAppleEventsUsageDescription" = "Consenti agli strumenti che abiliti di automatizzare altre app del Mac quando richiesto dalle tue attività in chat.";

@@ -84,6 +84,9 @@ struct MCPServerEditor: View {
             }
             TextEditor(text: $credentials).font(StudioTypography.ui(.caption, design: .monospaced)).frame(height: 90)
             Text(L("Variabili/header salvati nel Portachiavi, esclusi dagli export delle chat.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
+            if configuration.transport == "stdio" {
+                Text(L("I provider come Ghidra richiedono variabili proprie, per esempio GHIDRA_INSTALL_DIR e JAVA_HOME. L’automazione di altre app può richiedere il consenso in Privacy e sicurezza → Automazione; la connessione MCP da sola non lo concede.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+            }
             Toggle(L("Attiva dopo il salvataggio"), isOn: $configuration.enabled)
             if let error { Text(error).font(StudioTypography.ui(.caption)).foregroundStyle(.red) }
             HStack { Spacer(); Button(L("Annulla")) { dismiss() }; Button(L("Salva")) {

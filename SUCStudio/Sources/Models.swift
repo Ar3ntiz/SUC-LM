@@ -5,7 +5,7 @@ import CoreFoundation
 enum StudioPlatform {
     static let name = "SUC Studio"
     static let defaultContext = 16000
-    static let version = "1.4.9.03"
+    static let version = "1.4.9.04"
     // Keep the tested Universal identity and existing user data across the product rename.
     static let dataDirectory = "SUC Studio Universal Preview"
     #if arch(arm64) && !SUC_REMOTE_ONLY

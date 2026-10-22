@@ -8,8 +8,15 @@ import tempfile
 root = Path(__file__).resolve().parents[1]
 info = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
 assert info['CFBundleDisplayName'] == info['CFBundleName'] == info['CFBundleExecutable'] == 'SUC Studio'
-assert info['CFBundleShortVersionString'] == '1.4.9.03'
-assert info['CFBundleVersion'] == '44'
+assert info['CFBundleShortVersionString'] == '1.4.9.04'
+assert info['CFBundleVersion'] == '45'
+assert info.get('NSAppleEventsUsageDescription', '').strip()
+entitlements = plistlib.loads((root / 'Resources/SUCStudio.entitlements').read_bytes())
+assert entitlements['com.apple.security.automation.apple-events'] is True
+for language in ('en', 'it'):
+    assert 'NSAppleEventsUsageDescription' in (root / f'Resources/{language}.lproj/InfoPlist.strings').read_text()
+for script in ('build.sh', 'package.sh'):
+    assert '--entitlements "$ROOT/Resources/SUCStudio.entitlements" "$APP"' in (root / 'scripts' / script).read_text()
 identity = 'local.sucstudio.universal.app'
 assert info['CFBundleIdentifier'] == identity
 with tempfile.TemporaryDirectory() as temporary:

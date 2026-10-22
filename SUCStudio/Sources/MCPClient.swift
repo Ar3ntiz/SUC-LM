@@ -39,6 +39,9 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     // JSON escaping may expand one result byte to six wire bytes.
     nonisolated static let maxResponseBytes = 32 * 1024 * 1024
     nonisolated static func failure(_ text: String) -> NSError { NSError(domain: "SUCStudio.MCP", code: 1, userInfo: [NSLocalizedDescriptionKey: text]) }
+    nonisolated static func deadlineError() -> NSError {
+        NSError(domain:"SUCStudio.MCP",code:408,userInfo:[NSLocalizedDescriptionKey:"Scadenza MCP raggiunta. L’esito dell’azione può essere incerto; nessuna ripetizione automatica."])
+    }
     let configuration: MCPConfiguration
     private let credentials: [String: String]
     private var process: Process?
@@ -70,7 +73,7 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
             try p.run(); process = p; stdin = input.fileHandleForWriting; stdout = output.fileHandleForReading; stderr = errors.fileHandleForReading
         } else if configuration.transport == "http" {
             guard let url = URL(string: configuration.endpoint), ["https", "http"].contains(url.scheme ?? ""), url.host != nil, url.user == nil, url.password == nil, url.fragment == nil else { throw Self.failure("Endpoint MCP HTTP/HTTPS non valido.") }
-            let settings = URLSessionConfiguration.ephemeral; settings.timeoutIntervalForRequest = 30; settings.timeoutIntervalForResource = 3600
+            let settings = URLSessionConfiguration.ephemeral; settings.timeoutIntervalForRequest = 30; settings.timeoutIntervalForResource = TimeInterval(Int32.max)
             http = URLSession(configuration: settings, delegate: MCPHTTPDelegate(), delegateQueue: nil)
         } else { throw Self.failure("Trasporto MCP non supportato.") }
         do {
@@ -100,7 +103,7 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         } while cursor != nil
         return tools
     }
-    func call(_ tool: MCPTool, arguments: [String: Any], timeout: Double = 30) async throws -> String {
+    func call(_ tool: MCPTool, arguments: [String: Any], timeout: Double? = nil) async throws -> String {
         let result = try await request("tools/call", ["name": tool.name, "arguments": arguments],timeout:timeout)
         var text: [String] = [], unsupported = 0
         for item in result["content"] as? [[String: Any]] ?? [] {
@@ -111,12 +114,26 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         if let structured = result["structuredContent"], JSONSerialization.isValidJSONObject(structured) {
             text.append(String(decoding: try JSONSerialization.data(withJSONObject: structured, options: [.prettyPrinted, .sortedKeys]), as: UTF8.self))
         }
-        if result["isError"] as? Bool == true { throw Self.failure("Errore dello strumento: " + text.joined(separator: "\n")) }
+        if result["isError"] as? Bool == true {
+            let detail=text.joined(separator:"\n")
+            guard detail.utf8.count<=Self.maxResultBytes else{throw Self.failure("Risultato MCP oltre 4 MiB. Restringi la richiesta; nessun taglio automatico.")}
+            throw Self.failure("Errore dello strumento: " + detail + Self.setupHint(detail))
+        }
         guard !text.isEmpty else { throw Self.failure("Lo strumento non ha restituito testo utilizzabile dal modello.") }
         if unsupported > 0 { text.append("[\(unsupported) contenuti non testuali non inclusi.]") }
         let value = text.joined(separator: "\n\n")
         guard value.utf8.count <= Self.maxResultBytes else { throw Self.failure("Risultato MCP oltre 4 MiB. Restringi la richiesta; nessun taglio automatico.") }
         return value
+    }
+    nonisolated static func setupHint(_ error:String) -> String {
+        let message=error.lowercased()
+        if message.contains("not authorized to send apple events") || message.contains("err aeeventnotpermitted") || message.contains("erraeeventnotpermitted") {
+            return "\nApple Events: verifica Privacy e sicurezza → Automazione per il processo indicato da macOS. La connessione MCP non concede permessi di automazione. Una firma/entitlement mancante nel programma esterno richiede una correzione del fornitore."
+        }
+        if message.contains("ghidra_install_dir") {
+            return "\nGhidra: configura GHIDRA_INSTALL_DIR e JAVA_HOME compatibile nelle variabili d’ambiente del server MCP, poi riconnettilo."
+        }
+        return ""
     }
     nonisolated private func checked(_ value: [String: Any]) throws -> [String: Any] {
         if let error = value["error"] as? [String: Any] { throw Self.failure("MCP: " + (error["message"] as? String ?? "Errore JSON-RPC")) }
@@ -138,22 +155,39 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         timeouts.removeValue(forKey: id)?.cancel()
         do { continuation.resume(returning: try checked(object)) } catch { continuation.resume(throwing: error) }
     }
-    private func request(_ method: String, _ params: [String: Any], timeout: Double = 30) async throws -> [String: Any] {
+    private func request(_ method: String, _ params: [String: Any], timeout: Double? = 30) async throws -> [String: Any] {
         guard !stopped else { throw Self.failure("Server MCP scollegato.") }
         let id = UUID().uuidString
         let wire: [String: Any] = ["jsonrpc":"2.0", "id":id, "method":method, "params":params]
-        if configuration.transport == "http" { return try await httpRequest(wire, expectedID: id,timeout:timeout) }
+        if configuration.transport == "http" {
+            return try await withTaskCancellationHandler(operation: {
+                try Task.checkCancellation()
+                guard let timeout else { return try await httpRequest(wire, expectedID:id, timeout:nil) }
+                return try await withThrowingTaskGroup(of:[String:Any].self) { group in
+                    group.addTask { try await self.httpRequest(wire,expectedID:id,timeout:nil) }
+                    group.addTask {
+                        try await Task.sleep(nanoseconds:UInt64(min(86400,max(0.1,timeout))*1_000_000_000))
+                        throw Self.deadlineError()
+                    }
+                    defer { group.cancelAll() }
+                    do { return try await group.next()! }
+                    catch { if !Task.isCancelled { Task { try? await self.notify("notifications/cancelled",["requestId":id,"reason":"Deadline or cancellation; outcome may be uncertain"]) } }; throw error }
+                }
+            }, onCancel: { Task { @MainActor [weak self] in
+                try? await self?.notify("notifications/cancelled",["requestId":id,"reason":"Cancelled; outcome may be uncertain"])
+            } })
+        }
         return try await withTaskCancellationHandler(operation:{
             try Task.checkCancellation()
             return try await withCheckedThrowingContinuation { continuation in
                 pending[id] = continuation
-                timeouts[id] = Task { [weak self] in
-                    try? await Task.sleep(nanoseconds: UInt64(min(3600,max(0.1,timeout))*1_000_000_000))
+                if let timeout { timeouts[id] = Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: UInt64(min(86400,max(0.1,timeout))*1_000_000_000))
                     guard !Task.isCancelled, let self, let waiting = self.pending.removeValue(forKey: id) else { return }
                     self.timeouts.removeValue(forKey: id)
                     try? self.write(["jsonrpc":"2.0", "method":"notifications/cancelled", "params":["requestId":id,"reason":"Timeout"]])
-                    waiting.resume(throwing: Self.failure("Timeout MCP. L’esito di eventuali azioni può essere incerto; la chiamata non è stata ripetuta."))
-                }
+                    waiting.resume(throwing: Self.deadlineError())
+                } }
                 do { try write(wire) } catch { pending.removeValue(forKey: id); timeouts.removeValue(forKey: id)?.cancel(); continuation.resume(throwing: error) }
             }
         },onCancel:{Task{@MainActor [weak self] in
@@ -168,9 +202,9 @@ final class MCPHTTPDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendab
         let value: [String: Any] = ["jsonrpc":"2.0", "method":method, "params":params]
         if configuration.transport == "http" { _ = try await httpRequest(value, expectedID: nil) } else { try write(value) }
     }
-    private func httpRequest(_ object: [String: Any], expectedID: String?, timeout: Double = 30) async throws -> [String: Any] {
+    private func httpRequest(_ object: [String: Any], expectedID: String?, timeout: Double? = 30) async throws -> [String: Any] {
         guard !stopped, let http, let endpoint = URL(string: configuration.endpoint) else { throw Self.failure("Server MCP scollegato.") }
-        var request = URLRequest(url: endpoint);request.timeoutInterval=min(3600,max(0.1,timeout)); request.httpMethod = "POST"
+        var request = URLRequest(url: endpoint);request.timeoutInterval=timeout.map{min(86400,max(0.1,$0))} ?? TimeInterval(Int32.max); request.httpMethod = "POST"
         request.httpBody = try JSONSerialization.data(withJSONObject: object)
         guard (request.httpBody?.count ?? 0) <= 1024 * 1024 else { throw Self.failure("Richiesta MCP troppo grande.") }
         for (key,value) in credentials { guard !key.contains("\n"), !key.contains("\r"), !value.contains("\n"), !value.contains("\r") else { throw Self.failure("Header HTTP non valido.") }; request.setValue(value, forHTTPHeaderField: key) }

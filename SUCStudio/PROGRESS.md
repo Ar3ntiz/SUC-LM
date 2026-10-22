@@ -85,3 +85,7 @@ Piano ed evidenze: `../docs/optimization/CHAT_PREFIX_CHECKPOINTS.md`. Qualifica 
 - [x] P3 — Decode live SUC su token/tempi reali; stime client chiamate ricezione.
 - [x] P4 — Test regressione Swift/C++, collaudo helper e SSE, build Universal e verifica installer.
 - [x] P5 — Documentazione, pacchetto e allineamento locale/Mac Studio/public.
+
+## 1.4.9.04 · build 45 — chiamate MCP prolungate
+
+Dichiarazione Apple Events IT/EN ed entitlement di automazione nell’app. Chiamate MCP gestite come job con stato, attesa, annullamento e scadenza totale facoltativa; approvazioni, isolamento delle chat e Stop conservati. Nessuna ripetizione automatica dopo esito incerto. Piano e verifiche: `docs/optimization/PROGRESS_1.4.9.04_IT.md`; dettagli: `docs/optimization/RELEASE_1.4.9.04_IT.md`. Motore, memory policy e APK invariati.
