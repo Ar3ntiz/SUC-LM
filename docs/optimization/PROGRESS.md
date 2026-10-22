@@ -77,3 +77,7 @@ Rimosso il pannello fisso Comandi della sessione e resi espandibili i riquadri c
 ### SUC Studio 1.4.9.03 · build 43
 
 Budget della compattazione coerenti in token, senza sottrarre byte dal limite. Memorie precedenti troppo grandi ricompattate senza tagli, retry entro finestra. Risultato operativo conservato una sola volta dopo errore o Stop, senza riesecuzione. Intera suite contesto/plugin HTTP offline superata su Intel e M1 Ultra, incluso il caso memoria da circa 38 KB/finestra 40000. Installer Universal verificato; soglia 99%, motore, memory policy e Android invariati.
+
+### SUC Studio 1.4.9.03 · build 44
+
+Reasoning non reinviato escluso dal contesto futuro con conteggi server o stime esplicite. Controlli thinking per LM Studio/router e override persistenti. Sintesi breve con ricompattazione della memoria e retry su metà Unicode dopo troncamenti, senza commit parziali. Budget effettivo e avvisi di contesto corretti, soglia 99% invariata. Suite contesto/remota/telemetria/IT-EN su Intel e M1 Ultra; prova reale del Router su dati neutri conclusa senza reasoning. Installer Universal verificato; motore, memory policy e Android invariati.

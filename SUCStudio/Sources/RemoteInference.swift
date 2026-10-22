@@ -99,7 +99,12 @@ private struct RemoteResponseReader<Iterator: AsyncIteratorProtocol> where Itera
         var body = input
         body["model"] = configuration.model; body["stream"] = true; body["stream_options"] = ["include_usage":true]
         if configuration.telemetryProfile=="llama",configuration.liveTelemetry != false {body["timings_per_token"]=true;body["return_progress"]=true}
-        if configuration.telemetryProfile=="ds4",configuration.sendExtensions,let thinking=(body["chat_template_kwargs"] as? [String:Any])?["enable_thinking"] as? Bool {body["think"]=thinking}
+        if configuration.sendExtensions,let thinking=(body["chat_template_kwargs"] as? [String:Any])?["enable_thinking"] as? Bool {
+            let mode=configuration.thinkingControl ?? "auto",profile=configuration.telemetryProfile ?? "auto"
+            if mode=="think" || (mode=="auto" && ["ds4","router"].contains(profile)){body["think"]=thinking}
+            if !thinking && (mode=="effort" || (mode=="auto" && ["lmstudio","router"].contains(profile))){body["reasoning_effort"]="none"}
+            if mode=="server" {body.removeValue(forKey:"chat_template_kwargs")}
+        }
         if !configuration.sendExtensions { body.removeValue(forKey:"top_k"); body.removeValue(forKey:"min_p"); body.removeValue(forKey:"chat_template_kwargs") }
         if (body["seed"] as? Int ?? -1) < 0 { body.removeValue(forKey:"seed") }
         var request = try request("chat/completions"); request.httpMethod = "POST"

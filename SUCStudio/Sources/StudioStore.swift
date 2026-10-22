@@ -308,7 +308,7 @@ import UniformTypeIdentifiers
         let stops = sampling.stop.components(separatedBy: "\n").filter { !$0.isEmpty }
         if !stops.isEmpty { body["stop"] = Array(stops.prefix(32)) }
         guard let data = try? JSONSerialization.data(withJSONObject: body), data.count < 32 * 1024 * 1024 else { error = "Conversazione troppo grande: apri una nuova sessione."; return }
-        let response = ChatMessage(implicitThinking:!usesRemote && s.thinking,role: "assistant", text: "", state: "queued", model: chatModel, generation: GenerationSnapshot(temperature: s.temperature, maxTokens: s.maxTokens, context: usesRemote ? 0 : loadedContext, thinking: s.thinking, systemPrompt: effectivePrompt, sampling: sampling))
+        let response = ChatMessage(implicitThinking:!usesRemote && s.thinking,role: "assistant", text: "", state: "queued", model: chatModel, generation: GenerationSnapshot(temperature: s.temperature, maxTokens: body["max_tokens"] as? Int ?? s.maxTokens, context: usesRemote ? 0 : loadedContext, thinking: s.thinking, systemPrompt: effectivePrompt, sampling: sampling))
         if toolResult == nil || !isToolResult { agentTurnStarts[s.id]=(s.actions ?? []).count }
         mutateSession(s.id) { session in
             if session.messages.isEmpty { session.title = String((text.isEmpty ? files.first?.name ?? "Allegati" : text).prefix(60)) }
@@ -485,7 +485,7 @@ import UniformTypeIdentifiers
         }; if id==activeRequestID {activePhase = "Decode"} }
         case "prefill", "metrics":
             var m = latestMetrics ?? Metrics(); m.promptTokens = p["prompt_tokens"] as? Int ?? 0; m.prefillSeconds = p["prefill_s"] as? Double ?? 0
-            m.completionTokens = p["completion_tokens"] as? Int ?? 0; m.decodeSeconds = p["decode_s"] as? Double ?? 0
+            m.completionTokens = p["completion_tokens"] as? Int ?? 0; m.reasoningTokens = p["reasoning_tokens"] as? Int ?? m.reasoningTokens; m.decodeSeconds = p["decode_s"] as? Double ?? 0
             m.cachedPromptTokens=RemoteTelemetry.count(p["cached_tokens"]);m.evaluatedPromptTokens=RemoteTelemetry.count(p["prefill_tokens"])
             m.reportedPrefillRate=RemoteTelemetry.positive(p["prefill_tps"]);m.reportedDecodeRate=RemoteTelemetry.positive(p["decode_tps"])
             m.prefillSource=p["prefill_source"] as? String;m.decodeSource=p["decode_source"] as? String;m.remote=p["remote"] as? Bool

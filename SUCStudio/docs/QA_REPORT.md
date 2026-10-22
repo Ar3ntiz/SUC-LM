@@ -164,3 +164,9 @@ Collaudo UI superato su Intel e M1 Ultra: intestazioni comando larghe almeno 580
 ### 1.4.9.03 · build 43
 
 Regressioni HTTP offline: memoria precedente Unicode di circa 38 KB con finestra 40000, ricompattazione dopo riduzione a 4096, marcatori iniziali/finali conservati attraverso i blocchi, ogni richiesta di sintesi entro il budget stimato inclusa la riserva output. Fallimento e Stop conservano una sola copia del risultato operativo; serializzazione/rilettura e nuova compattazione manuale. Intera suite contesto, soglia 99%, code, routine, rollback, retry thinking/troncamenti e policy plugin. Esiti effettivi/checksum nel report QA della release; nessun test sulla sessione live o nuovi benchmark GPU/KL.
+
+### 1.4.9.03 · build 44
+
+Regressione della proiezione 39289→37873 e del budget 311→1727 token con reasoning separato non reinviato; conteggio esatto quando disponibile, compatibilità archivi senza nuovo campo, reasoning nel testo conservato. Suite contesto completa con riduzione adattiva Unicode, sentinelle iniziali/finali, risposta parziale esclusa, errori persistenti limitati, rollback e Stop. Payload HTTP verificati per Router/effort/template/think/server/default senza estensioni; roundtrip configurazione, metriche reasoning e SSE invariati. Prova reale su dati neutri attraverso Router e modello già caricato in LM Studio: 6,57 s, stop normale, 1078 token input/66 output/0 reasoning; file, risultato e marcatore conservati. Nessun contenuto della sessione reale inviato nei test, nessuna modifica del suo archivio; nessun benchmark GPU/KL nuovo. Esiti finali Intel/M1 e checksum nel report QA.
+
+Build 44 verifica anche l’avviso di budget effettivo limitato dal contesto, distinto dall’output massimo configurato; la soglia automatica non viene anticipata.

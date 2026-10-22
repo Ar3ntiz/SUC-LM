@@ -1,5 +1,9 @@
 # Changelog SUC Studio
 
+## 1.4.9.03 — build 44
+
+Corretto il contesto che ricontava reasoning non reinviato. Controlli thinking compatibili con LM Studio/router e override configurabili. Compattazione con obiettivo breve, memoria precedente ridotta e retry su metà Unicode dopo troncamenti, senza salvare sintesi parziali. Diagnostica dei budget e token; soglia 99% invariata. Regressioni complete e prova reale del router su dati neutri.
+
 ## 1.4.9.03 — build 43
 
 Corretti i budget della compattazione: token e byte non vengono più mescolati. Memorie precedenti troppo grandi vengono ricompattate senza tagli; retry entro lo spazio disponibile. Risultati degli strumenti conservati nello storico anche dopo errore o Stop, senza rieseguire comandi. Soglia 99% invariata. Regressioni offline su memoria lunga, finestre ridotte, Unicode e recupero.

@@ -39,3 +39,12 @@ Collaudo completo superato su Intel e M1 Ultra. Installer estratto, firme, archi
 - [x] Risultato operativo conservato una sola volta dopo errore o Stop, senza riesecuzione.
 - [x] Suite contesto completa Intel e M1 Ultra, inclusi i nuovi casi HTTP.
 - [x] Build Universal 43, installer, checksum, commit e sincronizzazione sorgenti/Mac Studio/pubblico.
+
+## Contesto/thinking build 44
+
+- [x] Diagnosi in sola lettura della sessione e del router; verificata la build 43 installata.
+- [x] Reasoning non reinviato escluso dal contesto futuro, conteggi server opzionali e stima legacy.
+- [x] Controllo thinking per profilo e override persistente IT/EN; nessun retry HTTP generico.
+- [x] Sintesi breve, memoria precedente ridotta, metà Unicode e recuperi limitati senza commit parziali.
+- [x] Suite contesto/telemetria/remota complete su Intel e M1 Ultra; prova reale neutra del Router.
+- [x] Localizzazione, build Universal 44, installer verificato e sincronizzazione sorgenti/Mac Studio/pubblico.

@@ -5,6 +5,8 @@ attempts={}
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
     def do_GET(self):
+        if self.path=="/stats":
+            body=json.dumps({k:v for k,v in attempts.items() if isinstance(v,int)}).encode();self.send_response(200);self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body);return
         body=json.dumps({'data':[{'id':'context-fixture','max_model_len':4096}]}).encode()
         self.send_response(200);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
     def do_POST(self):
@@ -17,7 +19,7 @@ class Handler(BaseHTTPRequestHandler):
         if summary and value['model']=='summary-error':self.send_error(503);return
         if summary:
             assert len(messages)==2 and 'suc_action' not in system
-            window=40000 if value['model']=='summary-large-memory' else (32768 if value['model'].startswith(('summary-retry','summary-truncated','summary-only-thinking')) else 4096)
+            window=40000 if value['model']=='summary-large-memory' else (32768 if value['model'].startswith(('summary-retry','summary-truncated','summary-only-thinking','summary-adaptive','summary-persistent')) else 4096)
             estimated=lambda text: (len(text.encode())+2)//3 if text else 0
             assert estimated(system)+estimated(messages[-1]['content'])+128+value['max_tokens']<=window
             if value['model'] in ('summary-large-memory','summary-shrunk'):
@@ -30,6 +32,16 @@ class Handler(BaseHTTPRequestHandler):
             model=value['model'];attempts[model]=attempts.get(model,0)+1
             if model in ('summary-large-memory','summary-shrunk'):
                 text+=' '+' '.join(sorted(attempts[model+'-markers']))
+            if model=='summary-router':assert value.get('reasoning_effort')=='none'
+            if model in ('summary-adaptive','summary-persistent'):
+                material=messages[-1]['content'].split('Nuovi dati storici:\n',1)[1]
+                if model=='summary-persistent' or len(material.encode())>6500:
+                    text='BAD_PARTIAL_SUMMARY';reasoning='Budget consumed by reasoning';finish='length'
+                else:
+                    seen=attempts.setdefault(model+'-markers',set())
+                    for marker in ('ADAPT_START','ADAPT_END'):
+                        if marker in material:seen.add(marker)
+                    text+=' '+' '.join(sorted(seen))
             if model=='summary-only-thinking' or (model=='summary-retry' and attempts[model]==1):text='';reasoning='Thinking without answer';finish='length'
             if model=='summary-truncated' and attempts[model]==1:text='MEMORY: truncated unusable';finish='length'
             if model in ('summary-retry','summary-truncated','summary-only-thinking'):

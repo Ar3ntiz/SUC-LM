@@ -90,3 +90,13 @@ The action log now shows roomy newest-first cards with readable names, status an
 Compaction now budgets saved memory, instructions, history and response headroom consistently in estimated tokens. UTF-8 bytes are used only to split lossless Unicode chunks. The automatic threshold remains 99%; the configured window is not increased. If saved memory exceeds a smaller window, it is reduced before new material, with bounded attempts and no silent truncation. Retry output also respects remaining room. These estimates can differ from the server tokenizer.
 
 When compaction fails or is stopped, an already completed tool result is preserved once in the conversation archive without rerunning the command. The previous memory and original history remain intact. Retry `/compact`, then continue the chat; failed compaction does not automatically resume actions. Oversized manual priorities can still require shorter instructions or a larger server-supported window.
+
+## Context and remote thinking · build 44
+
+Future context excludes separate reasoning that is not resent. Server `completion_tokens_details.reasoning_tokens` takes precedence; legacy records estimate only resent content and mark it as estimated. Reasoning embedded in raw text still counts. Active generation and decode metrics continue to include generated reasoning. Auto-compaction remains at 99%.
+
+With extended parameters enabled, Remote thinking control offers automatic by profile, `chat_template_kwargs`, `reasoning_effort = none`, `think`, or server default. Automatic mode uses `reasoning_effort=none` for LM Studio when thinking is off; Router also sends `think`, DS4 uses `think`. Select an override for other backend requirements. Unsupported parameters fail without automatic POST resubmission. Extended controls are not added when extensions are disabled.
+
+Compaction reduces previous memory as well as new history and requests a concise 256–2048-token summary target, separate from the generation budget. After two unusable/truncated attempts it retries exact Unicode halves, to two levels with a total call bound proportional to initial chunks. Partial/reasoning-only responses are never committed. Failures show budget, available token counts and answer/reasoning byte counts without contents. Stop and rollback preserve history, prior memory and tool results. Models that ignore controls or never finish can still fail safely.
+
+Generation snapshots record the actual requested output budget. Context-limited responses show that budget and suggest `/compact` or shorter input; raising Output max does not enlarge the window. No early compaction is added.

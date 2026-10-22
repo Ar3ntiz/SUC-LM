@@ -27,6 +27,13 @@ import Foundation
   let health=await client.healthStatus();precondition(health["status"] as? String=="ok")
   let fallbackClient=RemoteInference(RemoteConfiguration(endpoint:"http://127.0.0.1:\(port)/fallback/v1",model:"fixture"),key:"test")
   let fallbackHealth=await fallbackClient.healthStatus();precondition(fallbackHealth["status"] as? String=="ok");fallbackClient.stop()
+  for mode in ["router","effort","template","think","server","disabled"] {
+   var controls=config;controls.model="control-"+mode;controls.sendExtensions=mode != "disabled"
+   controls.telemetryProfile="router";controls.thinkingControl=mode=="router" ? "auto":mode
+   let controlClient=RemoteInference(controls,key:"test");defer{controlClient.stop()}
+   try await controlClient.generate(["messages":[["role":"user","content":"OK"]],"chat_template_kwargs":["enable_thinking":false]]){_ in}
+   let restored=try JSONDecoder().decode(RemoteConfiguration.self,from:JSONEncoder().encode(controls));precondition(restored==controls)
+  }
   var text="",usage=0
   let body:[String:Any]=["messages":[["role":"user","content":"Test"]],"top_k":1,"min_p":0.1,"seed":-1]
   try await client.generate(body){event in

@@ -39,6 +39,10 @@ struct BackendSettingsView: View {
                         TextField(L("Percorso JSON decode tok/s (es. metrics.decode_tps)"),text:Binding(get:{config.customDecodeRatePath ?? ""},set:{config.customDecodeRatePath=$0})).textFieldStyle(.roundedBorder)
                     }
                     Toggle(L("Invia parametri SUC/estesi (thinking, top_k, min_p)"),isOn:$config.sendExtensions)
+                    Picker(L("Controllo thinking remoto"),selection:Binding(get:{config.thinkingControl ?? "auto"},set:{config.thinkingControl=$0})) {
+                        Text(L("Automatico per profilo")).tag("auto");Text("chat_template_kwargs").tag("template");Text("reasoning_effort = none").tag("effort");Text("think = true/false").tag("think");Text(L("Predefinito del server")).tag("server")
+                    }.disabled(!config.sendExtensions)
+                    Text(L("Con parametri estesi attivi: LM Studio usa reasoning_effort=none quando thinking è spento; Router invia anche think, DS4 usa think. Il server deve supportare il controllo scelto. Nessun reinvio automatico se lo rifiuta.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                     Text(L("Gli allegati immagine richiedono un modello vision e un server compatibile con image_url. Se non supportati, il server può rifiutare la richiesta.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                     Text(L("Prompt, cronologia e allegati vengono inviati al server scelto. Puoi usare un server in rete oppure localhost; l’inferenza SUC integrata è disponibile solo su Apple Silicon.")).font(StudioTypography.ui(.caption)).foregroundStyle(.secondary)
                     HStack {

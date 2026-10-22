@@ -1,14 +1,14 @@
 {
   "macos": {
     "version": "1.4.9.03",
-    "build": 43,
+    "build": 44,
     "app_architectures": [
       "arm64",
       "x86_64"
     ],
     "engine_architecture": "arm64",
     "installer": "SUCStudio/dist/SUC-Studio-1.4.9.03-universal.pkg",
-    "sha256": "f0e58ab365e1294331ba5f69c83a12cbe06f19269d27f74b6c5f8396aee397e2",
+    "sha256": "7ad97fe305688c554e8afa31ebb0885a95767181a68ae387ca293d022f2072da",
     "signing": "ad-hoc; installer unsigned; not notarized"
   },
   "engine": {
@@ -25,11 +25,11 @@
   },
   "limits": [
     "Conservative IT/EN text heuristic, not a universal task-completion guarantee.",
-    "No live model or installed-app GUI end-to-end test; streamed fixture responses exercise real harness/tools and file artifacts.",
     "No execution of commands or production of documents from the inspected user sessions; live archives untouched.",
     "No automatic installation or publication beyond the requested public-repository sync.",
-    "Build 43 reruns the full offline context/plugin suite; prior UI and tool-parser suites are recorded under previous_build keys, not newly measured.",
-    "Compaction token budgets use the existing UTF-8 estimate, not each remote backend tokenizer. No live-user-session compaction or live-model quality measurement."
+    "Build 44 reruns context, remote and telemetry suites; historical UI/parser suites remain under previous_build keys.",
+    "Compaction budgets use a generic UTF-8 estimate; backend thinking controls require support. The real smoke uses synthetic data and is not a full compaction of the user session or a live-model quality benchmark.",
+    "No installed-app GUI end-to-end or execution of live user commands; live backend smoke is limited to neutral synthetic summarization."
   ],
   "previous_build_41_regression_tests": {
     "intel_and_native_m1_ultra": "PASS: same streaming HTTP fixture suite with isolated archives/workspaces",
@@ -50,10 +50,29 @@
     "command_disclosure": "PASS Intel/native M1 Ultra: actual NSHostingView fixture, accessible button width >=580 and height >=36; repeated accessibility presses toggle exactly once",
     "action_log": "PASS Intel/native M1 Ultra: actual WorkspaceSettingsView with active-work state; log and >=60pt rows enabled, expand/collapse, archive and runtime state preserved"
   },
-  "tests": {
+  "previous_build_43_tests": {
     "context": "PASS Intel/native M1 Ultra: complete offline context/plugin suite; 38KB Unicode previous memory with 40000-token window, reduction to 4096, all sentinels through lossless chunks, every summary request/retry within estimated input+output window",
     "installer": "PASS: extracted Universal app/helpers, version 1.4.9.03 build 43, deep/strict ad-hoc signature, IT/EN HTML guides, release identity/migration guards; parent engine content and helper bytes unchanged",
     "pending_tool": "PASS Intel/native M1 Ultra: failed summary and Stop preserve one complete tool_result in history; Codable roundtrip retains it, manual compaction retry succeeds without rerunning tools",
     "regressions": "PASS Intel/native M1 Ultra: manual/auto 99% threshold, projected counts, output room, FIFO, routine status, archive rollback, bounded reasoning/truncation retry, explicit/plugin policy"
+  },
+  "tests": {
+    "context": "PASS Intel/native M1 Ultra: full HTTP fixture suite, legacy/exact reasoning exclusion, embedded reasoning retained, output-clamp regression 311 to 1727, 99% threshold unchanged; adaptive recovery, Unicode source boundaries/sentinels, persistent failure bounds, no partial commit, Stop and archive/tool rollback; effective requested max_tokens saved and context-limited output notice tested",
+    "remote": "PASS Intel/native M1 Ultra: full remote/telemetry suites, actual SSE/auth/health/cancellation; thinking payloads auto Router, effort, template, think, server, extensions off; Codable configuration roundtrip; reasoning token count propagated without changing decode counts",
+    "localization": "PASS Intel/native M1 Ultra: full IT/EN catalog placeholders, defaults/legacy persistence and shell prerequisites",
+    "installer": "PASS: extracted Universal app/helpers, 1.4.9.03 build 44, deep/strict ad-hoc signature, IT/EN guides and identity/migration guards; engine content/helper unchanged"
+  },
+  "live_router_smoke": {
+    "source": "synthetic neutral history; no live chat content",
+    "model_already_loaded": true,
+    "elapsed_s": 6.57,
+    "prompt_tokens": 1078,
+    "completion_tokens": 66,
+    "reasoning_tokens": 0,
+    "finish_reason": "stop",
+    "answer_bytes": 241,
+    "marker_file_result_preserved": true,
+    "settings_modified": false,
+    "key_logged": false
   }
 }

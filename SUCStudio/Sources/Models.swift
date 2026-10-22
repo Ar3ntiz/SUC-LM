@@ -22,6 +22,7 @@ enum StudioPlatform {
 struct Metrics: Codable, Equatable {
     var promptTokens: Int = 0
     var completionTokens: Int = 0
+    var reasoningTokens: Int?
     var prefillSeconds: Double = 0
     var decodeSeconds: Double = 0
     var firstTextSeconds: Double?
@@ -411,6 +412,7 @@ struct RemoteConfiguration: Codable, Equatable {
     var endpoint = "http://127.0.0.1:8080/v1"
     var model = ""
     var sendExtensions = false
+    var thinkingControl:String?
     var telemetryProfile:String?
     var liveTelemetry:Bool?
     var estimateLiveDecode:Bool?

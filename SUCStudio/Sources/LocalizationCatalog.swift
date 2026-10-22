@@ -7,6 +7,13 @@ enum StudioCatalog {
         "Un comando è già in esecuzione: {0}. Usa wait_command o stop_command; non avviarne una copia.": "A command is already running: {0}. Use wait_command or stop_command; do not start a copy.",
         "Sessione riaperta: job non ricollegato. Verifica gli effetti reali prima di ripetere il comando.": "Session reopened: job not reconnected. Verify actual effects before repeating the command.",
 
+        "Limite dei tentativi di compattazione raggiunto; nessuna memoria parziale salvata.": "Compaction attempt limit reached; no partial memory was saved.",
+        "Sintesi: budget {0} token; output {1} token; reasoning {2} token; risposta {3} byte; ragionamento {4} byte.": "Summary: budget {0} tokens; output {1} tokens; reasoning {2} tokens; answer {3} bytes; reasoning {4} bytes.",
+        "Risposta limitata dallo spazio nel contesto: budget effettivo {0} token. Usa /compact o riduci l’input; aumentare Output max non crea spazio nella finestra.": "Response limited by context space: effective budget {0} tokens. Use /compact or reduce input; raising Output max does not create room in the window.",
+        "Controllo thinking remoto": "Remote thinking control",
+        "Automatico per profilo": "Automatic for profile",
+        "Predefinito del server": "Server default",
+        "Con parametri estesi attivi: LM Studio usa reasoning_effort=none quando thinking è spento; Router invia anche think, DS4 usa think. Il server deve supportare il controllo scelto. Nessun reinvio automatico se lo rifiuta.": "With extended parameters enabled: LM Studio uses reasoning_effort=none when thinking is off; Router also sends think, DS4 uses think. The server must support the selected control. No automatic resubmission if rejected.",
         "Registro azioni": "Action log",
         "Azioni più recenti in alto · ultime 30 voci": "Newest actions first · last 30 entries",
         "Comando shell": "Shell command",

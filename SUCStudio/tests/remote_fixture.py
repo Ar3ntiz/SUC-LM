@@ -13,6 +13,14 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   if not self.authorized():return
   value=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+  if value['model'].startswith('control-'):
+   mode=value['model'][8:]
+   if mode in ('router','effort'):assert value.get('reasoning_effort')=='none'
+   else:assert 'reasoning_effort' not in value
+   if mode in ('router','think'):assert value.get('think') is False
+   else:assert 'think' not in value
+   if mode in ('server','disabled'):assert 'chat_template_kwargs' not in value
+   else:assert value['chat_template_kwargs']['enable_thinking'] is False
   if value['model']=='burst':
    self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
    for i in range(1500):

@@ -27,6 +27,8 @@ import Foundation
         check(TranscriptWindow.earlier(420)==400)
         let original=String(repeating:"Città 🌍 中文 RAW_HISTORICAL_MARKER ",count:400)
         let pieces=ContextBudget.chunks(original,maxBytes:91);check(pieces.joined()==original && pieces.allSatisfy{$0.utf8.count<=91})
+        let halves=ContextBudget.bisect(original)
+        check(halves.count==2 && halves.joined()==original && halves.allSatisfy{!$0.isEmpty})
         check(ContextBudget.payload([["type":"image_url"],["type":"text","text":"abc"]])==1025)
         check(!ContextBudget.needsCompact(used:989,limit:1000));check(ContextBudget.needsCompact(used:990,limit:1000))
         let threshold=store();threshold.mutateSelected{$0.contextWindow=10000;$0.maxTokens=4000;$0.allowWeb=false}
@@ -46,6 +48,27 @@ import Foundation
         threshold.mutateSelected{$0.messages[0].metrics=Metrics(promptTokens:9889,completionTokens:1)}
         check(threshold.requestContextUsage(threshold.selected!,messages:input)==9900)
         check(ContextBudget.needsCompact(used:9900,limit:10000))
+        // Reproduce the real 311-token clamp without retaining private chat content.
+        let reasoningStore=store();reasoningStore.mutateSelected{$0.contextWindow=40000;$0.maxTokens=8096}
+        let reasoningSystem=reasoningStore.contextSystemPrompt(reasoningStore.selected!)
+        let withThinking=ChatMessage(reasoning:String(repeating:"r",count:3979),role:"assistant",text:String(repeating:"x",count:2035),model:reasoningStore.chatModel,
+            metrics:Metrics(promptTokens:36906,completionTokens:2095),generation:GenerationSnapshot(temperature:0.1,maxTokens:8096,context:0,thinking:false,systemPrompt:reasoningSystem))
+        reasoningStore.mutateSelected{$0.messages=[withThinking]}
+        let reasoningInput:[[String:Any]]=[["role":"system","content":reasoningSystem],["role":"user","content":String(repeating:"u",count:840)]]
+        check(reasoningStore.requestContextUsage(reasoningStore.selected!,messages:reasoningInput)==37873)
+        check(reasoningStore.contextOutputLimit(reasoningStore.selected!,history:reasoningInput)==1727)
+        check(reasoningStore.contextUsage(reasoningStore.selected!,includeDraft:false).estimated)
+        reasoningStore.mutateSelected{$0.messages[0].metrics?.reasoningTokens=1416}
+        check(reasoningStore.contextUsage(reasoningStore.selected!,includeDraft:false).used==37585)
+        check(!reasoningStore.contextUsage(reasoningStore.selected!,includeDraft:false).estimated)
+        // Reasoning embedded in raw content is actually resent and must still count.
+        reasoningStore.mutateSelected{$0.messages[0].reasoning=nil}
+        check(reasoningStore.contextUsage(reasoningStore.selected!,includeDraft:false).used==39001)
+        let limited=store(),limitedID=limited.selected!.id
+        limited.mutateSelected{$0.maxTokens=8096}
+        let limitedMessage=ChatMessage(finishReason:"length",reasoning:"unfinished",role:"assistant",text:"",generation:GenerationSnapshot(temperature:0.1,maxTokens:311,context:0,thinking:false,systemPrompt:""))
+        limited.mutateSelected{$0.messages=[limitedMessage]};limited.finishGeneration(sessionID:limitedID,messageID:limitedMessage.id)
+        check(limited.selected!.messages.contains{$0.kind=="action_notice" && $0.text.contains("311") && $0.text.contains("/compact")})
         let detect=store(),client=RemoteInference(detect.archive.settings.remote!,key:"");_=try await client.models();check(client.modelContextWindows["context-fixture"]==4096);client.stop()
         for automatic in [false,true] {
             FileHandle.standardError.write(Data("Context test: \(automatic ? "automatic":"manual") compaction\n".utf8))
@@ -95,6 +118,28 @@ import Foundation
         stopped.cancelSelected()
         try await wait("cancel retains tool once"){!stopped.compacting.contains(stoppedID)}
         check(stopped.selected!.messages.filter{$0.text==toolText}.count==1 && stopped.pendingContextTools[stoppedID]==nil)
+        FileHandle.standardError.write(Data("Context test: adaptive truncation recovery and router thinking control\n".utf8))
+        let adaptive=store("summary-adaptive"),adaptiveID=adaptive.selected!.id
+        adaptive.mutateSelected{$0.contextWindow=32768;$0.messages=[ChatMessage(role:"user",text:"ADAPT_START"+String(repeating:"中文 🌍 source data ",count:900)+"ADAPT_END")]}
+        let adaptiveBefore=adaptive.selected!.messages
+        adaptive.requestCompaction(adaptiveID)
+        try await wait("adaptive smaller blocks"){!adaptive.compacting.contains(adaptiveID)}
+        check(adaptive.selected!.activeContextSummary.contains("ADAPT_START") && adaptive.selected!.activeContextSummary.contains("ADAPT_END"))
+        check(!adaptive.selected!.activeContextSummary.contains("BAD_PARTIAL_SUMMARY") && adaptive.selected!.messages.prefix(adaptiveBefore.count)==adaptiveBefore[...])
+        let persistent=store("summary-persistent"),persistentID=persistent.selected!.id
+        persistent.mutateSelected{$0.contextWindow=32768;$0.messages=[ChatMessage(role:"user",text:String(repeating:"z",count:9000))]}
+        persistent.requestCompaction(persistentID)
+        try await wait("bounded persistent truncation"){!persistent.compacting.contains(persistentID)}
+        check(persistent.selected!.contextSummary==nil && persistent.selected!.messages[0].text.count==9000)
+        let (diagnostics,_)=try await URLSession.shared.data(from:URL(string:"http://127.0.0.1:\(port)/stats")!)
+        let counts=try JSONSerialization.jsonObject(with:diagnostics) as! [String:Int]
+        check((counts["summary-persistent"] ?? 99)<=8 && (counts["summary-adaptive"] ?? 0)>2)
+        let router=store("summary-router"),routerID=router.selected!.id
+        router.archive.settings.remote?.telemetryProfile="router"
+        router.mutateSelected{$0.messages=[ChatMessage(role:"user",text:"Preserva il risultato 42.")]}
+        router.requestCompaction(routerID)
+        try await wait("router no reasoning compaction"){!router.compacting.contains(routerID)}
+        check(router.selected!.activeContextSummary.contains("MEMORY:"))
         FileHandle.standardError.write(Data("Context test: automatic threshold at end of generation\n".utf8))
         let full=store("fill-context");full.mutateSelected{$0.draft="fill"};full.sendMessage()
         try await wait("99 percent post-generation compact"){!(full.selected!.contextSummary ?? "").isEmpty && full.compacting.isEmpty}

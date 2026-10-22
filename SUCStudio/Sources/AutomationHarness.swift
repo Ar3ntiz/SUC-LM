@@ -8,8 +8,11 @@ extension StudioStore {
     }
     func finishGeneration(sessionID: UUID, messageID: UUID) {
         guard let session=archive.sessions.first(where:{$0.id==sessionID}),let message=session.messages.first(where:{$0.id==messageID}) else{return}
+        let contextWarning:String?=message.generation.flatMap { snapshot in
+            snapshot.maxTokens<session.maxTokens ? L("Risposta limitata dallo spazio nel contesto: budget effettivo \(snapshot.maxTokens) token. Usa /compact o riduci l’input; aumentare Output max non crea spazio nella finestra."):nil
+        }
         if message.protocolText.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty {
-            let detail=message.finishReason == "length" ? "Il modello ha esaurito il massimo output durante il thinking. Aumenta Output max o disattiva il thinking sul server.":"Il modello ha restituito solo thinking o una risposta vuota, senza risultato finale."
+            let detail=message.finishReason == "length" ? contextWarning ?? "Il modello ha esaurito il massimo output durante il thinking. Aumenta Output max o disattiva il thinking sul server.":"Il modello ha restituito solo thinking o una risposta vuota, senza risultato finale."
             mutateMessage(sessionID,messageID){$0.state="error"}
             actionNotice(sessionID,detail)
             finishAgentReport(sessionID,reason:"Nessun risultato finale ricevuto.")
@@ -17,7 +20,7 @@ extension StudioStore {
             return
         }
         if message.finishReason == "length" {
-            actionNotice(sessionID,"Risposta interrotta al limite Output max: il risultato può essere incompleto.")
+            actionNotice(sessionID,contextWarning ?? "Risposta interrotta al limite Output max: il risultato può essere incompleto.")
         }
         let final=WorkspaceAction.parse(message.protocolText)==nil && !WorkspaceAction.isActionEnvelope(message.protocolText)
         guard final,(archive.settings.hooks ?? []).contains(where:{$0.enabled && ["Stop","SubagentStop"].contains(HookDefinition.event($0.event))}) else{handleAgentResponse(sessionID:sessionID,messageID:messageID);return}
